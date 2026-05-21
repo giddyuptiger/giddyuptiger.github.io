@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Command Center">
+<meta name="theme-color" content="#b07d3a">
+<meta name="robots" content="noindex, nofollow">
+<title>Project Command Center</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #f5f3ef;
+    color: #1e1b16;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    padding: env(safe-area-inset-top) 0 0 0;
+  }
+  .wrap { max-width: 620px; margin: 0 auto; padding: 18px 14px 44px; }
+
+  header { margin-bottom: 18px; }
+  h1 { font-size: 21px; font-weight: 700; letter-spacing: -0.01em; }
+  .updated { font-size: 13px; color: #8a8175; margin-top: 3px; }
+
+  .card {
+    background: #fffdfa;
+    border: 1px solid #e7e2d9;
+    border-radius: 14px;
+    padding: 16px 16px 14px;
+    margin-bottom: 14px;
+    box-shadow: 0 1px 2px rgba(40,33,20,0.04);
+  }
+  .card h2 {
+    font-size: 12px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.07em; color: #b07d3a; margin-bottom: 12px;
+  }
+
+  ol.todo { list-style: none; counter-reset: t; }
+  ol.todo li {
+    counter-increment: t;
+    position: relative;
+    padding: 9px 0 9px 34px;
+    border-top: 1px solid #f0ece3;
+    font-size: 14.5px;
+  }
+  ol.todo li:first-child { border-top: none; }
+  ol.todo li::before {
+    content: counter(t);
+    position: absolute; left: 0; top: 9px;
+    width: 22px; height: 22px;
+    background: #b07d3a; color: #fff;
+    border-radius: 50%;
+    font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  ol.todo li b { font-weight: 700; }
+  ol.todo li .how { color: #6f675a; }
+  code {
+    background: #f0ece3; border-radius: 4px;
+    padding: 1px 5px; font-size: 12.5px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .queued { font-size: 13px; color: #8a8175; margin-top: 10px; font-style: italic; }
+
+  .row {
+    display: flex; gap: 9px; align-items: baseline;
+    padding: 8px 0; border-top: 1px solid #f0ece3;
+    font-size: 14px;
+  }
+  .row:first-of-type { border-top: none; }
+  .ic { font-size: 15px; flex: 0 0 auto; width: 22px; text-align: center; }
+  .nm { font-weight: 700; flex: 0 0 auto; }
+  .st { color: #6f675a; }
+
+  .legend { font-size: 11.5px; color: #9a9183; margin-top: 11px; line-height: 1.9; }
+  .legend span { white-space: nowrap; margin-right: 10px; display: inline-block; }
+
+  .driving { font-size: 14px; color: #3c372e; }
+  .driving b { font-weight: 700; }
+
+  .note {
+    display: flex; align-items: center; gap: 10px;
+    padding: 11px 0; border-top: 1px solid #f0ece3;
+  }
+  .note:first-of-type { border-top: none; }
+  .note .txt { flex: 1; font-size: 14.5px; }
+  .note button {
+    flex: 0 0 auto;
+    background: #fff; border: 1px solid #d8d0c2;
+    color: #6f675a; border-radius: 8px;
+    padding: 7px 13px; font-size: 12.5px; font-weight: 600;
+    cursor: pointer; transition: all .12s;
+  }
+  .note button:active { background: #f5f1e9; }
+  .note button.copied { background: #e9f3e6; border-color: #aacfa0; color: #4a7a3c; }
+
+  footer { font-size: 11.5px; color: #a89f8f; text-align: center; margin-top: 18px; line-height: 1.7; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Project Command Center</h1>
+    <div class="updated">Updated Thu, May 21 2026 &middot; afternoon run</div>
+  </header>
+
+  <div class="card">
+    <h2>Your to-do &mdash; highest-leverage first</h2>
+    <ol class="todo">
+      <li><b>PAPPY &mdash; deploy v2.5.10 Firebase functions.</b> <span class="how">Live app, real users; this build has a billing null-guard + a crash fix. From the PAPPY repo run <code>firebase deploy --only functions</code>. Most blocking.</span></li>
+      <li><b>HD-LOVE &mdash; cut the first TestFlight build.</b> <span class="how">Content 100% done &amp; accuracy-reviewed. Xcode &rarr; open iOS project &rarr; Product &rarr; Archive &rarr; upload to TestFlight.</span></li>
+      <li><b>Futon &mdash; submit to App Store Connect.</b> <span class="how">Submission package is staged in the repo. Create the app in App Store Connect and upload the build.</span></li>
+      <li><b>irons-design &mdash; deploy + point the domain.</b> <span class="how"><code>netlify.toml</code> is committed. Netlify &rarr; Add new site &rarr; Import the repo &rarr; Deploy &rarr; point irons.design DNS at it.</span></li>
+      <li><b>irons-holistic &mdash; deploy the static site.</b> <span class="how">Recreation of irons.be is committed. Netlify &rarr; Add new site &rarr; Import the repo &rarr; Deploy.</span></li>
+      <li><b>GRDN &mdash; cut the v1.11.0 store build.</b> <span class="how">Queued, not urgent &mdash; already live. UX polish committed; submit when ready.</span></li>
+    </ol>
+    <div class="queued">Queued pending your call: 888-process, POSTURE, and PRIMAL each need a direction decision.</div>
+  </div>
+
+  <div class="card">
+    <h2>The board</h2>
+    <div class="row"><span class="ic">&#9881;&#65039;</span><span class="nm">WEATHER</span><span class="st">iOS + Android building toward an App Store submission; PrivacyInfo + Android target landed today (v1.3.0).</span></div>
+    <div class="row"><span class="ic">&#10071;&#65039;</span><span class="nm">HD-LOVE</span><span class="st">Content 100% done &amp; accuracy-reviewed (v0.7.0+4); waiting on the first TestFlight build.</span></div>
+    <div class="row"><span class="ic">&#10071;&#65039;</span><span class="nm">Futon</span><span class="st">N5 grammar + Library detail done, submission package staged (v0.7.0+1); waiting on App Store submit.</span></div>
+    <div class="row"><span class="ic">&#10071;&#65039;</span><span class="nm">PAPPY</span><span class="st">v2.5.10 committed (billing + crash fix) for the live app; functions need deploying.</span></div>
+    <div class="row"><span class="ic">&#9881;&#65039;</span><span class="nm">SCANDALS</span><span class="st">Actively building; ML foot segmentation (U&sup2;-Net) landed today at v1.3.0.</span></div>
+    <div class="row"><span class="ic">&#10071;&#65039;</span><span class="nm">irons-design</span><span class="st">Static site done, netlify.toml committed; waiting on your Netlify deploy + domain.</span></div>
+    <div class="row"><span class="ic">&#10071;&#65039;</span><span class="nm">irons-holistic</span><span class="st">Static recreation of irons.be committed; waiting on a deploy.</span></div>
+    <div class="row"><span class="ic">&#10071;&#65039;</span><span class="nm">GRDN</span><span class="st">Live at v1.11.0; UX + onboarding polish committed, store build to cut when you want.</span></div>
+    <div class="row"><span class="ic">&#10067;</span><span class="nm">888-process</span><span class="st">v0.3.2+1, untouched since late March; needs your call on whether to resume.</span></div>
+    <div class="row"><span class="ic">&#10067;</span><span class="nm">POSTURE</span><span class="st">v1.0.0 web app, dormant since end of March; needs direction on reviving it.</span></div>
+    <div class="row"><span class="ic">&#10067;</span><span class="nm">PRIMAL</span><span class="st">v0.0.2+1, barely scaffolded, dormant since early March; needs scope defined or shelved.</span></div>
+    <div class="legend">
+      <span>&#10071;&#65039; Needs you</span>
+      <span>&#9881;&#65039; In progress</span>
+      <span>&#9208;&#65039; Parked</span>
+      <span>&#10067; Needs direction</span>
+      <span>&#9989; Live</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>What Claude is driving</h2>
+    <div class="driving"><b>WEATHER</b> &mdash; prepping the iOS + Android App Store build (PrivacyInfo, Android target, build bumps all landed today). <b>SCANDALS</b> &mdash; the ML foot-segmentation feature, U&sup2;-Net just landed. Both churning, nothing for you to touch.</div>
+  </div>
+
+  <div class="card">
+    <h2>Love notes &mdash; tap to copy one for T</h2>
+    <div class="note"><span class="txt">Just thinking about how lucky I am that you're mine &#128155;</span><button onclick="copyNote(this)">Copy</button></div>
+    <div class="note"><span class="txt">Doodle bug, sending my girl a big squeezy hug &#129402;</span><button onclick="copyNote(this)">Copy</button></div>
+    <div class="note"><span class="txt">Your smile gets me every single time &#10084;&#65039;</span><button onclick="copyNote(this)">Copy</button></div>
+  </div>
+
+  <footer>
+    Auto-refreshes 3&times; daily (6am &middot; 12pm &middot; 6pm).<br>
+    Private page &mdash; unlisted URL, not indexed.
+  </footer>
+
+</div>
+
+<script>
+  function copyNote(btn) {
+    var text = btn.parentElement.querySelector('.txt').textContent.trim();
+    var done = function() {
+      btn.textContent = 'Copied';
+      btn.classList.add('copied');
+      setTimeout(function(){ btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1800);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function(){ fallbackCopy(text, done); });
+    } else { fallbackCopy(text, done); }
+  }
+  function fallbackCopy(text, done) {
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try { document.execCommand('copy'); done(); } catch(e) {}
+    document.body.removeChild(ta);
+  }
+</script>
+</body>
+</html>

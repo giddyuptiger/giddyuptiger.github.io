@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "May 22, 2026 · 10:18 AM",
+  "lastUpdated": "May 22, 2026 · 10:22 AM",
   "projects": [
     {
       "name": "GRDN",
@@ -34,14 +34,14 @@
     {
       "name": "POSTURE",
       "state": "waiting-on-jeremy",
-      "note": "Auto-capture (hands-free 4-view camera) shipped. Supabase keep-alive built but blocked — the GitHub token needs a Workflows permission to push workflow files.",
-      "nextStep": "Add the Workflows permission to your GitHub token so the keep-alive can land; smoke-test auto-capture on your iPhone."
+      "note": "Auto-capture (hands-free 4-view camera) shipped. Supabase keep-alive workflow now being pushed (token Workflows permission added).",
+      "nextStep": "Smoke-test the auto-capture flow in Expo Go on your iPhone."
     },
     {
       "name": "Futon",
-      "state": "in-progress",
-      "note": "N5-N1 grammar + full N4-N1 vocab shipped. Consolidating the homepage into rainbow-segmented progress bars — Kana, Kanji, Vocab, Grammar — each showing SRS state per category.",
-      "nextStep": "Claude is building the consolidated bars; will stage for greenlight."
+      "state": "waiting-on-jeremy",
+      "note": "Homepage consolidated into one Progress section — rainbow-segmented bars for Kana, Kanji, Vocab, Grammar, each showing SRS state. Profile untouched. Staged.",
+      "nextStep": "Greenlight the consolidated Progress section to commit it."
     },
     {
       "name": "PAPPY",

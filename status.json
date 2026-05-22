@@ -1,11 +1,11 @@
 {
-  "lastUpdated": "May 22, 2026 · 10:17 AM",
+  "lastUpdated": "May 22, 2026 · 10:18 AM",
   "projects": [
     {
       "name": "GRDN",
-      "state": "waiting-on-jeremy",
-      "note": "v1.11.2 (free tier + UX polish) shipped; ci_post_clone.sh in place so Xcode Cloud builds cleanly.",
-      "nextStep": "Add a TestFlight (Internal Testing) post-action to the Xcode Cloud workflow so builds reach TestFlight."
+      "state": "in-progress",
+      "note": "v1.11.2 — TestFlight post-action added to the Xcode Cloud workflow; a build is now running and will land in TestFlight automatically.",
+      "nextStep": "Once the build lands in TestFlight, test it and submit for App Store review when ready."
     },
     {
       "name": "SCANDALS",

@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "May 22, 2026 · 1:06 PM",
+  "lastUpdated": "May 22, 2026 · 1:19 PM",
   "projects": [
     {
       "name": "GRDN",
@@ -64,8 +64,14 @@
     {
       "name": "PRIMAL",
       "state": "waiting-on-jeremy",
-      "note": "'Primal Moves' fitness-studio app — backend foundation built & pushed. A new spec for a separate app is meant to be built too, but it isn't in the PRIMAL folder — couldn't be located.",
-      "nextStep": "Point Claude to the new spec (it's not in the PRIMAL folder) or paste it in chat, so the separate app can be built."
+      "note": "'Primal Moves' fitness-studio app — front-end mostly built; the Firebase + Stripe Cloud Functions backend is now built and pushed.",
+      "nextStep": "To deploy the backend: set the Firebase project id and Stripe secrets (Claude will hand you the checklist)."
+    },
+    {
+      "name": "AI Voice Agent",
+      "state": "in-progress",
+      "note": "New separate project per Jeremy's build spec — a custom AI agent for a gym: inbound/outbound calls + texts + email, knowledge base, live booking, owner admin mode, escalation, manager dashboard.",
+      "nextStep": "Claude is planning the architecture and scaffolding the foundation; a checklist of accounts to provision (Twilio, Deepgram, etc.) is coming."
     }
   ]
 }

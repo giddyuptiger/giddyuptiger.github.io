@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "May 22, 2026 · 12:17 PM",
+  "lastUpdated": "May 22, 2026 · 12:20 PM",
   "projects": [
     {
       "name": "GRDN",
@@ -15,9 +15,9 @@
     },
     {
       "name": "HD-LOVE",
-      "state": "waiting-on-jeremy",
-      "note": "Daily transit loop live; moon-phase visual added; transit accuracy verified against Swiss Ephemeris (matches at gate + line precision).",
-      "nextStep": "Reviewing the TestFlight build; pick the next vision phase (social layer, daily-loop notifications, or swiping go-live)."
+      "state": "in-progress",
+      "note": "Launch-polish pass underway: removing the demo screen on the swipe page, the social on/off toggle, reframing matching into Romantic/Friends/Networking modes with tagged matches, plus a deep UX review.",
+      "nextStep": "Claude is doing the launch-polish pass; will report UX findings and the 3-mode design."
     },
     {
       "name": "irons-design",

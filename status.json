@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "May 22, 2026 · 12:16 PM",
+  "lastUpdated": "May 22, 2026 · 12:17 PM",
   "projects": [
     {
       "name": "GRDN",
@@ -9,9 +9,9 @@
     },
     {
       "name": "SCANDALS",
-      "state": "in-progress",
-      "note": "Two real scans gave 185mm and 274mm from near-identical photos — paper detection is unstable, swinging the scale. Now debugging the pipeline against Jeremy's real photo.",
-      "nextStep": "Claude is fixing paper detection against the real photo. A bigger reference sheet (foot fully on it) would also help reliability."
+      "state": "waiting-on-jeremy",
+      "note": "v1.6.1 hardened paper detection + added a guard against garbage numbers. Honest finding: foot-on-paper can't be made reliable (small sheet covered by the foot, bright floor). The real fix is a capture change.",
+      "nextStep": "Decide: switch to placing the paper BESIDE the foot (both flat on the floor) — always a clean, fully-visible rectangle. Claude can make that code change."
     },
     {
       "name": "HD-LOVE",

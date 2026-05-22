@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "May 22, 2026 · 10:12 AM",
+  "lastUpdated": "May 22, 2026 · 10:17 AM",
   "projects": [
     {
       "name": "GRDN",
@@ -9,9 +9,9 @@
     },
     {
       "name": "SCANDALS",
-      "state": "waiting-on-jeremy",
-      "note": "v1.4.0 — measurement rebuilt around the paper-as-reference method (homography + heel datum). The over-long length / calf-measuring bug is fixed by design.",
-      "nextStep": "Do a real foot-on-paper re-scan to confirm the new measurement."
+      "state": "in-progress",
+      "note": "Being reimagined — 2-3 photos, ML detects anatomical control points (toe tips, ball widths, arch, heel) to define the 2-D sole shape. 3-D dropped for now.",
+      "nextStep": "Claude is rebuilding the capture + measurement flow around control-point detection."
     },
     {
       "name": "HD-LOVE",

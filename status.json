@@ -1,11 +1,11 @@
 {
-  "lastUpdated": "May 22, 2026 · 11:38 AM",
+  "lastUpdated": "May 22, 2026 · 11:39 AM",
   "projects": [
     {
       "name": "GRDN",
-      "state": "in-progress",
-      "note": "v1.11.2 — Xcode Cloud build failed on a stale Swift Package Manager lockfile. Fix underway: disabling SPM in the CI script so it builds via CocoaPods.",
-      "nextStep": "Once the CI-script fix is pushed, re-run the GRDN Xcode Cloud build."
+      "state": "waiting-on-jeremy",
+      "note": "v1.11.2 — Xcode Cloud build SPM error fixed: the CI script now disables Swift Package Manager so the build resolves via CocoaPods. Pushed (79b6813).",
+      "nextStep": "Re-run the GRDN Xcode Cloud build — it should get past the post-clone step now."
     },
     {
       "name": "SCANDALS",

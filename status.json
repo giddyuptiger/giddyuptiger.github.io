@@ -1,11 +1,11 @@
 {
-  "lastUpdated": "May 22, 2026 · 2:52 PM",
+  "lastUpdated": "May 22, 2026 · 3:13 PM",
   "projects": [
     {
       "name": "GRDN",
       "state": "waiting-on-jeremy",
-      "note": "v1.11.2 — Xcode Cloud build SPM error fixed: the CI script now disables Swift Package Manager so the build resolves via CocoaPods. Pushed (79b6813).",
-      "nextStep": "Re-run the GRDN Xcode Cloud build — it should get past the post-clone step now."
+      "note": "v1.11.2 — the SPM build error is fixed; the build now gets into the Xcode archive step but fails there (xcodebuild exit 65). Need the actual error line to diagnose.",
+      "nextStep": "Paste the real error from the 'Run xcodebuild archive' step (a line with 'error:'), or let Claude read the build log via Chrome."
     },
     {
       "name": "SCANDALS",

@@ -1,11 +1,11 @@
 {
-  "lastUpdated": "May 22, 2026 · 11:30 AM",
+  "lastUpdated": "May 22, 2026 · 11:33 AM",
   "projects": [
     {
       "name": "GRDN",
       "state": "in-progress",
-      "note": "v1.11.2 — TestFlight post-action added to the Xcode Cloud workflow; a build is now running and will land in TestFlight automatically.",
-      "nextStep": "Once the build lands in TestFlight, test it and submit for App Store review when ready."
+      "note": "v1.11.2 — Xcode Cloud build failed on a stale Swift Package Manager lockfile. Fix underway: disabling SPM in the CI script so it builds via CocoaPods.",
+      "nextStep": "Once the CI-script fix is pushed, re-run the GRDN Xcode Cloud build."
     },
     {
       "name": "SCANDALS",

@@ -1,23 +1,41 @@
 {
-  "lastUpdated": "May 22, 2026 · 8:37 AM",
+  "lastUpdated": "May 22, 2026 · 8:41 AM",
   "projects": [
     {
-      "name": "WEATHER",
+      "name": "SCANDALS",
       "state": "in-progress",
-      "note": "iOS + Android App Store prep; PrivacyInfo, Android target and breath-orb layout fix landed (v1.3.0+2).",
-      "nextStep": "Claude is prepping the App Store build — nothing needed from you."
+      "note": "v1.3.1 shipped — ML foot segmentation + inch read-outs. Measurement is being rebuilt around the paper-as-reference method (paper for scale + perspective, heel-against-wall datum) to fix the over-long length.",
+      "nextStep": "Claude is rebuilding the measurement pipeline."
     },
     {
       "name": "HD-LOVE",
-      "state": "in-progress",
-      "note": "Daily transit engine and daily-loop reading on the Me screen shipped (v0.10.2+14).",
-      "nextStep": "Claude is driving the daily-loop feature build."
+      "state": "waiting-on-jeremy",
+      "note": "Vision draft done. Phase 1 — the daily transit loop — built and shipped, plus the channel-rendering fix, channel-description reorder, expandable Strategy/Not-Self guidance, and the dating on/off toggle.",
+      "nextStep": "Pick the next move: the social layer, daily-loop notifications, or the swiping go-live work."
     },
     {
       "name": "Futon",
+      "state": "waiting-on-jeremy",
+      "note": "N4-N1 grammar (653 points) + vocab (6,995 words) shipped and applied to the database. Home page updated to add the Achievements, Social and Recent Activity sections.",
+      "nextStep": "Greenlight the home-page update — it's staged, awaiting your go to commit."
+    },
+    {
+      "name": "GRDN",
+      "state": "waiting-on-jeremy",
+      "note": "v1.11.2 (free tier + UX polish) merged and pushed; ci_post_clone.sh added so Xcode Cloud builds cleanly.",
+      "nextStep": "Xcode Cloud is building v1.11.2 to TestFlight — submit for App Store review when you're ready."
+    },
+    {
+      "name": "WEATHER",
       "state": "in-progress",
-      "note": "N4-N1 grammar (653 points) and vocab (6,995 words) shipped; Supabase migrations applied.",
-      "nextStep": "Claude is driving the content expansion."
+      "note": "Breath-orb layout fix shipped (the dot that pushed buttons past the fold). iOS + Android App Store prep ongoing.",
+      "nextStep": "Claude is prepping the App Store build — nothing needed from you yet."
+    },
+    {
+      "name": "POSTURE",
+      "state": "in-progress",
+      "note": "Revived from dormant. TypeScript build fixed, coach dashboard wired up, exercise-prescription feature merged, and the draggable landmark editor rebuilt.",
+      "nextStep": "Revived and current; further work on request."
     },
     {
       "name": "PAPPY",
@@ -26,10 +44,10 @@
       "nextStep": "Live and stable — nothing pending."
     },
     {
-      "name": "SCANDALS",
-      "state": "in-progress",
-      "note": "v1.3.1 — ML foot segmentation done; measurement-accuracy refinements underway (inch read-outs, mask trimming).",
-      "nextStep": "Claude is refining measurement accuracy."
+      "name": "irons-holistic",
+      "state": "done",
+      "note": "Static recreation of irons.be deployed and live.",
+      "nextStep": "Live — nothing pending."
     },
     {
       "name": "irons-design",
@@ -38,28 +56,10 @@
       "nextStep": "Finish the Cloudflare deploy you have underway — nearly done."
     },
     {
-      "name": "irons-holistic",
-      "state": "done",
-      "note": "Static site deployed and live.",
-      "nextStep": "Live — nothing pending."
-    },
-    {
-      "name": "GRDN",
-      "state": "in-progress",
-      "note": "v1.11.2 pushed; Xcode Cloud building it to TestFlight.",
-      "nextStep": "Claude is driving the TestFlight build via Xcode Cloud."
-    },
-    {
       "name": "888-process",
       "state": "parked",
       "note": "Paused by your decision.",
       "nextStep": "Parked — no action planned."
-    },
-    {
-      "name": "POSTURE",
-      "state": "in-progress",
-      "note": "Actively building; assessment-screen landmark editor rebuilt.",
-      "nextStep": "Claude is driving the assessment-screen build."
     },
     {
       "name": "PRIMAL",

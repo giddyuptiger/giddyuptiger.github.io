@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "May 22, 2026 · 9:20 AM",
+  "lastUpdated": "May 22, 2026 · 9:59 AM",
   "projects": [
     {
       "name": "GRDN",
@@ -28,8 +28,8 @@
     {
       "name": "WEATHER",
       "state": "waiting-on-jeremy",
-      "note": "Code-complete at v1.3.0 — all features ship. README + privacy policy cleaned up. Remaining launch work is external setup (store accounts, domain, keystore, screenshots).",
-      "nextStep": "Decide whether Claude should fix the hanging CI test suite; then the external store-launch setup."
+      "note": "App Store rejection (ITMS-90129) fixed — the bundle name was the generic word 'Weather'; now uniquely 'Weather: Between Us'. Committed (85d66ce).",
+      "nextStep": "Trigger a fresh Xcode Cloud build (will be build 22) and resubmit to App Store review."
     },
     {
       "name": "POSTURE",
@@ -39,9 +39,9 @@
     },
     {
       "name": "Futon",
-      "state": "done",
-      "note": "N5-N1 grammar + full N4-N1 vocab (6,995 words) shipped and applied; mastery-bars bug fixed; home page now shows Achievements / Social / Recent Activity.",
-      "nextStep": "Current work shipped — nothing pending."
+      "state": "waiting-on-jeremy",
+      "note": "N5-N1 grammar + full N4-N1 vocab shipped; home page sections added. Profile's N5 card updated to match the cleaner home-page version — staged.",
+      "nextStep": "Greenlight the N5-card change to commit it (or say if you wanted the busier style instead)."
     },
     {
       "name": "PAPPY",

@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "May 22, 2026 · 11:33 AM",
+  "lastUpdated": "May 22, 2026 · 11:36 AM",
   "projects": [
     {
       "name": "GRDN",
@@ -34,8 +34,8 @@
     {
       "name": "POSTURE",
       "state": "waiting-on-jeremy",
-      "note": "Auto-capture (hands-free 4-view camera) shipped. Supabase keep-alive workflow pushed and fixed (URL secret had a trailing newline; workflow hardened).",
-      "nextStep": "Re-run the Keep-Alive workflow to confirm green; smoke-test auto-capture in Expo Go on your iPhone."
+      "note": "Auto-capture (hands-free 4-view camera) shipped. Keep-alive workflow is correct, but the Supabase project itself is paused — that's why it can't connect.",
+      "nextStep": "Resume the paused POSTURE Supabase project in the dashboard, then re-run Keep-Alive; smoke-test auto-capture on your iPhone."
     },
     {
       "name": "Futon",

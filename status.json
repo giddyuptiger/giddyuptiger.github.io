@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "May 22, 2026 · 12:20 PM",
+  "lastUpdated": "May 22, 2026 · 12:28 PM",
   "projects": [
     {
       "name": "GRDN",
@@ -39,9 +39,9 @@
     },
     {
       "name": "Futon",
-      "state": "waiting-on-jeremy",
-      "note": "Homepage Progress section (rainbow SRS bars) shipped. The 'Burned' SRS state renamed to 'Perfected' across the UI — staged.",
-      "nextStep": "Greenlight the 'Perfected' rename to commit it."
+      "state": "done",
+      "note": "Homepage Progress section (rainbow SRS bars) shipped; 'Burned' SRS state renamed to 'Perfected' across the UI — committed.",
+      "nextStep": "Current work shipped — nothing pending."
     },
     {
       "name": "PAPPY",

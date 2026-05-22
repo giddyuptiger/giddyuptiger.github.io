@@ -39,12 +39,20 @@
     letter-spacing: 0.07em; color: #b07d3a; margin-bottom: 4px;
   }
 
-  /* needs-you */
+  /* your to-do */
   .need {
+    display: flex; gap: 10px; align-items: flex-start;
     padding: 11px 0 9px;
     border-top: 1px solid #f0ece3;
   }
   .need:first-of-type { border-top: none; }
+  .need-num {
+    flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%;
+    background: #b07d3a; color: #fffdfa; font-size: 12.5px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1; margin-top: 1px;
+  }
+  .need-body { flex: 1; min-width: 0; }
   .need-nm { font-weight: 700; font-size: 14.5px; }
   .need-step { font-size: 13.5px; color: #6f675a; margin-top: 2px; }
 
@@ -120,11 +128,14 @@
     var needs = projects.filter(function (p) { return p.state === "waiting-on-jeremy"; });
     if (needs.length) {
       var c1 = el("div", "card");
-      c1.appendChild(el("h2", null, "Needs you"));
-      needs.forEach(function (p) {
+      c1.appendChild(el("h2", null, "Your to-do — highest-leverage first"));
+      needs.forEach(function (p, i) {
         var n = el("div", "need");
-        n.appendChild(el("div", "need-nm", p.name));
-        if (p.nextStep) n.appendChild(el("div", "need-step", p.nextStep));
+        n.appendChild(el("span", "need-num", String(i + 1)));
+        var nb = el("div", "need-body");
+        nb.appendChild(el("div", "need-nm", p.name));
+        if (p.nextStep) nb.appendChild(el("div", "need-step", p.nextStep));
+        n.appendChild(nb);
         c1.appendChild(n);
       });
       content.appendChild(c1);

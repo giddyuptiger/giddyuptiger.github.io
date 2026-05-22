@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "May 22, 2026 · 10:22 AM",
+  "lastUpdated": "May 22, 2026 · 10:34 AM",
   "projects": [
     {
       "name": "GRDN",
@@ -9,9 +9,9 @@
     },
     {
       "name": "SCANDALS",
-      "state": "in-progress",
-      "note": "Being reimagined — 2-3 photos, ML detects anatomical control points (toe tips, ball widths, arch, heel) to define the 2-D sole shape. 3-D dropped for now.",
-      "nextStep": "Claude is rebuilding the capture + measurement flow around control-point detection."
+      "state": "waiting-on-jeremy",
+      "note": "v1.5.0 — reimagined: 2 photos, ML + geometry extract anatomical control points (5 toe tips, ball widths, arch, heel) into a 2-D sole outline. 3-D dropped. Verified on synthetic data only.",
+      "nextStep": "Do a real foot-on-paper scan to verify v1.5.0 (non-white floor, toes slightly spread)."
     },
     {
       "name": "HD-LOVE",
@@ -34,7 +34,7 @@
     {
       "name": "POSTURE",
       "state": "waiting-on-jeremy",
-      "note": "Auto-capture (hands-free 4-view camera) shipped. Supabase keep-alive workflow now being pushed (token Workflows permission added).",
+      "note": "Auto-capture (hands-free 4-view camera) shipped. Supabase keep-alive workflow pushed — first run failed (URL not resolving); fix underway.",
       "nextStep": "Smoke-test the auto-capture flow in Expo Go on your iPhone."
     },
     {

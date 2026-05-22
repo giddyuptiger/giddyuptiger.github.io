@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "May 22, 2026 · 1:19 PM",
+  "lastUpdated": "May 22, 2026 · 2:52 PM",
   "projects": [
     {
       "name": "GRDN",
@@ -69,9 +69,9 @@
     },
     {
       "name": "AI Voice Agent",
-      "state": "in-progress",
-      "note": "New separate project per Jeremy's build spec — a custom AI agent for a gym: inbound/outbound calls + texts + email, knowledge base, live booking, owner admin mode, escalation, manager dashboard.",
-      "nextStep": "Claude is planning the architecture and scaffolding the foundation; a checklist of accounts to provision (Twilio, Deepgram, etc.) is coming."
+      "state": "waiting-on-jeremy",
+      "note": "Foundation built — standalone project at ~/Documents/code/primal-agent. Build-order steps 1-10 + 12 are real running code (voice loop, agent brain, SMS/email, compliance, escalation). Type-checks and boots in mock mode. Dashboard UI + real gym adapter still to build.",
+      "nextStep": "Create a private GitHub repo + push; start the Twilio A2P 10DLC registration; work through docs/PROVISIONING.md."
     }
   ]
 }

@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "May 22, 2026 · 11:36 AM",
+  "lastUpdated": "May 22, 2026 · 11:38 AM",
   "projects": [
     {
       "name": "GRDN",
@@ -39,9 +39,9 @@
     },
     {
       "name": "Futon",
-      "state": "waiting-on-jeremy",
-      "note": "Homepage consolidated into one Progress section — rainbow-segmented bars for Kana, Kanji, Vocab, Grammar, each showing SRS state. Profile untouched. Staged.",
-      "nextStep": "Greenlight the consolidated Progress section to commit it."
+      "state": "done",
+      "note": "Homepage consolidated into one Progress section — rainbow-segmented bars (Kana, Kanji, Vocab, Grammar) showing SRS state — committed and pushed. N5-N1 grammar + vocab all shipped.",
+      "nextStep": "Current work shipped. (Grammar bar populates once the grammar migrations are applied to Supabase.)"
     },
     {
       "name": "PAPPY",

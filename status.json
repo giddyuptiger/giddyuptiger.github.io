@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "May 22, 2026 · 10:07 AM",
+  "lastUpdated": "May 22, 2026 · 10:10 AM",
   "projects": [
     {
       "name": "GRDN",
@@ -39,9 +39,9 @@
     },
     {
       "name": "Futon",
-      "state": "in-progress",
-      "note": "N5-N1 grammar + full N4-N1 vocab shipped; home page sections added. Now adding the rainbow Mastery (New/Learning/Familiar/Stable/Burned) card to the homepage; profile being restored to its original state.",
-      "nextStep": "Claude is staging the homepage Mastery-card change for your greenlight."
+      "state": "waiting-on-jeremy",
+      "note": "N5-N1 grammar + full N4-N1 vocab shipped. Rainbow Mastery card added to the homepage; profile untouched — staged.",
+      "nextStep": "Greenlight the homepage Mastery-card change to commit it."
     },
     {
       "name": "PAPPY",

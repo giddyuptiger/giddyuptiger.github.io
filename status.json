@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "May 22, 2026 · 9:02 AM",
+  "lastUpdated": "May 22, 2026 · 9:07 AM",
   "projects": [
     {
       "name": "GRDN",
@@ -27,9 +27,9 @@
     },
     {
       "name": "WEATHER",
-      "state": "in-progress",
-      "note": "Breath-orb layout fix shipped. App Store prep underway.",
-      "nextStep": "Claude is picking up the next App Store-prep work."
+      "state": "waiting-on-jeremy",
+      "note": "Code-complete at v1.3.0 — all features ship. README + privacy policy cleaned up. Remaining launch work is external setup (store accounts, domain, keystore, screenshots).",
+      "nextStep": "Decide whether Claude should fix the hanging CI test suite; then the external store-launch setup."
     },
     {
       "name": "POSTURE",

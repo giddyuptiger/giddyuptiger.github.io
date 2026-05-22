@@ -1,0 +1,71 @@
+{
+  "lastUpdated": "May 22, 2026 · 8:37 AM",
+  "projects": [
+    {
+      "name": "WEATHER",
+      "state": "in-progress",
+      "note": "iOS + Android App Store prep; PrivacyInfo, Android target and breath-orb layout fix landed (v1.3.0+2).",
+      "nextStep": "Claude is prepping the App Store build — nothing needed from you."
+    },
+    {
+      "name": "HD-LOVE",
+      "state": "in-progress",
+      "note": "Daily transit engine and daily-loop reading on the Me screen shipped (v0.10.2+14).",
+      "nextStep": "Claude is driving the daily-loop feature build."
+    },
+    {
+      "name": "Futon",
+      "state": "in-progress",
+      "note": "N4-N1 grammar (653 points) and vocab (6,995 words) shipped; Supabase migrations applied.",
+      "nextStep": "Claude is driving the content expansion."
+    },
+    {
+      "name": "PAPPY",
+      "state": "done",
+      "note": "v2.5.10 (billing null-guard + crash fix) deployed to Firebase and live for users.",
+      "nextStep": "Live and stable — nothing pending."
+    },
+    {
+      "name": "SCANDALS",
+      "state": "in-progress",
+      "note": "v1.3.1 — ML foot segmentation done; measurement-accuracy refinements underway (inch read-outs, mask trimming).",
+      "nextStep": "Claude is refining measurement accuracy."
+    },
+    {
+      "name": "irons-design",
+      "state": "waiting-on-jeremy",
+      "note": "Static site ready; hosted on Cloudflare.",
+      "nextStep": "Finish the Cloudflare deploy you have underway — nearly done."
+    },
+    {
+      "name": "irons-holistic",
+      "state": "done",
+      "note": "Static site deployed and live.",
+      "nextStep": "Live — nothing pending."
+    },
+    {
+      "name": "GRDN",
+      "state": "in-progress",
+      "note": "v1.11.2 pushed; Xcode Cloud building it to TestFlight.",
+      "nextStep": "Claude is driving the TestFlight build via Xcode Cloud."
+    },
+    {
+      "name": "888-process",
+      "state": "parked",
+      "note": "Paused by your decision.",
+      "nextStep": "Parked — no action planned."
+    },
+    {
+      "name": "POSTURE",
+      "state": "in-progress",
+      "note": "Actively building; assessment-screen landmark editor rebuilt.",
+      "nextStep": "Claude is driving the assessment-screen build."
+    },
+    {
+      "name": "PRIMAL",
+      "state": "parked",
+      "note": "Paused by your decision.",
+      "nextStep": "Parked — no action planned."
+    }
+  ]
+}

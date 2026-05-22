@@ -36,69 +36,42 @@
   }
   .card h2 {
     font-size: 12px; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.07em; color: #b07d3a; margin-bottom: 12px;
+    letter-spacing: 0.07em; color: #b07d3a; margin-bottom: 4px;
   }
 
-  ol.todo { list-style: none; counter-reset: t; }
-  ol.todo li {
-    counter-increment: t;
-    position: relative;
-    padding: 9px 0 9px 34px;
+  /* needs-you */
+  .need {
+    padding: 11px 0 9px;
     border-top: 1px solid #f0ece3;
-    font-size: 14.5px;
   }
-  ol.todo li:first-child { border-top: none; }
-  ol.todo li::before {
-    content: counter(t);
-    position: absolute; left: 0; top: 9px;
-    width: 22px; height: 22px;
-    background: #b07d3a; color: #fff;
-    border-radius: 50%;
-    font-size: 12px; font-weight: 700;
-    display: flex; align-items: center; justify-content: center;
-  }
-  ol.todo li b { font-weight: 700; }
-  ol.todo li .how { color: #6f675a; }
-  code {
-    background: #f0ece3; border-radius: 4px;
-    padding: 1px 5px; font-size: 12.5px;
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  }
-  .queued { font-size: 13px; color: #8a8175; margin-top: 10px; font-style: italic; }
+  .need:first-of-type { border-top: none; }
+  .need-nm { font-weight: 700; font-size: 14.5px; }
+  .need-step { font-size: 13.5px; color: #6f675a; margin-top: 2px; }
 
+  /* board */
   .row {
-    display: flex; gap: 9px; align-items: baseline;
-    padding: 8px 0; border-top: 1px solid #f0ece3;
-    font-size: 14px;
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 11px 0 10px;
+    border-top: 1px solid #f0ece3;
   }
   .row:first-of-type { border-top: none; }
-  .ic { font-size: 15px; flex: 0 0 auto; width: 22px; text-align: center; }
-  .nm { font-weight: 700; flex: 0 0 auto; }
+  .ic { font-size: 15px; flex: 0 0 auto; width: 22px; text-align: center; line-height: 1.5; }
+  .body { flex: 1; min-width: 0; }
+  .top { font-size: 14px; }
+  .nm { font-weight: 700; }
   .st { color: #6f675a; }
+  .step { font-size: 13px; color: #8a8175; margin-top: 3px; }
 
-  .legend { font-size: 11.5px; color: #9a9183; margin-top: 11px; line-height: 1.9; }
+  .legend { font-size: 11.5px; color: #9a9183; margin-top: 12px; padding-top: 11px; border-top: 1px solid #f0ece3; line-height: 1.9; }
   .legend span { white-space: nowrap; margin-right: 10px; display: inline-block; }
 
-  .driving { font-size: 14px; color: #3c372e; }
-  .driving b { font-weight: 700; }
-
-  .note {
-    display: flex; align-items: center; gap: 10px;
-    padding: 11px 0; border-top: 1px solid #f0ece3;
-  }
-  .note:first-of-type { border-top: none; }
-  .note .txt { flex: 1; font-size: 14.5px; }
-  .note button {
-    flex: 0 0 auto;
-    background: #fff; border: 1px solid #d8d0c2;
-    color: #6f675a; border-radius: 8px;
-    padding: 7px 13px; font-size: 12.5px; font-weight: 600;
-    cursor: pointer; transition: all .12s;
-  }
-  .note button:active { background: #f5f1e9; }
-  .note button.copied { background: #e9f3e6; border-color: #aacfa0; color: #4a7a3c; }
+  .msg { font-size: 14px; color: #6f675a; padding: 6px 0; }
 
   footer { font-size: 11.5px; color: #a89f8f; text-align: center; margin-top: 18px; line-height: 1.7; }
+  footer code {
+    background: #ece7dd; border-radius: 4px; padding: 1px 5px;
+    font-size: 11px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
 </style>
 </head>
 <body>
@@ -106,79 +79,103 @@
 
   <header>
     <h1>Project Command Center</h1>
-    <div class="updated">Last updated: May 22, 2026 &middot; 8:21 AM</div>
+    <div class="updated" id="updated">Loading&hellip;</div>
   </header>
 
-  <div class="card">
-    <h2>Your to-do &mdash; highest-leverage first</h2>
-    <ol class="todo">
-      <li><b>PAPPY &mdash; deploy v2.5.10 Firebase functions.</b> <span class="how">Live app, real users; this build has a billing null-guard + a crash fix. From the PAPPY repo run <code>firebase deploy --only functions</code>. Most blocking.</span></li>
-      <li><b>irons-design &mdash; deploy + point the domain.</b> <span class="how"><code>netlify.toml</code> is committed. Netlify &rarr; Add new site &rarr; Import the repo &rarr; Deploy &rarr; point irons.design DNS at it.</span></li>
-      <li><b>irons-holistic &mdash; deploy the static site.</b> <span class="how">Recreation of irons.be is committed. Netlify &rarr; Add new site &rarr; Import the repo &rarr; Deploy.</span></li>
-    </ol>
-    <div class="queued">Queued pending your call: 888-process and PRIMAL each need a direction decision &mdash; resume or shelve.</div>
-  </div>
-
-  <div class="card">
-    <h2>The board</h2>
-    <div class="row"><span class="ic">&#9881;&#65039;</span><span class="nm">WEATHER</span><span class="st">iOS + Android App Store prep underway; PrivacyInfo, Android target + breath-orb layout fix landed today (v1.3.0+2).</span></div>
-    <div class="row"><span class="ic">&#9881;&#65039;</span><span class="nm">HD-LOVE</span><span class="st">Actively building; daily transit engine + dating opt-in flow landed today (v0.10.2+14).</span></div>
-    <div class="row"><span class="ic">&#9881;&#65039;</span><span class="nm">Futon</span><span class="st">Content expansion in flight; full N4&ndash;N1 vocab (6,995 words) + grammar (653 points) landed today (v0.7.0+1).</span></div>
-    <div class="row"><span class="ic">&#10071;&#65039;</span><span class="nm">PAPPY</span><span class="st">v2.5.10 committed (billing + crash fix) for the live app; functions still need deploying.</span></div>
-    <div class="row"><span class="ic">&#9881;&#65039;</span><span class="nm">SCANDALS</span><span class="st">Actively building; ML foot segmentation (U&sup2;-Net) landed at v1.3.0.</span></div>
-    <div class="row"><span class="ic">&#10071;&#65039;</span><span class="nm">irons-design</span><span class="st">Static site + netlify.toml committed; waiting on your Netlify deploy + domain.</span></div>
-    <div class="row"><span class="ic">&#10071;&#65039;</span><span class="nm">irons-holistic</span><span class="st">Static recreation of irons.be committed; waiting on a deploy.</span></div>
-    <div class="row"><span class="ic">&#9881;&#65039;</span><span class="nm">GRDN</span><span class="st">Live; v1.11.2 release prep + Xcode Cloud build wiring landed today (v1.11.2+2).</span></div>
-    <div class="row"><span class="ic">&#10067;</span><span class="nm">888-process</span><span class="st">v0.3.2+1, untouched since late March; needs your call on whether to resume.</span></div>
-    <div class="row"><span class="ic">&#9881;&#65039;</span><span class="nm">POSTURE</span><span class="st">Revived and actively building; assessment-screen landmark editor rebuilt today (v1.0.0).</span></div>
-    <div class="row"><span class="ic">&#10067;</span><span class="nm">PRIMAL</span><span class="st">v0.0.2+1, barely scaffolded, dormant since early March; needs scope defined or shelved.</span></div>
-    <div class="legend">
-      <span>&#10071;&#65039; Needs you</span>
-      <span>&#9881;&#65039; In progress</span>
-      <span>&#9208;&#65039; Parked</span>
-      <span>&#10067; Needs direction</span>
-      <span>&#9989; Live</span>
-    </div>
-  </div>
-
-  <div class="card">
-    <h2>What Claude is driving</h2>
-    <div class="driving"><b>WEATHER</b> (iOS + Android App Store prep), <b>HD-LOVE</b> (daily transit engine + dating flow), <b>Futon</b> (N4&ndash;N1 vocab + grammar expansion), <b>SCANDALS</b> (ML foot segmentation), <b>GRDN</b> (v1.11.2 build prep via Xcode Cloud), and <b>POSTURE</b> (assessment-screen rebuild) are all churning on Claude's side &mdash; nothing for you to touch on those.</div>
-  </div>
-
-  <div class="card">
-    <h2>Love notes &mdash; tap to copy one for T</h2>
-    <div class="note"><span class="txt">Thinking of you T, love you so much &#128155;</span><button onclick="copyNote(this)">Copy</button></div>
-    <div class="note"><span class="txt">Your hair's been looking so sun-kissed and pretty lately</span><button onclick="copyNote(this)">Copy</button></div>
-    <div class="note"><span class="txt">Boopy doopy doo, can't stop thinking about you &#128516;</span><button onclick="copyNote(this)">Copy</button></div>
+  <div id="content">
+    <div class="card"><div class="msg">Loading the board&hellip;</div></div>
   </div>
 
   <footer>
-    Auto-refreshes 3&times; daily (6am &middot; 12pm &middot; 6pm).<br>
+    Live status &mdash; this page renders from <code>status.json</code>.<br>
     Private page &mdash; unlisted URL, not indexed.
   </footer>
 
 </div>
 
 <script>
-  function copyNote(btn) {
-    var text = btn.parentElement.querySelector('.txt').textContent.trim();
-    var done = function() {
-      btn.textContent = 'Copied';
-      btn.classList.add('copied');
-      setTimeout(function(){ btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1800);
-    };
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(done, function(){ fallbackCopy(text, done); });
-    } else { fallbackCopy(text, done); }
+(function () {
+  var STATES = {
+    "waiting-on-jeremy": { icon: "❗️", label: "Needs you" },
+    "in-progress":       { icon: "⚙️", label: "In progress" },
+    "parked":            { icon: "⏸️", label: "Parked" },
+    "done":              { icon: "✅",       label: "Done" }
+  };
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
   }
-  function fallbackCopy(text, done) {
-    var ta = document.createElement('textarea');
-    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
-    document.body.appendChild(ta); ta.focus(); ta.select();
-    try { document.execCommand('copy'); done(); } catch(e) {}
-    document.body.removeChild(ta);
+
+  function render(data) {
+    document.getElementById("updated").textContent =
+      "Last updated: " + (data.lastUpdated || "unknown");
+
+    var content = document.getElementById("content");
+    content.innerHTML = "";
+    var projects = (data && data.projects) || [];
+
+    var needs = projects.filter(function (p) { return p.state === "waiting-on-jeremy"; });
+    if (needs.length) {
+      var c1 = el("div", "card");
+      c1.appendChild(el("h2", null, "Needs you"));
+      needs.forEach(function (p) {
+        var n = el("div", "need");
+        n.appendChild(el("div", "need-nm", p.name));
+        if (p.nextStep) n.appendChild(el("div", "need-step", p.nextStep));
+        c1.appendChild(n);
+      });
+      content.appendChild(c1);
+    }
+
+    var c2 = el("div", "card");
+    c2.appendChild(el("h2", null, "The board"));
+    projects.forEach(function (p) {
+      var s = STATES[p.state] || { icon: "•", label: p.state || "" };
+      var row = el("div", "row");
+      row.appendChild(el("span", "ic", s.icon));
+      var body = el("div", "body");
+      var top = el("div", "top");
+      top.appendChild(el("span", "nm", p.name));
+      if (p.note) {
+        top.appendChild(document.createTextNode(" "));
+        top.appendChild(el("span", "st", p.note));
+      }
+      body.appendChild(top);
+      if (p.nextStep) body.appendChild(el("div", "step", p.nextStep));
+      row.appendChild(body);
+      c2.appendChild(row);
+    });
+    var legend = el("div", "legend");
+    ["waiting-on-jeremy", "in-progress", "parked", "done"].forEach(function (k) {
+      legend.appendChild(el("span", null, STATES[k].icon + " " + STATES[k].label));
+    });
+    c2.appendChild(legend);
+    content.appendChild(c2);
   }
+
+  function fail(message) {
+    document.getElementById("updated").textContent = "";
+    var content = document.getElementById("content");
+    content.innerHTML = "";
+    var card = el("div", "card");
+    card.appendChild(el("div", "msg", message));
+    content.appendChild(card);
+  }
+
+  fetch("status.json?t=" + Date.now(), { cache: "no-store" })
+    .then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    })
+    .then(render)
+    .catch(function (e) {
+      fail("Could not load the status board (" + e.message +
+           "). It will appear here once status.json is published.");
+    });
+})();
 </script>
 </body>
 </html>

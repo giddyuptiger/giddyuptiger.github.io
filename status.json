@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "May 22, 2026 · 8:55 AM",
+  "lastUpdated": "May 22, 2026 · 9:02 AM",
   "projects": [
     {
       "name": "GRDN",
@@ -21,9 +21,9 @@
     },
     {
       "name": "irons-design",
-      "state": "waiting-on-jeremy",
-      "note": "Static site ready; hosted on Cloudflare (their API was having an outage).",
-      "nextStep": "Finish the Cloudflare deploy once their service is back up."
+      "state": "done",
+      "note": "Live on Cloudflare — resolving with valid SSL and the correct content.",
+      "nextStep": "Live — nothing pending."
     },
     {
       "name": "WEATHER",

@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "May 22, 2026 · 12:59 PM",
+  "lastUpdated": "May 22, 2026 · 1:06 PM",
   "projects": [
     {
       "name": "GRDN",
@@ -63,9 +63,9 @@
     },
     {
       "name": "PRIMAL",
-      "state": "in-progress",
-      "note": "'Primal Moves' fitness-studio app — backend foundation built & pushed. Separately: Jeremy added a new spec for a different app under the PRIMAL name — being identified and scoped to build as its own project.",
-      "nextStep": "Claude is reading the newly-added spec to confirm what the separate app is, then building it separately."
+      "state": "waiting-on-jeremy",
+      "note": "'Primal Moves' fitness-studio app — backend foundation built & pushed. A new spec for a separate app is meant to be built too, but it isn't in the PRIMAL folder — couldn't be located.",
+      "nextStep": "Point Claude to the new spec (it's not in the PRIMAL folder) or paste it in chat, so the separate app can be built."
     }
   ]
 }

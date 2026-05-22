@@ -50,10 +50,9 @@
   }
   .need:first-of-type { border-top: none; }
   .need-num {
-    flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%;
-    background: #b07d3a; color: #fffdfa; font-size: 12.5px; font-weight: 700;
-    display: flex; align-items: center; justify-content: center;
-    line-height: 1; margin-top: 1px;
+    flex: 0 0 auto; padding: 3px 7px; border-radius: 7px;
+    background: #b07d3a; color: #fffdfa; font-size: 11px; font-weight: 700;
+    letter-spacing: 0.02em; line-height: 1; margin-top: 1px; white-space: nowrap;
   }
   .need-body { flex: 1; min-width: 0; }
   .need-nm { font-weight: 700; font-size: 14.5px; }
@@ -134,7 +133,7 @@
       c1.appendChild(el("h2", null, "Your to-do — highest-leverage first"));
       needs.forEach(function (p, i) {
         var n = el("div", "need");
-        n.appendChild(el("span", "need-num", String(i + 1)));
+        n.appendChild(el("span", "need-num", "CC" + (i + 1)));
         var nb = el("div", "need-body");
         nb.appendChild(el("div", "need-nm", p.name));
         if (p.nextStep) nb.appendChild(el("div", "need-step", p.nextStep));

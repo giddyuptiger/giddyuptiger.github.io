@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "May 22, 2026 · 12:48 PM",
+  "lastUpdated": "May 22, 2026 · 12:59 PM",
   "projects": [
     {
       "name": "GRDN",
@@ -64,8 +64,8 @@
     {
       "name": "PRIMAL",
       "state": "in-progress",
-      "note": "'Primal Moves' fitness-studio app. Front-end was substantially built but the spec's Firebase+Stripe backend didn't exist — the complete Cloud Functions backend (booking, billing, webhook, rules) is now built and committed.",
-      "nextStep": "Wiring PRIMAL for auto-push. Deploy needs setup values from Jeremy (Firebase project id, Stripe secrets); next build step is his call."
+      "note": "'Primal Moves' fitness-studio app — backend foundation built & pushed. Separately: Jeremy added a new spec for a different app under the PRIMAL name — being identified and scoped to build as its own project.",
+      "nextStep": "Claude is reading the newly-added spec to confirm what the separate app is, then building it separately."
     }
   ]
 }

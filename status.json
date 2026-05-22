@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "May 22, 2026 · 12:42 PM",
+  "lastUpdated": "May 22, 2026 · 12:48 PM",
   "projects": [
     {
       "name": "GRDN",
@@ -64,8 +64,8 @@
     {
       "name": "PRIMAL",
       "state": "in-progress",
-      "note": "Un-parked — kicking off the build. A task is reading the AI-agent build spec in the project folder and starting the foundation.",
-      "nextStep": "Claude is reading the spec and getting the project moving."
+      "note": "'Primal Moves' fitness-studio app. Front-end was substantially built but the spec's Firebase+Stripe backend didn't exist — the complete Cloud Functions backend (booking, billing, webhook, rules) is now built and committed.",
+      "nextStep": "Wiring PRIMAL for auto-push. Deploy needs setup values from Jeremy (Firebase project id, Stripe secrets); next build step is his call."
     }
   ]
 }

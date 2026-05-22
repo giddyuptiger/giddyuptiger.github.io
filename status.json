@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "May 22, 2026 · 11:58 AM",
+  "lastUpdated": "May 22, 2026 · 12:03 PM",
   "projects": [
     {
       "name": "GRDN",
@@ -9,9 +9,9 @@
     },
     {
       "name": "SCANDALS",
-      "state": "waiting-on-jeremy",
-      "note": "v1.6.0 — real-photo debugging fixed the outline (heel found via the ankle notch; leg chunk gone; length 325→299mm). Still ~1cm short — a top-down photo can't see the heel pad behind the ankle.",
-      "nextStep": "Decide how to close the last ~1cm of length: heel-against-a-visible-wall capture, or an in-app tape-measure calibration."
+      "state": "in-progress",
+      "note": "Two real scans gave 185mm and 274mm from near-identical photos — paper detection is unstable, swinging the scale. Now debugging the pipeline against Jeremy's real photo.",
+      "nextStep": "Claude is fixing paper detection against the real photo. A bigger reference sheet (foot fully on it) would also help reliability."
     },
     {
       "name": "HD-LOVE",
@@ -39,9 +39,9 @@
     },
     {
       "name": "Futon",
-      "state": "in-progress",
-      "note": "Homepage Progress section (rainbow SRS bars) shipped. Now renaming the 'Burned' SRS state to 'Perfected' across the UI.",
-      "nextStep": "Claude is making the rename; will stage it for greenlight."
+      "state": "waiting-on-jeremy",
+      "note": "Homepage Progress section (rainbow SRS bars) shipped. The 'Burned' SRS state renamed to 'Perfected' across the UI — staged.",
+      "nextStep": "Greenlight the 'Perfected' rename to commit it."
     },
     {
       "name": "PAPPY",

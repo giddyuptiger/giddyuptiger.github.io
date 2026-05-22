@@ -1,41 +1,47 @@
 {
-  "lastUpdated": "May 22, 2026 · 8:41 AM",
+  "lastUpdated": "May 22, 2026 · 8:55 AM",
   "projects": [
     {
+      "name": "GRDN",
+      "state": "waiting-on-jeremy",
+      "note": "v1.11.2 (free tier + UX polish) shipped; ci_post_clone.sh in place so Xcode Cloud builds cleanly.",
+      "nextStep": "Add a TestFlight (Internal Testing) post-action to the Xcode Cloud workflow so builds reach TestFlight."
+    },
+    {
       "name": "SCANDALS",
-      "state": "in-progress",
-      "note": "v1.3.1 shipped — ML foot segmentation + inch read-outs. Measurement is being rebuilt around the paper-as-reference method (paper for scale + perspective, heel-against-wall datum) to fix the over-long length.",
-      "nextStep": "Claude is rebuilding the measurement pipeline."
+      "state": "waiting-on-jeremy",
+      "note": "v1.4.0 — measurement rebuilt around the paper-as-reference method (homography + heel datum). The over-long length / calf-measuring bug is fixed by design.",
+      "nextStep": "Do a real foot-on-paper re-scan to confirm the new measurement."
     },
     {
       "name": "HD-LOVE",
       "state": "waiting-on-jeremy",
-      "note": "Vision draft done. Phase 1 — the daily transit loop — built and shipped, plus the channel-rendering fix, channel-description reorder, expandable Strategy/Not-Self guidance, and the dating on/off toggle.",
-      "nextStep": "Pick the next move: the social layer, daily-loop notifications, or the swiping go-live work."
+      "note": "Vision Phase 1 shipped — the daily transit loop — plus rendering fixes, expandable Strategy/Not-Self guidance, and the dating on/off toggle.",
+      "nextStep": "Reviewing the new TestFlight build; then pick the next move (social layer, daily-loop notifications, or swiping go-live)."
     },
     {
-      "name": "Futon",
+      "name": "irons-design",
       "state": "waiting-on-jeremy",
-      "note": "N4-N1 grammar (653 points) + vocab (6,995 words) shipped and applied to the database. Home page updated to add the Achievements, Social and Recent Activity sections.",
-      "nextStep": "Greenlight the home-page update — it's staged, awaiting your go to commit."
-    },
-    {
-      "name": "GRDN",
-      "state": "waiting-on-jeremy",
-      "note": "v1.11.2 (free tier + UX polish) merged and pushed; ci_post_clone.sh added so Xcode Cloud builds cleanly.",
-      "nextStep": "Xcode Cloud is building v1.11.2 to TestFlight — submit for App Store review when you're ready."
+      "note": "Static site ready; hosted on Cloudflare (their API was having an outage).",
+      "nextStep": "Finish the Cloudflare deploy once their service is back up."
     },
     {
       "name": "WEATHER",
       "state": "in-progress",
-      "note": "Breath-orb layout fix shipped (the dot that pushed buttons past the fold). iOS + Android App Store prep ongoing.",
-      "nextStep": "Claude is prepping the App Store build — nothing needed from you yet."
+      "note": "Breath-orb layout fix shipped. App Store prep underway.",
+      "nextStep": "Claude is picking up the next App Store-prep work."
     },
     {
       "name": "POSTURE",
       "state": "in-progress",
-      "note": "Revived from dormant. TypeScript build fixed, coach dashboard wired up, exercise-prescription feature merged, and the draggable landmark editor rebuilt.",
-      "nextStep": "Revived and current; further work on request."
+      "note": "Revived — build fixed, coach dashboard wired, exercise-prescription feature merged, landmark editor rebuilt.",
+      "nextStep": "Claude is picking up the next work."
+    },
+    {
+      "name": "Futon",
+      "state": "done",
+      "note": "N5-N1 grammar + full N4-N1 vocab (6,995 words) shipped and applied; mastery-bars bug fixed; home page now shows Achievements / Social / Recent Activity.",
+      "nextStep": "Current work shipped — nothing pending."
     },
     {
       "name": "PAPPY",
@@ -48,12 +54,6 @@
       "state": "done",
       "note": "Static recreation of irons.be deployed and live.",
       "nextStep": "Live — nothing pending."
-    },
-    {
-      "name": "irons-design",
-      "state": "waiting-on-jeremy",
-      "note": "Static site ready; hosted on Cloudflare.",
-      "nextStep": "Finish the Cloudflare deploy you have underway — nearly done."
     },
     {
       "name": "888-process",

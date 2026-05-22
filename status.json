@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "May 22, 2026 · 11:53 AM",
+  "lastUpdated": "May 22, 2026 · 11:55 AM",
   "projects": [
     {
       "name": "GRDN",
@@ -27,9 +27,9 @@
     },
     {
       "name": "WEATHER",
-      "state": "in-progress",
-      "note": "App Store rejection (ITMS-90129) fixed — bundle name made unique. Now adding an exit path to the Mirror exercise (no way out once started).",
-      "nextStep": "Claude is adding the Mirror exit; then confirm build 22 reached TestFlight and resubmit to App Store review."
+      "state": "waiting-on-jeremy",
+      "note": "App Store rejection (ITMS-90129) fixed; Mirror exercise now has a close button on every step. Code-complete at v1.3.0.",
+      "nextStep": "Confirm build 22 reached TestFlight and resubmit to App Store review."
     },
     {
       "name": "POSTURE",

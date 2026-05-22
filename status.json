@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "May 22, 2026 · 11:08 AM",
+  "lastUpdated": "May 22, 2026 · 11:24 AM",
   "projects": [
     {
       "name": "GRDN",
@@ -15,9 +15,9 @@
     },
     {
       "name": "HD-LOVE",
-      "state": "in-progress",
-      "note": "Daily transit loop live and well-received. Adding a moon-phase visual to the daily reading and verifying the transit ephemeris accuracy.",
-      "nextStep": "Claude is building the moon-phase visual; Jeremy is reviewing the TestFlight build to pick the next vision phase."
+      "state": "waiting-on-jeremy",
+      "note": "Daily transit loop live; moon-phase visual added; transit accuracy verified against Swiss Ephemeris (matches at gate + line precision).",
+      "nextStep": "Reviewing the TestFlight build; pick the next vision phase (social layer, daily-loop notifications, or swiping go-live)."
     },
     {
       "name": "irons-design",

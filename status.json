@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "May 22, 2026 · 9:07 AM",
+  "lastUpdated": "May 22, 2026 · 9:20 AM",
   "projects": [
     {
       "name": "GRDN",
@@ -33,9 +33,9 @@
     },
     {
       "name": "POSTURE",
-      "state": "in-progress",
-      "note": "Revived — build fixed, coach dashboard wired, exercise-prescription feature merged, landmark editor rebuilt.",
-      "nextStep": "Claude is picking up the next work."
+      "state": "waiting-on-jeremy",
+      "note": "Auto-capture (hands-free 4-view camera) shipped. Supabase keep-alive built but blocked — the GitHub token needs a Workflows permission to push workflow files.",
+      "nextStep": "Add the Workflows permission to your GitHub token so the keep-alive can land; smoke-test auto-capture on your iPhone."
     },
     {
       "name": "Futon",

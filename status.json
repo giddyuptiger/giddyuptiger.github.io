@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "May 22, 2026 · 11:24 AM",
+  "lastUpdated": "May 22, 2026 · 11:30 AM",
   "projects": [
     {
       "name": "GRDN",
@@ -9,9 +9,9 @@
     },
     {
       "name": "SCANDALS",
-      "state": "waiting-on-jeremy",
-      "note": "v1.5.0 — reimagined: 2 photos, ML + geometry extract anatomical control points (5 toe tips, ball widths, arch, heel) into a 2-D sole outline. 3-D dropped. Verified on synthetic data only.",
-      "nextStep": "Do a real foot-on-paper scan to verify v1.5.0 (non-white floor, toes slightly spread)."
+      "state": "in-progress",
+      "note": "v1.5.0 still inaccurate on real scans (bad outline, toes not separating). Now debugging the pipeline against real photos instead of synthetic — instrumenting each step to see where it breaks.",
+      "nextStep": "Send the exact two photos from a bad scan so the task can debug precisely."
     },
     {
       "name": "HD-LOVE",

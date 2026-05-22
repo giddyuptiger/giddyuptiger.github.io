@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "May 22, 2026 · 12:28 PM",
+  "lastUpdated": "May 22, 2026 · 12:42 PM",
   "projects": [
     {
       "name": "GRDN",
@@ -15,9 +15,9 @@
     },
     {
       "name": "HD-LOVE",
-      "state": "in-progress",
-      "note": "Launch-polish pass underway: removing the demo screen on the swipe page, the social on/off toggle, reframing matching into Romantic/Friends/Networking modes with tagged matches, plus a deep UX review.",
-      "nextStep": "Claude is doing the launch-polish pass; will report UX findings and the 3-mode design."
+      "state": "waiting-on-jeremy",
+      "note": "Launch-polish done: demo screen replaced, toggle moved into a real Settings screen, matching reframed into Romantic/Friends/Networking tabs with tagged matches. UX review: the experience is built; real go-live still needs auth, photo upload, and a live candidate feed.",
+      "nextStep": "Decide whether Claude takes on the go-live backend next: authentication, photo upload, and a live candidate feed."
     },
     {
       "name": "irons-design",

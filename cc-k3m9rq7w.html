@@ -119,9 +119,19 @@
     return e;
   }
 
+  function formatUpdated(raw) {
+    if (!raw) return "unknown";
+    var d = new Date(raw);
+    if (isNaN(d.getTime())) return raw;
+    return d.toLocaleString(undefined, {
+      month: "short", day: "numeric", year: "numeric",
+      hour: "numeric", minute: "2-digit"
+    });
+  }
+
   function render(data) {
     document.getElementById("updated").textContent =
-      "Last updated: " + (data.lastUpdated || "unknown");
+      "Last updated: " + formatUpdated(data.lastUpdated);
 
     var content = document.getElementById("content");
     content.innerHTML = "";

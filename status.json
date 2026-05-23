@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "May 23, 2026 · 12:29 AM",
+  "lastUpdated": "2026-05-23T04:24:27Z",
   "projects": [
     {
       "name": "GRDN",
@@ -10,8 +10,8 @@
     {
       "name": "SCANDALS",
       "state": "waiting-on-jeremy",
-      "note": "v1.6.1 hardened paper detection + added a guard against garbage numbers. Honest finding: foot-on-paper can't be made reliable (small sheet covered by the foot, bright floor). The real fix is a capture change.",
-      "nextStep": "Decide: switch to placing the paper BESIDE the foot (both flat on the floor) — always a clean, fully-visible rectangle. Claude can make that code change."
+      "note": "v1.6.2 (commit 22dd86d) — fixed the wrong default: the app measured against A4, but you're on US Letter paper. Default is now US Letter and the Settings paper-size control spells out the choice. Past A4 scans over-read length ~6% (the 306mm scan corrects to ~288mm). Still open: paper *detection* itself is unstable (a 185-vs-274mm swing) — that's a capture problem, not a code default.",
+      "nextStep": "Decide on the capture change: use a reference sheet clearly bigger than the foot with all four corners visible, or place the paper BESIDE the foot (both flat on the floor). Claude makes the code change once you pick."
     },
     {
       "name": "HD-LOVE",

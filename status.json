@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-23T21:51:35Z",
+  "lastUpdated": "2026-05-23T22:02:33Z",
   "projects": [
     {
       "name": "GRDN",
@@ -16,8 +16,8 @@
     {
       "name": "HD-LOVE",
       "state": "in-progress",
-      "note": "App Store prep done; login 'Invalid API key' fix (fd85c50) and duplicate-email signup fix (649f7b1) both shipped. Marketing copy reframed around 'connection'. Now building a new feature: location + 'find people nearby' filtering — device location, an approximate location per profile (exact coordinates never exposed to other users), and a distance radius filter on Discover alongside the Romantic/Friends/Networking modes.",
-      "nextStep": "Location feature in progress. Pending for Jeremy: test a CI build from the latest commit to confirm the login fix; finish the App Store submission (location adds a 'Location' row to the App Privacy questionnaire)."
+      "note": "Login 'Invalid API key' traced: commit f7e3bbc (May 13) added Xcode Cloud CI that built without the Supabase key; baa16ca (May 14) fixed the CI script. Recent builds still fail = the SUPABASE_ANON_KEY value in Xcode Cloud is wrong (build installs, so key present but wrong — likely wrong project, service_role instead of anon, or whitespace). Duplicate-email fix shipped (649f7b1). Marketing reframed around 'connection'. New feature in progress: location + 'find people nearby' filtering.",
+      "nextStep": "Jeremy: in Xcode Cloud, delete and re-add SUPABASE_URL + SUPABASE_ANON_KEY with exact values from one project (anon/public key, no whitespace), then cut a fresh build. Then finish the App Store submission. Location feature still building."
     },
     {
       "name": "irons-design",

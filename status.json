@@ -3,9 +3,9 @@
   "projects": [
     {
       "name": "GRDN",
-      "state": "waiting-on-jeremy",
-      "note": "v1.11.2+3 — full repo-side audit done: the Xcode project is well-formed (automatic signing, one team, GoogleService-Info.plist tracked). No single repo smoking gun. Likeliest exit-65 cause is signing/provisioning for the restricted Family Controls entitlement across 5 bundle IDs, or an Xcode-version mismatch. Added a diagnostic ci_pre_xcodebuild.sh; pushed.",
-      "nextStep": "Two checks: (1) confirm the Xcode Cloud workflow is pinned to Xcode 26; (2) verify Family Controls + App Groups are enabled for all 5 GRDN bundle IDs in the developer portal. Then re-run. If it still fails, paste the first 'error:' + 'Code Sign'/'provisioning' lines from the archive step."
+      "state": "in-progress",
+      "note": "Real exit-65 cause identified from the build log: the rive_native plugin's compiled static library (librive_native.a) isn't being produced on Xcode Cloud, so xcodebuild archive can't find it. It's a CI/build-config problem, not a code bug. Claude is fixing it now — tracing how rive_native builds its native lib and patching the CI build (likely a ci_post_clone.sh step or a version pin).",
+      "nextStep": "Fix in progress. Once pushed, Jeremy re-runs the Xcode Cloud build."
     },
     {
       "name": "SCANDALS",
@@ -70,8 +70,8 @@
     {
       "name": "AI Voice Agent",
       "state": "in-progress",
-      "note": "Repo live on GitHub (giddyuptiger/primal-agent), auto-push wired. Dashboard complete and verified — full spec section 11 (unified inbox, live view, escalations queue, tickets, KB editor, metrics, auth); typecheck clean, 31/31 tests pass, boots in mock mode (commit 3c240c5). Two unblocked pieces still queued: the outbound campaign engine (build-order step 11) and an interactive voice test harness — a build-environment hiccup stalled the follow-on task; Claude will resume it.",
-      "nextStep": "Jeremy: kick off the Twilio A2P 10DLC registration now — carrier approval is the slowest step. See docs/PROVISIONING.md. Claude will report when the outbound engine + test harness land."
+      "note": "Repo live on GitHub (giddyuptiger/primal-agent), auto-push wired. Dashboard complete and verified — full spec section 11 (unified inbox, live view, escalations queue, tickets, KB editor, metrics, auth); typecheck clean, 31/31 tests pass, boots in mock mode (commit 3c240c5). Claude is now building the last two unblocked pieces: the outbound campaign engine (build-order step 11) and an interactive voice test harness so the agent is demoable before Twilio is live.",
+      "nextStep": "Build in progress. Jeremy: kick off the Twilio A2P 10DLC registration now — carrier approval is the slowest step. See docs/PROVISIONING.md."
     }
   ]
 }

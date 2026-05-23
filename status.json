@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-23T04:52:36Z",
+  "lastUpdated": "2026-05-23T04:55:10Z",
   "projects": [
     {
       "name": "GRDN",
@@ -9,9 +9,9 @@
     },
     {
       "name": "SCANDALS",
-      "state": "in-progress",
-      "note": "v1.6.2 fixed the paper-size default (US Letter). Now reworking the capture method: the paper goes flat on the floor BESIDE the foot instead of under it — so the reference rectangle is never occluded and standard US Letter paper works for any foot size. Claude is building this now.",
-      "nextStep": "Capture rework in progress — Claude will report when it's shipped."
+      "state": "waiting-on-jeremy",
+      "note": "Capture method reworked (commit 259d922, 11 files) — the paper now goes flat on the floor BESIDE the foot instead of under it. On-screen guidance, the shot diagram, live detection, and the setup checklist were all rewritten for the new layout; paper detection now expects a full unoccluded rectangle. CV pipeline typechecks clean. Standard US Letter works for any foot size.",
+      "nextStep": "Take a test scan with the paper beside your foot (both flat on the floor, fully in frame, phone overhead) and check the measurement against a known size."
     },
     {
       "name": "HD-LOVE",

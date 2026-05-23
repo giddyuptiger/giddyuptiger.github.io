@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-23T21:10:02Z",
+  "lastUpdated": "2026-05-23T21:13:17Z",
   "projects": [
     {
       "name": "GRDN",
@@ -17,7 +17,7 @@
       "name": "HD-LOVE",
       "state": "waiting-on-jeremy",
       "note": "App Store prep complete (commit 08b32d2) — Delete Account, Report, Block, 18+ age gate, iOS photo-permission string, profile-card visual fix (the 'greyed out' look was a weak photo fallback + heavy gradient, not a bug — fixed for all cards), seed profiles removed with a clean empty state, and Privacy Policy + Terms written and hosted (giddyuptiger.github.io/HD-LOVE/privacy.html and /terms.html). Backend is live. Code side is done.",
-      "nextStep": "Run 'flutter pub get' + analyze/test; re-run supabase/schema.sql (adds moderation tables) and run 'delete from profiles where is_seed = true;' in Supabase; then the App Store Connect steps — listing, screenshots, age rating, App Privacy questionnaire, paste the privacy.html URL, submit. Claude can walk through any step."
+      "nextStep": "Jeremy is working through the App Store submission — Claude delivered the full step-by-step walkthrough (app record, build via Xcode Cloud at v1.0.0+15, listing copy, screenshots, age rating, privacy label, review notes, submit). Still to do locally: 'flutter pub get' + analyze/test."
     },
     {
       "name": "irons-design",

@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-23T22:04:04Z",
+  "lastUpdated": "2026-05-23T22:10:35Z",
   "projects": [
     {
       "name": "GRDN",
@@ -15,9 +15,9 @@
     },
     {
       "name": "HD-LOVE",
-      "state": "in-progress",
-      "note": "Login 'Invalid API key' — definitively traced. The real Supabase sign-in flow was only ADDED today (commit 01cff66); it has never authenticated successfully in a CI build. 'Build 42' worked because it predated the login flow and ran on-device demo mode. The CI build script and app code are sound — the bad value is the SUPABASE_ANON_KEY env var in Xcode Cloud (wrong project, service_role instead of anon, or whitespace). Duplicate-email fix shipped (649f7b1). Marketing reframed around 'connection'. New feature in progress: location + 'find people nearby' filtering.",
-      "nextStep": "Jeremy: in Xcode Cloud, delete and re-add SUPABASE_URL + SUPABASE_ANON_KEY — fresh from Supabase Project Settings > API, anon/public key, same project, no whitespace — then cut a build and test sign-in. Then finish the App Store submission. Location feature still building."
+      "state": "waiting-on-jeremy",
+      "note": "Location + 'find people nearby' filtering shipped (eb76655) — device location with manual-city fallback, a distance radius filter on Discover, precise coordinates owner-only at the DB level (others see only rounded distance/coarse city). Login 'Invalid API key' traced: real login is brand-new (01cff66), never authenticated in CI; the bad value is the SUPABASE_ANON_KEY env var in Xcode Cloud. Duplicate-email fix and 'connection' marketing copy also done.",
+      "nextStep": "Jeremy: (1) fix the Xcode Cloud SUPABASE_ANON_KEY env var (anon key, same project as URL, no whitespace); (2) re-run supabase/schema.sql for the location tables; (3) on Mac, 'flutter pub get' + commit pubspec.lock (geolocator added) + analyze/test; (4) cut a build, test sign-in, finish the App Store submission (add a Location row to the App Privacy questionnaire)."
     },
     {
       "name": "irons-design",

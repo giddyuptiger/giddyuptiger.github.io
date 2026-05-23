@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-23T20:43:07Z",
+  "lastUpdated": "2026-05-23T20:52:37Z",
   "projects": [
     {
       "name": "GRDN",
@@ -9,9 +9,9 @@
     },
     {
       "name": "SCANDALS",
-      "state": "waiting-on-jeremy",
-      "note": "v1.7.1 (commit 7644770) fixes the leg-inclusion bug — the outline was tracing foot+leg; the ankle is now detected as a 'neck' and the leg is cut off, with a rounded heel cap. Investigation also found the separate 'heel photo' is near-vestigial: it only feeds one weak heel-width function that's usually discarded. Length stays a ±15-20mm estimate because the heel is physically invisible from straight above.",
-      "nextStep": "Two things: (1) take a test scan to confirm the leg-cut fix on a real photo (expect a foot-shaped outline, heel ~65-70mm); (2) decide the heel-photo direction — A: remove it, B: rewrite it for real heel width, or C: use it to get true foot length (the real fix for length accuracy)."
+      "state": "in-progress",
+      "note": "Measurement redesign underway (Jeremy's call). Length becomes a real measurement, not an estimate: the heel is aligned to the paper's BACK EDGE, so length = paper-edge to farthest toe in the paper's known scale — no more can't-see-the-heel problem. Foot shape + toe profile from the top-down shot; heel width from the heel photo (now with the paper in frame for scale). Goal: full foot geometry (toe profile, ball/midfoot/heel widths) for accurate shoe design, not length alone.",
+      "nextStep": "Redesign in progress — Claude will report when the new capture + measurement flow ships."
     },
     {
       "name": "HD-LOVE",

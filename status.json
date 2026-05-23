@@ -1,11 +1,11 @@
 {
-  "lastUpdated": "2026-05-23T16:12:51Z",
+  "lastUpdated": "2026-05-23T16:16:34Z",
   "projects": [
     {
       "name": "GRDN",
-      "state": "in-progress",
-      "note": "iOS: exit-65 archive fix pushed (commit e27ba73, build 1.11.3+4) — the rive_native native library is now built on CI before the archive. Web: Claude is now building and deploying a web version of GRDN to grdnapp.com via GitHub Pages. The iOS-only Screen Time features won't function on web — Claude will report exactly what works.",
-      "nextStep": "Re-run the GRDN Xcode Cloud build to confirm the iOS fix. Web deploy in progress — Claude will report the DNS records you need for grdnapp.com."
+      "state": "waiting-on-jeremy",
+      "note": "iOS: exit-65 archive fix pushed (commit e27ba73, build 1.11.3+4) — the rive_native native library is now built on CI before the archive. Web: GRDN is already live and working on web at grdnapp.com — no deploy work needed.",
+      "nextStep": "Re-run the GRDN Xcode Cloud build to confirm the iOS archive fix."
     },
     {
       "name": "SCANDALS",

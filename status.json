@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-23T21:34:16Z",
+  "lastUpdated": "2026-05-23T21:42:18Z",
   "projects": [
     {
       "name": "GRDN",
@@ -10,14 +10,14 @@
     {
       "name": "SCANDALS",
       "state": "waiting-on-jeremy",
-      "note": "Measurement redesign shipped — v1.8.0 (commit 028255f). Length is now a real measurement: the heel aligns to the paper's back edge, so length = that edge to the farthest toe in the paper's exact scale (no more can't-see-the-heel guessing). The scan now outputs the full set — length, toe profile, ball/midfoot/heel widths. Heel width from the heel photo with the paper in frame. Typecheck clean, synthetic tests 8/8; not yet tested on a real photo.",
-      "nextStep": "Take a test scan with the new method — paper's short edge lined up with the back of your heel for the top-down shot, whole paper in frame for the heel shot — and check the numbers."
+      "note": "Measurement redesign shipped — v1.8.1 (commit 63896bc). Length is now a real measurement, not a guess: for the top-down shot the user pushes the heel and the paper's short edge both flat against a wall, so the paper edge is an exact heel datum (the wall removes the eyeballing). The scan outputs the full set — length, toe profile, ball/midfoot/heel widths; heel width from the heel photo with the paper in frame. Typecheck clean; not yet tested on a real photo.",
+      "nextStep": "Take a test scan with the wall method — heel and paper's short edge both flat against a wall for the top-down shot, whole paper in frame for the heel shot — and check the numbers."
     },
     {
       "name": "HD-LOVE",
-      "state": "in-progress",
-      "note": "App Store prep complete; version 1.0.0+15. Login bug ('Invalid API key') fixed (fd85c50) — lockfile committed + deps pinned + key/URL trimmed. Marketing copy reframed around 'connection' not 'dating'. Now fixing a signup bug: duplicate emails aren't cleanly rejected (Supabase's anti-enumeration response wasn't being detected, so a repeat email looked like a new account).",
-      "nextStep": "Confirm login with the local --dart-define test; finish the App Store submission once the duplicate-email fix lands. Submit the build from the latest commit."
+      "state": "waiting-on-jeremy",
+      "note": "App Store prep complete; version 1.0.0+15. All code fixes in on main: login 'Invalid API key' (fd85c50 — lockfile committed + deps pinned + key/URL trimmed), and duplicate-email signup (649f7b1 — a repeat email now signs the person into their existing account if the password matches, never creates a second account). Marketing copy reframed around 'connection'. Login works locally; CI builds still need testing from a commit that includes the fix.",
+      "nextStep": "Let the newest Xcode Cloud build (from commit 649f7b1) finish and test it — confirms the login fix in CI. Then finish the App Store submission. If the fixed build still fails login, compare the Xcode Cloud anon-key value char-for-char against the working local one."
     },
     {
       "name": "irons-design",

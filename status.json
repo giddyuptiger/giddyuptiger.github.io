@@ -1,23 +1,23 @@
 {
-  "lastUpdated": "2026-05-23T04:24:27Z",
+  "lastUpdated": "2026-05-23T04:31:14Z",
   "projects": [
     {
       "name": "GRDN",
-      "state": "in-progress",
-      "note": "Real exit-65 cause identified from the build log: the rive_native plugin's compiled static library (librive_native.a) isn't being produced on Xcode Cloud, so xcodebuild archive can't find it. It's a CI/build-config problem, not a code bug. Claude is fixing it now — tracing how rive_native builds its native lib and patching the CI build (likely a ci_post_clone.sh step or a version pin).",
-      "nextStep": "Fix in progress. Once pushed, Jeremy re-runs the Xcode Cloud build."
+      "state": "waiting-on-jeremy",
+      "note": "Exit-65 root cause fixed (commit e27ba73, build 1.11.3+4). The rive_native plugin downloads its native library (librive_native.a) via a setup script that never ran on Xcode Cloud — so the archive couldn't find the file. ci_post_clone.sh now runs that setup step before the archive. High confidence this clears the rive_native failure.",
+      "nextStep": "Re-run the Xcode Cloud build. If archive still fails, the remaining suspect is Family Controls signing/provisioning across the 5 bundle IDs — paste the new error and Claude will pin it."
     },
     {
       "name": "SCANDALS",
-      "state": "waiting-on-jeremy",
-      "note": "v1.6.2 (commit 22dd86d) — fixed the wrong default: the app measured against A4, but you're on US Letter paper. Default is now US Letter and the Settings paper-size control spells out the choice. Past A4 scans over-read length ~6% (the 306mm scan corrects to ~288mm). Still open: paper *detection* itself is unstable (a 185-vs-274mm swing) — that's a capture problem, not a code default.",
-      "nextStep": "Decide on the capture change: use a reference sheet clearly bigger than the foot with all four corners visible, or place the paper BESIDE the foot (both flat on the floor). Claude makes the code change once you pick."
+      "state": "in-progress",
+      "note": "v1.6.2 fixed the paper-size default (US Letter). Now reworking the capture method: the paper goes flat on the floor BESIDE the foot instead of under it — so the reference rectangle is never occluded and standard US Letter paper works for any foot size. Claude is building this now.",
+      "nextStep": "Capture rework in progress — Claude will report when it's shipped."
     },
     {
       "name": "HD-LOVE",
-      "state": "waiting-on-jeremy",
-      "note": "Launch-polish done: demo screen replaced, toggle moved into a real Settings screen, matching reframed into Romantic/Friends/Networking tabs with tagged matches. UX review: the experience is built; real go-live still needs auth, photo upload, and a live candidate feed.",
-      "nextStep": "Decide whether Claude takes on the go-live backend next: authentication, photo upload, and a live candidate feed."
+      "state": "in-progress",
+      "note": "Launch polish done (demo screen, real Settings screen, Romantic/Friends/Networking matching with tagged matches). Claude is now building the go-live backend: real authentication, photo upload, and a live candidate feed.",
+      "nextStep": "Go-live backend build in progress — Claude will report what's built and any credentials you need to supply."
     },
     {
       "name": "irons-design",
@@ -39,9 +39,9 @@
     },
     {
       "name": "Futon",
-      "state": "done",
-      "note": "Homepage Progress section (rainbow SRS bars) shipped; 'Burned' SRS state renamed to 'Perfected' across the UI — committed.",
-      "nextStep": "Current work shipped — nothing pending."
+      "state": "in-progress",
+      "note": "Homepage Progress section (rainbow SRS bars) shipped. Now standardizing the SRS mastery label on 'Mastered' everywhere — fixing the inconsistency where some screens said 'Perfected' and others 'Mastered'.",
+      "nextStep": "Label rename in progress."
     },
     {
       "name": "PAPPY",
@@ -63,9 +63,9 @@
     },
     {
       "name": "PRIMAL",
-      "state": "waiting-on-jeremy",
-      "note": "'Primal Moves' fitness-studio app — front-end mostly built; the Firebase + Stripe Cloud Functions backend is now built and pushed.",
-      "nextStep": "To deploy the backend: set the Firebase project id and Stripe secrets (Claude will hand you the checklist)."
+      "state": "parked",
+      "note": "On hold by your decision. This is the customer-facing 'Primal Moves' fitness-studio app (front-end built; Firebase + Stripe backend built and pushed). Paused to focus on the separate AI Voice Agent — the sales-agent MVP in the primal-agent repo. Distinct project from this one.",
+      "nextStep": "Parked — no action planned."
     },
     {
       "name": "AI Voice Agent",

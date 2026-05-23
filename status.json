@@ -70,8 +70,8 @@
     {
       "name": "AI Voice Agent",
       "state": "in-progress",
-      "note": "Repo is live on GitHub (giddyuptiger/primal-agent). Foundation done — build-order steps 1-10 + 12 are real running code (voice loop, agent brain, SMS/email, compliance, escalation), type-checks and boots in mock mode. Claude is now building step 13: the dashboard / manager-view web app (unified inbox, escalations queue, knowledge base editor, metrics, tickets).",
-      "nextStep": "Dashboard build in progress. Jeremy: start the Twilio A2P 10DLC registration in parallel (carrier approval is slow) — see docs/PROVISIONING.md."
+      "note": "Repo live on GitHub (giddyuptiger/primal-agent), auto-push wired. Dashboard complete — full spec section 11 (unified inbox, live view, escalations queue, tickets, KB editor, metrics, auth); typecheck clean, 31/31 tests pass, boots in mock mode. Claude is now building the last two unblocked pieces: the outbound campaign engine (build-order step 11) and an interactive voice test harness so the agent is demoable before Twilio is live.",
+      "nextStep": "Build in progress. Jeremy: kick off the Twilio A2P 10DLC registration now — carrier approval is the slowest step. See docs/PROVISIONING.md."
     }
   ]
 }

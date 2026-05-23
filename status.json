@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-23T22:10:35Z",
+  "lastUpdated": "2026-05-23T22:12:48Z",
   "projects": [
     {
       "name": "GRDN",
@@ -16,8 +16,8 @@
     {
       "name": "HD-LOVE",
       "state": "waiting-on-jeremy",
-      "note": "Location + 'find people nearby' filtering shipped (eb76655) — device location with manual-city fallback, a distance radius filter on Discover, precise coordinates owner-only at the DB level (others see only rounded distance/coarse city). Login 'Invalid API key' traced: real login is brand-new (01cff66), never authenticated in CI; the bad value is the SUPABASE_ANON_KEY env var in Xcode Cloud. Duplicate-email fix and 'connection' marketing copy also done.",
-      "nextStep": "Jeremy: (1) fix the Xcode Cloud SUPABASE_ANON_KEY env var (anon key, same project as URL, no whitespace); (2) re-run supabase/schema.sql for the location tables; (3) on Mac, 'flutter pub get' + commit pubspec.lock (geolocator added) + analyze/test; (4) cut a build, test sign-in, finish the App Store submission (add a Location row to the App Privacy questionnaire)."
+      "note": "Location + 'find people nearby' filtering shipped (eb76655) — device location with manual-city fallback, a distance radius filter on Discover, precise coordinates owner-only at the DB level (others see only rounded distance/coarse city). Privacy policy updated to disclose location (910d659); geolocator lockfile committed by Jeremy (63052c0). Login 'Invalid API key' traced: real login is brand-new (01cff66), never authenticated in CI; the bad value is the SUPABASE_ANON_KEY env var in Xcode Cloud. Duplicate-email fix and 'connection' marketing copy also done.",
+      "nextStep": "Jeremy: (1) fix the Xcode Cloud SUPABASE_ANON_KEY env var (anon key, same project as URL, no whitespace); (2) re-run supabase/schema.sql for the location tables; (3) cut a build, test sign-in, finish the App Store submission (add a Location row to the App Privacy questionnaire)."
     },
     {
       "name": "irons-design",

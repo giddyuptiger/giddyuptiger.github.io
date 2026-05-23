@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-23T16:21:22Z",
+  "lastUpdated": "2026-05-23T16:37:49Z",
   "projects": [
     {
       "name": "GRDN",
@@ -9,9 +9,9 @@
     },
     {
       "name": "SCANDALS",
-      "state": "in-progress",
-      "note": "Paper-beside-foot capture shipped (v1.7.0). But a test scan exposed a deeper bug: the foot segmentation includes the lower leg/calf, so the outline runs up the leg to the frame edge — no real heel, and length/heel-width are measured on a foot+leg blob (307mm length, 110mm heel flagged out of range). Claude is investigating the leg-inclusion fix and what the separate 'heel photo' step actually does (a top-down shot physically can't see the heel — the leg is in front of it).",
-      "nextStep": "Investigation + leg-inclusion fix in progress."
+      "state": "waiting-on-jeremy",
+      "note": "v1.7.1 (commit 7644770) fixes the leg-inclusion bug — the outline was tracing foot+leg; the ankle is now detected as a 'neck' and the leg is cut off, with a rounded heel cap. Investigation also found the separate 'heel photo' is near-vestigial: it only feeds one weak heel-width function that's usually discarded. Length stays a ±15-20mm estimate because the heel is physically invisible from straight above.",
+      "nextStep": "Two things: (1) take a test scan to confirm the leg-cut fix on a real photo (expect a foot-shaped outline, heel ~65-70mm); (2) decide the heel-photo direction — A: remove it, B: rewrite it for real heel width, or C: use it to get true foot length (the real fix for length accuracy)."
     },
     {
       "name": "HD-LOVE",

@@ -1,11 +1,11 @@
 {
-  "lastUpdated": "2026-05-23T21:04:15Z",
+  "lastUpdated": "2026-05-23T21:08:04Z",
   "projects": [
     {
       "name": "GRDN",
-      "state": "waiting-on-jeremy",
-      "note": "iOS: exit-65 archive fix pushed (commit e27ba73, build 1.11.3+4) — the rive_native native library is now built on CI before the archive. Web: GRDN is already live and working on web at grdnapp.com — no deploy work needed.",
-      "nextStep": "Re-run the GRDN Xcode Cloud build to confirm the iOS archive fix."
+      "state": "in-progress",
+      "note": "iOS: exit-65 archive fix pushed (commit e27ba73, build 1.11.3+4) — rive_native native library now built on CI before the archive; re-run pending. Web: already live at grdnapp.com. Now: a home-screen UX redesign — the current home screen tries to be a blocker + focus timer + task manager + planner at once with no clear spine. Claude is producing a full analysis, an ideal-home-screen design spec, and a Google Stitch prompt.",
+      "nextStep": "Re-run the GRDN Xcode Cloud build to confirm the iOS fix. Home-screen redesign analysis + Stitch prompt in progress."
     },
     {
       "name": "SCANDALS",

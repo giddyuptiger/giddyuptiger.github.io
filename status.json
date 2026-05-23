@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-23T21:26:08Z",
+  "lastUpdated": "2026-05-23T21:34:16Z",
   "projects": [
     {
       "name": "GRDN",
@@ -15,9 +15,9 @@
     },
     {
       "name": "HD-LOVE",
-      "state": "waiting-on-jeremy",
-      "note": "App Store prep complete; version bumped to 1.0.0+15. A login bug ('Invalid API key') was traced to non-reproducible builds — pubspec.lock was gitignored so supabase_flutter silently drifted version to version. Fixed (commit fd85c50): lockfile committed + deps pinned, and the Supabase key/URL are now trimmed. Marketing copy reframed around 'connection' (love + friends + networking), not 'dating'.",
-      "nextStep": "Confirm login: run the app locally with the anon key via --dart-define. If it works, the next CI build (from fd85c50) is good; if not, refresh the anon key in CI. Then finish the App Store submission — build, listing, screenshots, age rating, privacy label, submit."
+      "state": "in-progress",
+      "note": "App Store prep complete; version 1.0.0+15. Login bug ('Invalid API key') fixed (fd85c50) — lockfile committed + deps pinned + key/URL trimmed. Marketing copy reframed around 'connection' not 'dating'. Now fixing a signup bug: duplicate emails aren't cleanly rejected (Supabase's anti-enumeration response wasn't being detected, so a repeat email looked like a new account).",
+      "nextStep": "Confirm login with the local --dart-define test; finish the App Store submission once the duplicate-email fix lands. Submit the build from the latest commit."
     },
     {
       "name": "irons-design",

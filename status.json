@@ -1,11 +1,11 @@
 {
-  "lastUpdated": "May 22, 2026 · 3:13 PM",
+  "lastUpdated": "May 23, 2026 · 12:29 AM",
   "projects": [
     {
       "name": "GRDN",
       "state": "waiting-on-jeremy",
-      "note": "v1.11.2 — the SPM build error is fixed; the build now gets into the Xcode archive step but fails there (xcodebuild exit 65). Need the actual error line to diagnose.",
-      "nextStep": "Paste the real error from the 'Run xcodebuild archive' step (a line with 'error:'), or let Claude read the build log via Chrome."
+      "note": "v1.11.2+3 — full repo-side audit done: the Xcode project is well-formed (automatic signing, one team, GoogleService-Info.plist tracked). No single repo smoking gun. Likeliest exit-65 cause is signing/provisioning for the restricted Family Controls entitlement across 5 bundle IDs, or an Xcode-version mismatch. Added a diagnostic ci_pre_xcodebuild.sh; pushed.",
+      "nextStep": "Two checks: (1) confirm the Xcode Cloud workflow is pinned to Xcode 26; (2) verify Family Controls + App Groups are enabled for all 5 GRDN bundle IDs in the developer portal. Then re-run. If it still fails, paste the first 'error:' + 'Code Sign'/'provisioning' lines from the archive step."
     },
     {
       "name": "SCANDALS",

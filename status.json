@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-23T21:08:04Z",
+  "lastUpdated": "2026-05-23T21:10:02Z",
   "projects": [
     {
       "name": "GRDN",
@@ -9,9 +9,9 @@
     },
     {
       "name": "SCANDALS",
-      "state": "in-progress",
-      "note": "Measurement redesign underway (Jeremy's call). Length becomes a real measurement, not an estimate: the heel is aligned to the paper's BACK EDGE, so length = paper-edge to farthest toe in the paper's known scale — no more can't-see-the-heel problem. Foot shape + toe profile from the top-down shot; heel width from the heel photo (now with the paper in frame for scale). Goal: full foot geometry (toe profile, ball/midfoot/heel widths) for accurate shoe design, not length alone.",
-      "nextStep": "Redesign in progress — Claude will report when the new capture + measurement flow ships."
+      "state": "waiting-on-jeremy",
+      "note": "Measurement redesign shipped — v1.8.0 (commit 028255f). Length is now a real measurement: the heel aligns to the paper's back edge, so length = that edge to the farthest toe in the paper's exact scale (no more can't-see-the-heel guessing). The scan now outputs the full set — length, toe profile, ball/midfoot/heel widths. Heel width from the heel photo with the paper in frame. Typecheck clean, synthetic tests 8/8; not yet tested on a real photo.",
+      "nextStep": "Take a test scan with the new method — paper's short edge lined up with the back of your heel for the top-down shot, whole paper in frame for the heel shot — and check the numbers."
     },
     {
       "name": "HD-LOVE",

@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-23T04:45:15Z",
+  "lastUpdated": "2026-05-23T04:52:36Z",
   "projects": [
     {
       "name": "GRDN",
@@ -15,9 +15,9 @@
     },
     {
       "name": "HD-LOVE",
-      "state": "in-progress",
-      "note": "Launch polish done (demo screen, real Settings screen, Romantic/Friends/Networking matching with tagged matches). Claude is now building the go-live backend: real authentication, photo upload, and a live candidate feed.",
-      "nextStep": "Go-live backend build in progress — Claude will report what's built and any credentials you need to supply."
+      "state": "waiting-on-jeremy",
+      "note": "Go-live backend built on Supabase (commit 01cff66) — real email/password auth, profile photo upload to Supabase Storage, and a live candidate feed across the Romantic/Friends/Networking modes (incl. a fix to a matching bug that broke matches in DB mode, plus 20 seed profiles). Code is launch-ready (~95%); demo mode still works with no keys. docs/backend_setup.md has the full setup guide.",
+      "nextStep": "Stand up the backend: create a Supabase project, run supabase/schema.sql then seed.sql, set SUPABASE_URL + SUPABASE_ANON_KEY (GitHub Actions secrets for web, Xcode Cloud env vars for iOS), run 'flutter analyze' + 'flutter test'. Before App Store submission: add a 'Delete account' button (Apple requires it)."
     },
     {
       "name": "irons-design",

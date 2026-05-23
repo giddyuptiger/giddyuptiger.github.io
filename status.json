@@ -1,11 +1,11 @@
 {
-  "lastUpdated": "2026-05-23T21:13:17Z",
+  "lastUpdated": "2026-05-23T21:26:08Z",
   "projects": [
     {
       "name": "GRDN",
-      "state": "in-progress",
-      "note": "iOS: exit-65 archive fix pushed (commit e27ba73, build 1.11.3+4) — rive_native native library now built on CI before the archive; re-run pending. Web: already live at grdnapp.com. Now: a home-screen UX redesign — the current home screen tries to be a blocker + focus timer + task manager + planner at once with no clear spine. Claude is producing a full analysis, an ideal-home-screen design spec, and a Google Stitch prompt.",
-      "nextStep": "Re-run the GRDN Xcode Cloud build to confirm the iOS fix. Home-screen redesign analysis + Stitch prompt in progress."
+      "state": "waiting-on-jeremy",
+      "note": "iOS: exit-65 archive fix pushed (commit e27ba73, build 1.11.3+4) — rive_native native library now built on CI before the archive; re-run pending. Web: already live at grdnapp.com. Home-screen redesign delivered — full analysis, an ideal-home-screen spec (one job: start a focus session against today's top task; one bright button; the garden fills the dead space), and a copy-paste Google Stitch prompt. Spec saved to docs/homescreen-redesign.md.",
+      "nextStep": "Re-run the GRDN Xcode Cloud build to confirm the iOS fix. Home-screen: run the Stitch prompt, pick a design, then Claude can build the redesigned home screen."
     },
     {
       "name": "SCANDALS",
@@ -16,8 +16,8 @@
     {
       "name": "HD-LOVE",
       "state": "waiting-on-jeremy",
-      "note": "App Store prep complete (commit 08b32d2) — Delete Account, Report, Block, 18+ age gate, iOS photo-permission string, profile-card visual fix (the 'greyed out' look was a weak photo fallback + heavy gradient, not a bug — fixed for all cards), seed profiles removed with a clean empty state, and Privacy Policy + Terms written and hosted (giddyuptiger.github.io/HD-LOVE/privacy.html and /terms.html). Backend is live. Code side is done.",
-      "nextStep": "Jeremy is working through the App Store submission — Claude delivered the full step-by-step walkthrough (app record, build via Xcode Cloud at v1.0.0+15, listing copy, screenshots, age rating, privacy label, review notes, submit). Still to do locally: 'flutter pub get' + analyze/test."
+      "note": "App Store prep complete; version bumped to 1.0.0+15. A login bug ('Invalid API key') was traced to non-reproducible builds — pubspec.lock was gitignored so supabase_flutter silently drifted version to version. Fixed (commit fd85c50): lockfile committed + deps pinned, and the Supabase key/URL are now trimmed. Marketing copy reframed around 'connection' (love + friends + networking), not 'dating'.",
+      "nextStep": "Confirm login: run the app locally with the anon key via --dart-define. If it works, the next CI build (from fd85c50) is good; if not, refresh the anon key in CI. Then finish the App Store submission — build, listing, screenshots, age rating, privacy label, submit."
     },
     {
       "name": "irons-design",

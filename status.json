@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-23T04:35:15Z",
+  "lastUpdated": "2026-05-23T04:45:15Z",
   "projects": [
     {
       "name": "GRDN",
@@ -69,9 +69,9 @@
     },
     {
       "name": "AI Voice Agent",
-      "state": "in-progress",
-      "note": "Repo live on GitHub (giddyuptiger/primal-agent), auto-push wired. Dashboard complete and verified — full spec section 11 (unified inbox, live view, escalations queue, tickets, KB editor, metrics, auth); typecheck clean, 31/31 tests pass, boots in mock mode (commit 3c240c5). Claude is now building the last two unblocked pieces: the outbound campaign engine (build-order step 11) and an interactive voice test harness so the agent is demoable before Twilio is live.",
-      "nextStep": "Build in progress. Jeremy: kick off the Twilio A2P 10DLC registration now — carrier approval is the slowest step. See docs/PROVISIONING.md."
+      "state": "waiting-on-jeremy",
+      "note": "Feature-complete in mock mode — foundation, dashboard, outbound campaign engine, and an interactive voice test harness all built and verified: typecheck clean, 42/42 tests pass, boots with no API keys. Try it now with 'npm run harness'. Everything buildable without external services is done. Repo: giddyuptiger/primal-agent (commit 96ded86).",
+      "nextStep": "Two things, both yours: (1) provisioning — Twilio + A2P 10DLC, Deepgram, TTS, Supabase, Resend, Claude key, a host (see docs/PROVISIONING.md; start the A2P registration first, it's the slowest); (2) decide the gym platform (Mindbody/F45) so the real booking adapter can be built."
     }
   ]
 }

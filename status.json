@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-23T20:52:37Z",
+  "lastUpdated": "2026-05-23T21:04:15Z",
   "projects": [
     {
       "name": "GRDN",
@@ -15,9 +15,9 @@
     },
     {
       "name": "HD-LOVE",
-      "state": "in-progress",
-      "note": "Supabase backend is LIVE — Jeremy created a real account and uploaded a profile photo; auth, storage, and the candidate feed are working. Now doing an App Store pre-release audit: building the Apple-required pieces (Delete account button, report/block users) and investigating the greyed-out look on swipe-page profiles + how to handle the 20 cold-start seed profiles at launch.",
-      "nextStep": "Pre-release audit in progress — Claude will deliver the built code items plus an ordered App Store submission checklist."
+      "state": "waiting-on-jeremy",
+      "note": "App Store prep complete (commit 08b32d2) — Delete Account, Report, Block, 18+ age gate, iOS photo-permission string, profile-card visual fix (the 'greyed out' look was a weak photo fallback + heavy gradient, not a bug — fixed for all cards), seed profiles removed with a clean empty state, and Privacy Policy + Terms written and hosted (giddyuptiger.github.io/HD-LOVE/privacy.html and /terms.html). Backend is live. Code side is done.",
+      "nextStep": "Run 'flutter pub get' + analyze/test; re-run supabase/schema.sql (adds moderation tables) and run 'delete from profiles where is_seed = true;' in Supabase; then the App Store Connect steps — listing, screenshots, age rating, App Privacy questionnaire, paste the privacy.html URL, submit. Claude can walk through any step."
     },
     {
       "name": "irons-design",

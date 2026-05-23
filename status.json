@@ -69,9 +69,9 @@
     },
     {
       "name": "AI Voice Agent",
-      "state": "waiting-on-jeremy",
-      "note": "Foundation built — standalone project at ~/Documents/code/primal-agent. Build-order steps 1-10 + 12 are real running code (voice loop, agent brain, SMS/email, compliance, escalation). Type-checks and boots in mock mode. Dashboard UI + real gym adapter still to build.",
-      "nextStep": "Create a private GitHub repo + push; start the Twilio A2P 10DLC registration; work through docs/PROVISIONING.md."
+      "state": "in-progress",
+      "note": "Repo is live on GitHub (giddyuptiger/primal-agent). Foundation done — build-order steps 1-10 + 12 are real running code (voice loop, agent brain, SMS/email, compliance, escalation), type-checks and boots in mock mode. Claude is now building step 13: the dashboard / manager-view web app (unified inbox, escalations queue, knowledge base editor, metrics, tickets).",
+      "nextStep": "Dashboard build in progress. Jeremy: start the Twilio A2P 10DLC registration in parallel (carrier approval is slow) — see docs/PROVISIONING.md."
     }
   ]
 }

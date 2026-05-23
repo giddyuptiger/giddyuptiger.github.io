@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-23T04:31:14Z",
+  "lastUpdated": "2026-05-23T04:35:15Z",
   "projects": [
     {
       "name": "GRDN",
@@ -39,9 +39,9 @@
     },
     {
       "name": "Futon",
-      "state": "in-progress",
-      "note": "Homepage Progress section (rainbow SRS bars) shipped. Now standardizing the SRS mastery label on 'Mastered' everywhere — fixing the inconsistency where some screens said 'Perfected' and others 'Mastered'.",
-      "nextStep": "Label rename in progress."
+      "state": "done",
+      "note": "SRS mastery label standardized on 'Mastered' everywhere (commit 3f1060f, 6 files) — no 'Perfected' or 'Burned' text left anywhere in the UI. Homepage Progress section (rainbow SRS bars) shipped earlier.",
+      "nextStep": "Shipped — nothing pending. Optional: run 'flutter analyze' on your Mac to confirm (the sandbox has no Flutter SDK)."
     },
     {
       "name": "PAPPY",

@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-23T22:02:33Z",
+  "lastUpdated": "2026-05-23T22:04:04Z",
   "projects": [
     {
       "name": "GRDN",
@@ -16,8 +16,8 @@
     {
       "name": "HD-LOVE",
       "state": "in-progress",
-      "note": "Login 'Invalid API key' traced: commit f7e3bbc (May 13) added Xcode Cloud CI that built without the Supabase key; baa16ca (May 14) fixed the CI script. Recent builds still fail = the SUPABASE_ANON_KEY value in Xcode Cloud is wrong (build installs, so key present but wrong — likely wrong project, service_role instead of anon, or whitespace). Duplicate-email fix shipped (649f7b1). Marketing reframed around 'connection'. New feature in progress: location + 'find people nearby' filtering.",
-      "nextStep": "Jeremy: in Xcode Cloud, delete and re-add SUPABASE_URL + SUPABASE_ANON_KEY with exact values from one project (anon/public key, no whitespace), then cut a fresh build. Then finish the App Store submission. Location feature still building."
+      "note": "Login 'Invalid API key' — definitively traced. The real Supabase sign-in flow was only ADDED today (commit 01cff66); it has never authenticated successfully in a CI build. 'Build 42' worked because it predated the login flow and ran on-device demo mode. The CI build script and app code are sound — the bad value is the SUPABASE_ANON_KEY env var in Xcode Cloud (wrong project, service_role instead of anon, or whitespace). Duplicate-email fix shipped (649f7b1). Marketing reframed around 'connection'. New feature in progress: location + 'find people nearby' filtering.",
+      "nextStep": "Jeremy: in Xcode Cloud, delete and re-add SUPABASE_URL + SUPABASE_ANON_KEY — fresh from Supabase Project Settings > API, anon/public key, same project, no whitespace — then cut a build and test sign-in. Then finish the App Store submission. Location feature still building."
     },
     {
       "name": "irons-design",

@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-23T16:37:49Z",
+  "lastUpdated": "2026-05-23T20:43:07Z",
   "projects": [
     {
       "name": "GRDN",
@@ -15,9 +15,9 @@
     },
     {
       "name": "HD-LOVE",
-      "state": "waiting-on-jeremy",
-      "note": "Go-live backend built on Supabase (commit 01cff66) — real email/password auth, profile photo upload to Supabase Storage, and a live candidate feed across the Romantic/Friends/Networking modes (incl. a fix to a matching bug that broke matches in DB mode, plus 20 seed profiles). Code is launch-ready (~95%); demo mode still works with no keys. docs/backend_setup.md has the full setup guide.",
-      "nextStep": "Stand up the backend: create a Supabase project, run supabase/schema.sql then seed.sql, set SUPABASE_URL + SUPABASE_ANON_KEY (GitHub Actions secrets for web, Xcode Cloud env vars for iOS), run 'flutter analyze' + 'flutter test'. Before App Store submission: add a 'Delete account' button (Apple requires it)."
+      "state": "in-progress",
+      "note": "Supabase backend is LIVE — Jeremy created a real account and uploaded a profile photo; auth, storage, and the candidate feed are working. Now doing an App Store pre-release audit: building the Apple-required pieces (Delete account button, report/block users) and investigating the greyed-out look on swipe-page profiles + how to handle the 20 cold-start seed profiles at launch.",
+      "nextStep": "Pre-release audit in progress — Claude will deliver the built code items plus an ordered App Store submission checklist."
     },
     {
       "name": "irons-design",

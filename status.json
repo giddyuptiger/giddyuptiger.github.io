@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-23T16:16:34Z",
+  "lastUpdated": "2026-05-23T16:21:22Z",
   "projects": [
     {
       "name": "GRDN",
@@ -9,9 +9,9 @@
     },
     {
       "name": "SCANDALS",
-      "state": "waiting-on-jeremy",
-      "note": "Capture method reworked (commit 259d922, 11 files) — the paper now goes flat on the floor BESIDE the foot instead of under it. On-screen guidance, the shot diagram, live detection, and the setup checklist were all rewritten for the new layout; paper detection now expects a full unoccluded rectangle. CV pipeline typechecks clean. Standard US Letter works for any foot size.",
-      "nextStep": "Take a test scan with the paper beside your foot (both flat on the floor, fully in frame, phone overhead) and check the measurement against a known size."
+      "state": "in-progress",
+      "note": "Paper-beside-foot capture shipped (v1.7.0). But a test scan exposed a deeper bug: the foot segmentation includes the lower leg/calf, so the outline runs up the leg to the frame edge — no real heel, and length/heel-width are measured on a foot+leg blob (307mm length, 110mm heel flagged out of range). Claude is investigating the leg-inclusion fix and what the separate 'heel photo' step actually does (a top-down shot physically can't see the heel — the leg is in front of it).",
+      "nextStep": "Investigation + leg-inclusion fix in progress."
     },
     {
       "name": "HD-LOVE",

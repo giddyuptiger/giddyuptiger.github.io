@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-23T21:42:18Z",
+  "lastUpdated": "2026-05-23T21:51:35Z",
   "projects": [
     {
       "name": "GRDN",
@@ -15,9 +15,9 @@
     },
     {
       "name": "HD-LOVE",
-      "state": "waiting-on-jeremy",
-      "note": "App Store prep complete; version 1.0.0+15. All code fixes in on main: login 'Invalid API key' (fd85c50 — lockfile committed + deps pinned + key/URL trimmed), and duplicate-email signup (649f7b1 — a repeat email now signs the person into their existing account if the password matches, never creates a second account). Marketing copy reframed around 'connection'. Login works locally; CI builds still need testing from a commit that includes the fix.",
-      "nextStep": "Let the newest Xcode Cloud build (from commit 649f7b1) finish and test it — confirms the login fix in CI. Then finish the App Store submission. If the fixed build still fails login, compare the Xcode Cloud anon-key value char-for-char against the working local one."
+      "state": "in-progress",
+      "note": "App Store prep done; login 'Invalid API key' fix (fd85c50) and duplicate-email signup fix (649f7b1) both shipped. Marketing copy reframed around 'connection'. Now building a new feature: location + 'find people nearby' filtering — device location, an approximate location per profile (exact coordinates never exposed to other users), and a distance radius filter on Discover alongside the Romantic/Friends/Networking modes.",
+      "nextStep": "Location feature in progress. Pending for Jeremy: test a CI build from the latest commit to confirm the login fix; finish the App Store submission (location adds a 'Location' row to the App Privacy questionnaire)."
     },
     {
       "name": "irons-design",

@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-24T14:33:44Z",
+  "lastUpdated": "2026-05-24T14:57:20Z",
   "projects": [
     {
       "name": "GRDN",
@@ -40,8 +40,8 @@
     {
       "name": "Futon",
       "state": "waiting-on-jeremy",
-      "note": "Launch-polish batch shipped (commit e1f3bd9): test-out flips a module to 'Stable' with spread-out review dates (fixes the 126-due cliff), test-out hides the kana, the home-screen numbers now agree (they were counting different things), 'Join a Squad' wired up. UX review fixed several items; onboarding-unreachable bug (new users skipped past onboarding) now also being fixed.",
-      "nextStep": "Jeremy to decide on 4 review-flagged items — Chat tab (demo), Recent Activity (fabricated), Pro Trial badge (hardcoded), Library 'What's in this?' (demo): wire each up for real or remove for launch. Then run 'flutter analyze' on the Mac."
+      "note": "Launch-polish batch shipped (e1f3bd9): test-out flips a module to 'Stable' with spread-out review dates, test-out hides the kana, home-screen numbers reconciled, 'Join a Squad' wired up. Onboarding-unreachable bug also fixed (7a7c1a1) — new users now reach onboarding, existing users backfilled. UX review fixed several items and flagged 4 for Jeremy's decision.",
+      "nextStep": "Jeremy: apply FUTON migration 00013 (onboarding_completed column) via 'supabase db push'; run 'flutter analyze' on the Mac; decide on 4 flagged items — Chat tab, Recent Activity, Pro Trial badge, Library 'What's in this?' — wire up or remove for launch."
     },
     {
       "name": "PAPPY",

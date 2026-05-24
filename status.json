@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-23T22:40:06Z",
+  "lastUpdated": "2026-05-24T03:20:00Z",
   "projects": [
     {
       "name": "GRDN",
@@ -17,7 +17,7 @@
       "name": "HD-LOVE",
       "state": "waiting-on-jeremy",
       "note": "Location + 'find people nearby' filtering shipped (eb76655) — device location with manual-city fallback, a distance radius filter on Discover, precise coordinates owner-only at the DB level (others see only rounded distance/coarse city). Privacy policy updated to disclose location (910d659); geolocator lockfile committed by Jeremy (63052c0). Login 'Invalid API key' traced: real login is brand-new (01cff66), never authenticated in CI; the bad value is the SUPABASE_ANON_KEY env var in Xcode Cloud. Duplicate-email fix and 'connection' marketing copy also done.",
-      "nextStep": "Login works. Jeremy's Supabase DB was several schema versions behind (missing blocks/reports tables). Fix delivered: the complete hardened, idempotent schema.sql (commit 02a4804) — Jeremy runs it once in the SQL editor to fully sync the DB. Then Discover works and he can finish the App Store submission."
+      "nextStep": "Login works and Jeremy ran the full schema.sql, so the database is synced and Discover should load. Remaining: finish the App Store submission — cut the build, listing, screenshots, age rating, App Privacy questionnaire (incl. the Location row), submit."
     },
     {
       "name": "irons-design",

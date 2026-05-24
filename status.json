@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-24T03:20:00Z",
+  "lastUpdated": "2026-05-24T03:22:56Z",
   "projects": [
     {
       "name": "GRDN",
@@ -15,9 +15,9 @@
     },
     {
       "name": "HD-LOVE",
-      "state": "waiting-on-jeremy",
-      "note": "Location + 'find people nearby' filtering shipped (eb76655) — device location with manual-city fallback, a distance radius filter on Discover, precise coordinates owner-only at the DB level (others see only rounded distance/coarse city). Privacy policy updated to disclose location (910d659); geolocator lockfile committed by Jeremy (63052c0). Login 'Invalid API key' traced: real login is brand-new (01cff66), never authenticated in CI; the bad value is the SUPABASE_ANON_KEY env var in Xcode Cloud. Duplicate-email fix and 'connection' marketing copy also done.",
-      "nextStep": "Login works and Jeremy ran the full schema.sql, so the database is synced and Discover should load. Remaining: finish the App Store submission — cut the build, listing, screenshots, age rating, App Privacy questionnaire (incl. the Location row), submit."
+      "state": "in-progress",
+      "note": "App live end-to-end: login works, schema synced, location + nearby filtering, duplicate-email handling, moderation, privacy policy — all shipped. Now building a public Human Design 'library' website — a browsable, beautiful site of all the app's HD content (64 gates with day readings, channels, centers, lines, types), hosted at giddyuptiger.github.io/HD-LOVE/library/.",
+      "nextStep": "Library site in progress. Pending for Jeremy: finish the App Store submission — cut the build, listing, screenshots, age rating, App Privacy questionnaire (incl. the Location row), submit."
     },
     {
       "name": "irons-design",

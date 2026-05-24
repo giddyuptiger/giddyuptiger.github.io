@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-24T18:11:48Z",
+  "lastUpdated": "2026-05-24T18:35:29Z",
   "projects": [
     {
       "name": "GRDN",
@@ -16,8 +16,8 @@
     {
       "name": "HD-LOVE",
       "state": "waiting-on-jeremy",
-      "note": "App live end-to-end. Human Design library site (with About section), launch waitlist page, and a polished 5-image App Store screenshot set all shipped — screenshots in the repo at app-store-screenshots/, preview gallery at giddyuptiger.github.io/HD-LOVE/app-store/.",
-      "nextStep": "For Jeremy: wire up the waitlist (Supabase URL+key + the waitlist SQL); finish the App Store submission — drag the 5 screenshots into App Store Connect, plus build, listing, age rating, App Privacy (incl. Location), submit."
+      "note": "App live end-to-end. Human Design library site, launch waitlist page, and the App Store screenshot set all shipped (iPhone screenshots framed at 1320x2868). iPad responsive layouts added (commit 65e5c79) — HD-LOVE now genuinely supports iPad. Jeremy is mid App Store submission.",
+      "nextStep": "Finish the App Store submission. Code blockers walked through (Copyright + Content Rights in App Information; Privacy Policy URL + the data questionnaire in App Privacy). For iPad: cut a fresh build, capture 13-inch iPad screenshots on the simulator (Claude will frame them to 2064x2752). Run flutter analyze locally."
     },
     {
       "name": "irons-design",

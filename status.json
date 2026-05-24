@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-24T19:58:39Z",
+  "lastUpdated": "2026-05-24T20:04:28Z",
   "projects": [
     {
       "name": "GRDN",
@@ -15,9 +15,9 @@
     },
     {
       "name": "HD-LOVE",
-      "state": "in-progress",
-      "note": "App live end-to-end. Library site, waitlist page, App Store screenshot set shipped; iPad responsive layouts added (65e5c79). Now improving the daily 'Today' reading: making it genuinely vary day-to-day (the gate theme holds ~5-6 days as the Sun crosses it, so 'Today's Focus' was repeating) and adding a real time-range to the Moon section.",
-      "nextStep": "Daily-reading improvement in progress. Jeremy is mid App Store submission — iPhone + iPad screenshots both delivered (iPad framed at 2064x2752). Finish it: the walked-through blockers (Copyright, Content Rights, Privacy Policy URL, data questionnaire), upload the screenshots, and submit. Ideally submit a fresh build that includes the iPad layouts."
+      "state": "waiting-on-jeremy",
+      "note": "App live end-to-end. Library site, waitlist, App Store screenshots (iPhone + iPad) all shipped; iPad responsive layouts added. Daily 'Today' reading improved (commit 2ac7583) — the Sun's gate is now an honest multi-day 'chapter' and 'Today's Focus' recomposes daily from the Sun's line (no more 5-6-day repeats); the Moon section shows its real local-time window.",
+      "nextStep": "Finish the App Store submission — the walked-through blockers (Copyright, Content Rights, Privacy Policy URL, data questionnaire), upload the iPhone + iPad screenshots, submit. Ideally from a fresh build that includes the iPad layouts + the daily-reading update."
     },
     {
       "name": "irons-design",

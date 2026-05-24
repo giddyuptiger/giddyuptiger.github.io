@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-24T19:53:16Z",
+  "lastUpdated": "2026-05-24T19:58:39Z",
   "projects": [
     {
       "name": "GRDN",
@@ -17,7 +17,7 @@
       "name": "HD-LOVE",
       "state": "in-progress",
       "note": "App live end-to-end. Library site, waitlist page, App Store screenshot set shipped; iPad responsive layouts added (65e5c79). Now improving the daily 'Today' reading: making it genuinely vary day-to-day (the gate theme holds ~5-6 days as the Sun crosses it, so 'Today's Focus' was repeating) and adding a real time-range to the Moon section.",
-      "nextStep": "Daily-reading improvement in progress. Jeremy is mid App Store submission — finish it: the walked-through blockers (Copyright, Content Rights, Privacy Policy URL, data questionnaire), and for iPad cut a fresh build + capture 13-inch iPad screenshots (Claude will frame them)."
+      "nextStep": "Daily-reading improvement in progress. Jeremy is mid App Store submission — iPhone + iPad screenshots both delivered (iPad framed at 2064x2752). Finish it: the walked-through blockers (Copyright, Content Rights, Privacy Policy URL, data questionnaire), upload the screenshots, and submit. Ideally submit a fresh build that includes the iPad layouts."
     },
     {
       "name": "irons-design",

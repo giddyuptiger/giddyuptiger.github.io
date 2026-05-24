@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-24T21:30:00Z",
+  "lastUpdated": "2026-05-24T21:42:00Z",
   "projects": [
     {
       "name": "GRDN",
@@ -92,9 +92,16 @@
     {
       "name": "Travel & housing",
       "icon": "✈️",
-      "due": "— June 25 onward",
-      "note": "ANC→LA flight after the wedding (~June 25). LA stay June 25–July 20. London July 20–~Aug 5. Post-London housing to be decided ~Aug 5.",
-      "nextStep": "Book the ANC→LA flight and line up LA housing for June 25–July 20."
+      "due": "June 25 onward",
+      "note": "ANC to LA flight after the wedding (~June 25). LA stay June 25 to July 20. London July 20 to ~Aug 5. Post-London housing to be decided ~Aug 5.",
+      "nextStep": "Book the ANC to LA flight and line up LA housing for June 25 to July 20."
+    },
+    {
+      "name": "Meditation retreat",
+      "icon": "🧘",
+      "due": "during the LA stay, June 25 to July 20",
+      "note": "A roughly 3-day Vipassana or silent meditation retreat while you're in LA, between Alaska and London. Claude is researching options reachable from LA with dates inside that window.",
+      "nextStep": "Claude brings back a shortlist (dates, location, cost, level required, how to register); you pick one and book it."
     }
   ]
 }

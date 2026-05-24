@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-24T03:22:56Z",
+  "lastUpdated": "2026-05-24T03:31:20Z",
   "projects": [
     {
       "name": "GRDN",
@@ -15,9 +15,9 @@
     },
     {
       "name": "HD-LOVE",
-      "state": "in-progress",
-      "note": "App live end-to-end: login works, schema synced, location + nearby filtering, duplicate-email handling, moderation, privacy policy — all shipped. Now building a public Human Design 'library' website — a browsable, beautiful site of all the app's HD content (64 gates with day readings, channels, centers, lines, types), hosted at giddyuptiger.github.io/HD-LOVE/library/.",
-      "nextStep": "Library site in progress. Pending for Jeremy: finish the App Store submission — cut the build, listing, screenshots, age rating, App Privacy questionnaire (incl. the Location row), submit."
+      "state": "waiting-on-jeremy",
+      "note": "App live end-to-end: login works, schema synced, location + nearby filtering, duplicate-email handling, moderation, privacy policy — all shipped. Human Design library website shipped too (commit 64c07ca) — browsable site of all the app's content (64 gates with day readings, 36 channels, 9 centres, 6 lines, 5 types), live at giddyuptiger.github.io/HD-LOVE/library/, with a re-runnable extractor so it never drifts from the app.",
+      "nextStep": "Finish the App Store submission — cut the build, listing, screenshots, age rating, App Privacy questionnaire (incl. the Location row), submit. Optional: click through the library once its deploy is live and flag any tweaks."
     },
     {
       "name": "irons-design",

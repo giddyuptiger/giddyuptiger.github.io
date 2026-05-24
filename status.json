@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-24T14:16:28Z",
+  "lastUpdated": "2026-05-24T14:33:44Z",
   "projects": [
     {
       "name": "GRDN",
@@ -39,9 +39,9 @@
     },
     {
       "name": "Futon",
-      "state": "in-progress",
-      "note": "Launch-polish batch underway: test-out flips a whole module to 'Stable' (with a real review date), test-out hides the kana until 'show', the home-screen numbers discrepancy (163 'learned' vs progress bars summing to ~90; 126 suddenly due) is being investigated and fixed, the 'Join a Squad' button gets wired up, and a full launch-readiness UX/UI review.",
-      "nextStep": "Launch-polish batch in progress — Claude will report the fixes and a plain-English explanation of the home-screen numbers."
+      "state": "waiting-on-jeremy",
+      "note": "Launch-polish batch shipped (commit e1f3bd9): test-out flips a module to 'Stable' with spread-out review dates (fixes the 126-due cliff), test-out hides the kana, the home-screen numbers now agree (they were counting different things), 'Join a Squad' wired up. UX review fixed several items; onboarding-unreachable bug (new users skipped past onboarding) now also being fixed.",
+      "nextStep": "Jeremy to decide on 4 review-flagged items — Chat tab (demo), Recent Activity (fabricated), Pro Trial badge (hardcoded), Library 'What's in this?' (demo): wire each up for real or remove for launch. Then run 'flutter analyze' on the Mac."
     },
     {
       "name": "PAPPY",

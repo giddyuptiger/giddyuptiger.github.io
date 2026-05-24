@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-24T21:04:30Z",
+  "lastUpdated": "2026-05-24T21:18:00Z",
   "projects": [
     {
       "name": "GRDN",
@@ -83,11 +83,11 @@
       "nextStep": "Send Claude details on the couple — how you know them, their story, tone you want — and Claude will draft the speech."
     },
     {
-      "name": "Relationship clarity",
+      "name": "Relationship growth",
       "icon": "🧭",
-      "due": "— ongoing",
-      "note": "Getting really clear on what you want from your relationship. A program will be uploaded to work through.",
-      "nextStep": "Upload the program when ready and Claude will help you work through it."
+      "due": "21-day process, begin when ready",
+      "note": "A 21-day structured reflection on your long-term relationship, in five phases, holding three honest outcomes. The program is uploaded and Claude has it.",
+      "nextStep": "Say the word and Claude starts Day 1 with you, pulling each day's prompts and reflecting alongside you. Continuity kept in one ongoing thread."
     },
     {
       "name": "Travel & housing",

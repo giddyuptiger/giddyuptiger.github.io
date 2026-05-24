@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-24T21:42:00Z",
+  "lastUpdated": "2026-05-24T21:52:00Z",
   "projects": [
     {
       "name": "GRDN",
@@ -16,7 +16,7 @@
     {
       "name": "HD-LOVE",
       "state": "waiting-on-jeremy",
-      "note": "App live end-to-end. Library site, waitlist, App Store screenshots (iPhone + iPad) all shipped; iPad responsive layouts added. Daily 'Today' reading improved (2ac7583, 5a9b287) — the Sun's gate is an honest multi-day 'chapter', 'Today's Focus' recomposes daily from the Sun's line (no more 5-6-day repeats), and the gate span, the Sun's line window and the Moon window all show their real local-time ranges.",
+      "note": "App live end-to-end. Library site, waitlist, App Store screenshots (iPhone + iPad) all shipped; iPad responsive layouts added. Daily 'Today' reading improved (2ac7583, 5a9b287). Two code tasks now in flight: a library section explaining the matching factors, and a friend system (unique usernames, search, friend requests, friends as synced people).",
       "nextStep": "Finish the App Store submission — the walked-through blockers (Copyright, Content Rights, Privacy Policy URL, data questionnaire), upload the iPhone + iPad screenshots, submit. Ideally from a fresh build that includes the iPad layouts + the daily-reading update."
     },
     {

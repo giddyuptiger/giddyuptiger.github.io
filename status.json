@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-24T15:16:05Z",
+  "lastUpdated": "2026-05-24T17:23:23Z",
   "projects": [
     {
       "name": "GRDN",
@@ -41,7 +41,7 @@
       "name": "Futon",
       "state": "waiting-on-jeremy",
       "note": "Launch-polish work all shipped (e1f3bd9, 7a7c1a1, bbe65b3, 033b7bf): test-out fixes, onboarding reachability, home numbers, Join a Squad, real AI chat, real Recent Activity feed, real Library analyzer, Pro Trial badge removed, and the onboarding '30-day Pro trial' line reworded — no paywall references remain anywhere.",
-      "nextStep": "Jeremy: (1) apply migration 00013 via 'supabase db push'; (2) deploy the ai-conversation-turn + analyze-paste edge functions with ANTHROPIC_API_KEY set, or chat won't work; (3) run 'flutter analyze' on the Mac; (4) decide on the Achievements card — build a real achievement system or remove it for v1."
+      "nextStep": "Edge functions deployed — chat backend is live. Jeremy: (1) apply migration 00013 via 'supabase db push'; (2) run 'flutter analyze' on the Mac; (3) decide on the Achievements card — build a real achievement system or remove it for v1."
     },
     {
       "name": "PAPPY",

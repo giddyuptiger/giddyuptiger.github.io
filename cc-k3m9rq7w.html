@@ -177,6 +177,37 @@
     });
     c2.appendChild(legend);
     content.appendChild(c2);
+
+    var personal = (data && data.personal) || [];
+    if (personal.length) {
+      var c3 = el("div", "card");
+      c3.appendChild(el("h2", null, "Personal"));
+      personal.forEach(function (p) {
+        var row = el("div", "row");
+        row.appendChild(el("span", "ic", p.icon || "🌱"));
+        var body = el("div", "body");
+        var top = el("div", "top");
+        top.appendChild(el("span", "nm", p.name));
+        if (p.due) {
+          top.appendChild(document.createTextNode(" "));
+          top.appendChild(el("span", "st", p.due));
+        }
+        body.appendChild(top);
+        if (p.note) body.appendChild(el("div", "step", p.note));
+        if (p.nextStep) {
+          var ns = el("div", "step");
+          var lbl = el("span", null, "Next — ");
+          lbl.style.fontWeight = "700";
+          lbl.style.color = "#b07d3a";
+          ns.appendChild(lbl);
+          ns.appendChild(document.createTextNode(p.nextStep));
+          body.appendChild(ns);
+        }
+        row.appendChild(body);
+        c3.appendChild(row);
+      });
+      content.appendChild(c3);
+    }
   }
 
   function fail(message) {

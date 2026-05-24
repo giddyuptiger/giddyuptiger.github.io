@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-24T20:13:34Z",
+  "lastUpdated": "2026-05-24T21:02:16Z",
   "projects": [
     {
       "name": "GRDN",
@@ -72,6 +72,29 @@
       "state": "waiting-on-jeremy",
       "note": "Feature-complete in mock mode — foundation, dashboard, outbound campaign engine, and an interactive voice test harness all built and verified: typecheck clean, 42/42 tests pass, boots with no API keys. Try it now with 'npm run harness'. Everything buildable without external services is done. Repo: giddyuptiger/primal-agent (commit 96ded86).",
       "nextStep": "Two things, both yours: (1) provisioning — Twilio + A2P 10DLC, Deepgram, TTS, Supabase, Resend, Claude key, a host (see docs/PROVISIONING.md; start the A2P registration first, it's the slowest); (2) decide the gym platform (Mindbody/F45) so the real booking adapter can be built."
+    }
+  ],
+  "personal": [
+    {
+      "name": "Wedding speech",
+      "icon": "💍",
+      "due": "— aim to finish by ~May 31",
+      "note": "Officiating a friend's wedding in June. Wants the speech drafted this coming week.",
+      "nextStep": "Send Claude details on the couple — how you know them, their story, tone you want — and Claude will draft the speech."
+    },
+    {
+      "name": "Relationship clarity",
+      "icon": "🧭",
+      "due": "— ongoing",
+      "note": "Getting really clear on what you want from your relationship. A program will be uploaded to work through.",
+      "nextStep": "Upload the program when ready and Claude will help you work through it."
+    },
+    {
+      "name": "Travel & housing",
+      "icon": "✈️",
+      "due": "— June 25 onward",
+      "note": "ANC→LA flight after the wedding (~June 25). LA stay June 25–July 20. London July 20–~Aug 5. Post-London housing to be decided ~Aug 5.",
+      "nextStep": "Book the ANC→LA flight and line up LA housing for June 25–July 20."
     }
   ]
 }

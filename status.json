@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-24T21:02:16Z",
+  "lastUpdated": "2026-05-24T21:04:30Z",
   "projects": [
     {
       "name": "GRDN",
@@ -39,9 +39,9 @@
     },
     {
       "name": "Futon",
-      "state": "waiting-on-jeremy",
-      "note": "Launch-polish work all shipped (e1f3bd9, 7a7c1a1, bbe65b3, 033b7bf): test-out fixes, onboarding reachability, home numbers, Join a Squad, real AI chat, real Recent Activity feed, real Library analyzer, Pro Trial badge removed, and the onboarding '30-day Pro trial' line reworded — no paywall references remain anywhere.",
-      "nextStep": "Edge functions deployed; flutter analyze now fully clean (the one info-lint fixed, ca1abb0). Jeremy: (1) apply migration 00013 via 'supabase db push'; (2) decide on the Achievements card — build a real achievement system or remove it for v1."
+      "state": "in-progress",
+      "note": "Launch-polish work all shipped. Now auditing learning content — Jeremy flagged that N5 only has ~20 modules, no other JLPT levels exist, grammar modules aren't testable, and one module is empty. A code task is auditing the content model, fixing the empty module + grammar-testing gap, and will recommend how to fill out the full curriculum.",
+      "nextStep": "Content audit in progress. Still pending from before: apply migration 00013 via 'supabase db push'; decide on the Achievements card (real system or remove for v1)."
     },
     {
       "name": "PAPPY",

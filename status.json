@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-24T03:53:26Z",
+  "lastUpdated": "2026-05-24T03:57:38Z",
   "projects": [
     {
       "name": "GRDN",
@@ -15,9 +15,9 @@
     },
     {
       "name": "HD-LOVE",
-      "state": "in-progress",
-      "note": "App live end-to-end. Human Design library site (giddyuptiger.github.io/HD-LOVE/library/) and launch waitlist page (giddyuptiger.github.io/HD-LOVE/waitlist/) both shipped. Now adding an 'About Human Design' section to the library — what it is, its origin and the traditions it synthesizes, how a chart is built, and how the pieces fit, cross-linked to the rest of the library.",
-      "nextStep": "About-Human-Design section in progress. Pending for Jeremy: wire up the waitlist (paste Supabase URL+key, run the waitlist SQL); finish the App Store submission (build, listing, screenshots, age rating, App Privacy incl. Location)."
+      "state": "waiting-on-jeremy",
+      "note": "App live end-to-end. Human Design library site shipped, now with an 'About Human Design' section (commit 882e06e) at /library/#/about — origin, the traditions it synthesizes, how a chart is built, the building blocks, all cross-linked. Launch waitlist page also shipped (giddyuptiger.github.io/HD-LOVE/waitlist/).",
+      "nextStep": "For Jeremy: wire up the waitlist (paste Supabase URL+key into web/waitlist/index.html, run the waitlist-table SQL); finish the App Store submission (build, listing, screenshots, age rating, App Privacy incl. Location)."
     },
     {
       "name": "irons-design",

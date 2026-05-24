@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-24T21:18:00Z",
+  "lastUpdated": "2026-05-24T21:30:00Z",
   "projects": [
     {
       "name": "GRDN",
@@ -9,9 +9,9 @@
     },
     {
       "name": "SCANDALS",
-      "state": "waiting-on-jeremy",
-      "note": "Measurement redesign shipped — v1.8.1 (commit 63896bc). Length is now a real measurement, not a guess: for the top-down shot the user pushes the heel and the paper's short edge both flat against a wall, so the paper edge is an exact heel datum (the wall removes the eyeballing). The scan outputs the full set — length, toe profile, ball/midfoot/heel widths; heel width from the heel photo with the paper in frame. Typecheck clean; not yet tested on a real photo.",
-      "nextStep": "Take a test scan with the wall method — heel and paper's short edge both flat against a wall for the top-down shot, whole paper in frame for the heel shot — and check the numbers."
+      "state": "in-progress",
+      "note": "Moving to a single-photo scan. The separate heel photo is being removed and everything derived from the one top-down shot: widths measured at 10% intervals along the foot until the ankle obscures the heel, then the heel extrapolated from the last clean measurements. A code task is also investigating and improving toe detection so the small toes (3 to 5) are captured and the outline is accurate.",
+      "nextStep": "Code task in progress: single-photo flow plus toe-detection improvement."
     },
     {
       "name": "HD-LOVE",

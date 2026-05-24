@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-24T03:31:20Z",
+  "lastUpdated": "2026-05-24T03:32:36Z",
   "projects": [
     {
       "name": "GRDN",
@@ -15,9 +15,9 @@
     },
     {
       "name": "HD-LOVE",
-      "state": "waiting-on-jeremy",
-      "note": "App live end-to-end: login works, schema synced, location + nearby filtering, duplicate-email handling, moderation, privacy policy — all shipped. Human Design library website shipped too (commit 64c07ca) — browsable site of all the app's content (64 gates with day readings, 36 channels, 9 centres, 6 lines, 5 types), live at giddyuptiger.github.io/HD-LOVE/library/, with a re-runnable extractor so it never drifts from the app.",
-      "nextStep": "Finish the App Store submission — cut the build, listing, screenshots, age rating, App Privacy questionnaire (incl. the Location row), submit. Optional: click through the library once its deploy is live and flag any tweaks."
+      "state": "in-progress",
+      "note": "App live end-to-end (login, schema, location/nearby filtering, moderation, privacy policy). Human Design library website shipped (giddyuptiger.github.io/HD-LOVE/library/). Now building a launch waitlist sign-up page — beautiful HD-LOVE-styled page collecting emails into a Supabase waitlist table (insert-only), at giddyuptiger.github.io/HD-LOVE/waitlist/.",
+      "nextStep": "Waitlist page in progress. Pending for Jeremy: finish the App Store submission (build, listing, screenshots, age rating, App Privacy incl. Location); and, for the waitlist, paste the Supabase URL+anon key into the page and run the waitlist-table SQL."
     },
     {
       "name": "irons-design",

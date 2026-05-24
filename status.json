@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-24T14:04:26Z",
+  "lastUpdated": "2026-05-24T14:16:28Z",
   "projects": [
     {
       "name": "GRDN",
@@ -15,9 +15,9 @@
     },
     {
       "name": "HD-LOVE",
-      "state": "in-progress",
-      "note": "App live end-to-end. Human Design library site (with an About section) and launch waitlist page both shipped. Now producing a polished App Store screenshot set — 5 framed, captioned images in HD-LOVE's cosmic style at the 6.9-inch size, from Jeremy's raw captures.",
-      "nextStep": "App Store screenshot set in progress. Pending for Jeremy: wire up the waitlist (Supabase URL+key + the waitlist SQL); finish the App Store submission (build, listing, screenshots, age rating, App Privacy incl. Location)."
+      "state": "waiting-on-jeremy",
+      "note": "App live end-to-end. Human Design library site (with About section), launch waitlist page, and a polished 5-image App Store screenshot set all shipped — screenshots in the repo at app-store-screenshots/, preview gallery at giddyuptiger.github.io/HD-LOVE/app-store/.",
+      "nextStep": "For Jeremy: wire up the waitlist (Supabase URL+key + the waitlist SQL); finish the App Store submission — drag the 5 screenshots into App Store Connect, plus build, listing, age rating, App Privacy (incl. Location), submit."
     },
     {
       "name": "irons-design",
@@ -39,9 +39,9 @@
     },
     {
       "name": "Futon",
-      "state": "done",
-      "note": "SRS mastery label standardized on 'Mastered' everywhere (commit 3f1060f, 6 files) — no 'Perfected' or 'Burned' text left anywhere in the UI. Homepage Progress section (rainbow SRS bars) shipped earlier.",
-      "nextStep": "Shipped — nothing pending. Optional: run 'flutter analyze' on your Mac to confirm (the sandbox has no Flutter SDK)."
+      "state": "in-progress",
+      "note": "Launch-polish batch underway: test-out flips a whole module to 'Stable' (with a real review date), test-out hides the kana until 'show', the home-screen numbers discrepancy (163 'learned' vs progress bars summing to ~90; 126 suddenly due) is being investigated and fixed, the 'Join a Squad' button gets wired up, and a full launch-readiness UX/UI review.",
+      "nextStep": "Launch-polish batch in progress — Claude will report the fixes and a plain-English explanation of the home-screen numbers."
     },
     {
       "name": "PAPPY",

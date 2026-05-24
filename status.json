@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-24T14:58:53Z",
+  "lastUpdated": "2026-05-24T15:08:58Z",
   "projects": [
     {
       "name": "GRDN",
@@ -39,9 +39,9 @@
     },
     {
       "name": "Futon",
-      "state": "in-progress",
-      "note": "Launch-polish batch + onboarding-reachability bug shipped (e1f3bd9, 7a7c1a1). Now finishing the 4 review-flagged items per Jeremy's calls: wire up real AI chat, build the real Recent Activity feed, wire 'What's in this?' to real content, and remove the Pro Trial badge (launching free; freemium comes in a later update).",
-      "nextStep": "Final 4 launch items in progress. Jeremy: apply FUTON migration 00013 (onboarding_completed) via 'supabase db push' and run 'flutter analyze' on the Mac."
+      "state": "waiting-on-jeremy",
+      "note": "Launch-polish work all shipped (e1f3bd9, 7a7c1a1, bbe65b3): test-out fixes, onboarding reachability, home numbers, Join a Squad, real AI chat, real Recent Activity feed, real Library analyzer, Pro Trial badge removed. The onboarding '30-day Pro trial' line is being reworded too.",
+      "nextStep": "Jeremy: (1) apply migration 00013 via 'supabase db push'; (2) deploy the ai-conversation-turn + analyze-paste edge functions with ANTHROPIC_API_KEY set, or chat won't work; (3) run 'flutter analyze' on the Mac; (4) decide on the Achievements card — build a real achievement system or remove it for v1."
     },
     {
       "name": "PAPPY",

@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-24T23:16:00Z",
+  "lastUpdated": "2026-05-24T23:34:00Z",
   "projects": [
     {
       "name": "GRDN",
@@ -10,14 +10,14 @@
     {
       "name": "SCANDALS",
       "state": "in-progress",
-      "note": "v1.9.1: single-photo scan, heel removed, widths sampled every 10%; an optional torch/flash toggle was added to the capture screen (works on Android web and a native build, but iOS Safari has no torch API). Toe profile is being reworked to trace the front edge from the full-resolution photo so the five toe-tip peaks resolve cleanly even when toes touch.",
-      "nextStep": "Toe-profile rework in progress; drawing the 10% width-station markers onto the outline visual is queued behind it."
+      "note": "v1.10.0 shipped: single-photo scan, optional flash toggle, and a reworked toe profile that traces the front foot edge in the full-resolution photo (~0.1mm per pixel, far sharper than the old 320px mask) so the five toe-tip peaks resolve even when toes touch. An urgent task is fixing a broken/stale GitHub Pages deploy Jeremy hit: a JS chunk fails to load and the live site was serving pre-v1.9.0 code.",
+      "nextStep": "Deploy fix in progress. Then the 10% width-station markers get drawn onto the outline visual."
     },
     {
       "name": "HD-LOVE",
       "state": "waiting-on-jeremy",
-      "note": "App live end-to-end. Friend system shipped (build 16): unique usernames, search, friend requests, friends as synced People. Library matching section live at /library/#/matching. Chat and discover fixes shipped (commit faaf80d): optimistic send, correct message order, meet-mode toggles always visible, connection explainers behind an info circle, no-photo placeholder improved. A matching-filter task is still wiring gender preference and age range into the discover query. Queued behind it: a fix for the discover/swipe card showing a grey box even when the person has a photo (the photo loads fine post-match, so the discover query likely is not returning the photo URL).",
-      "nextStep": "Friend-system migration applied. The matching-filter task will produce one more migration to run when it lands. Then finish the App Store submission: the walked-through blockers, upload the iPhone + iPad screenshots, submit from a fresh build (build 16+ carries the friend system)."
+      "note": "App live end-to-end. Friend system (build 16) and chat/discover fixes (commit faaf80d) shipped. Matching filter shipped (commit f92ced0, build 18): gender preference mutual in Romantic mode, age range across all modes. A task is now fixing two bugs: a duplicate chat message flicker during optimistic send, and the discover card showing a grey box even when the person has a photo.",
+      "nextStep": "Apply the discover-filters Supabase migration (copy-paste block sent); a second migration for the discover-photo fix is coming and can be applied together. Then finish the App Store submission: the blockers, the iPhone + iPad screenshots, a fresh build (build 18+)."
     },
     {
       "name": "irons-design",

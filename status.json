@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-24T23:34:00Z",
+  "lastUpdated": "2026-05-25T00:05:00Z",
   "projects": [
     {
       "name": "GRDN",
@@ -16,8 +16,8 @@
     {
       "name": "HD-LOVE",
       "state": "waiting-on-jeremy",
-      "note": "App live end-to-end. Friend system (build 16) and chat/discover fixes (commit faaf80d) shipped. Matching filter shipped (commit f92ced0, build 18): gender preference mutual in Romantic mode, age range across all modes. A task is now fixing two bugs: a duplicate chat message flicker during optimistic send, and the discover card showing a grey box even when the person has a photo.",
-      "nextStep": "Apply the discover-filters Supabase migration (copy-paste block sent); a second migration for the discover-photo fix is coming and can be applied together. Then finish the App Store submission: the blockers, the iPhone + iPad screenshots, a fresh build (build 18+)."
+      "note": "App live end-to-end. Shipped: friend system (build 16), chat/discover fixes (faaf80d), matching filter with gender/age (f92ced0), and fixes for the duplicate-message flicker and the discover-card grey box (build 19, commit 8260ffc). A task is completing every channel and gate interpretation so nothing shows a 'not written yet' placeholder. A context-aware compatibility-scoring spec was delivered to Jeremy to review.",
+      "nextStep": "Apply the two HD-LOVE Supabase migrations (combined copy-paste block sent: discover-filters then discover-photos). Review the compatibility-scoring spec. Then finish the App Store submission: blockers, iPhone + iPad screenshots, fresh build (build 19+)."
     },
     {
       "name": "irons-design",

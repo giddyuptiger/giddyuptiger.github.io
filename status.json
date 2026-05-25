@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-24T22:30:00Z",
+  "lastUpdated": "2026-05-24T22:44:00Z",
   "projects": [
     {
       "name": "GRDN",
@@ -16,7 +16,7 @@
     {
       "name": "HD-LOVE",
       "state": "waiting-on-jeremy",
-      "note": "App live end-to-end. Friend system shipped (build 16, commit 98f0ab5): unique usernames, search, friend requests, friends as synced People. Library matching section live at /library/#/matching. A code task is now fixing chat (optimistic send, correct message order), the grey-box swipe photo, settings toggles for the meet modes, and collapsing the connection descriptions behind an info circle. Note flagged by the matching audit: the discover query ignores gender preference and age range (decision pending).",
+      "note": "App live end-to-end. Friend system shipped (build 16, commit 98f0ab5): unique usernames, search, friend requests, friends as synced People. Library matching section live at /library/#/matching. Two code tasks in flight: one fixing chat (optimistic send, correct message order), the grey-box swipe photo, meet-mode settings toggles, and collapsing connection descriptions behind an info circle; another wiring gender preference and age range into the discover matching query (they were previously ignored).",
       "nextStep": "Apply the friend-system Supabase migration (copy-paste block sent). Then finish the App Store submission: the walked-through blockers, upload the iPhone + iPad screenshots, submit from a fresh build."
     },
     {

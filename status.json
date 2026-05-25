@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-24T22:52:00Z",
+  "lastUpdated": "2026-05-24T23:08:00Z",
   "projects": [
     {
       "name": "GRDN",
@@ -10,13 +10,13 @@
     {
       "name": "SCANDALS",
       "state": "in-progress",
-      "note": "v1.9.0 shipped (commit 8064d8b): single-photo scan, heel photo removed, widths sampled every 10% and extrapolated. Toe profile is now being reworked: instead of reading toes off the low-res 320x320 segmentation mask (~30px across the toes), a task is tracing the front foot edge from the full-resolution photo so the five toe-tip peaks resolve cleanly even when toes touch.",
-      "nextStep": "Toe-profile rework in progress."
+      "note": "v1.9.1: single-photo scan, heel removed, widths sampled every 10%; an optional torch/flash toggle was added to the capture screen (works on Android web and a native build, but iOS Safari has no torch API). Toe profile is being reworked to trace the front edge from the full-resolution photo so the five toe-tip peaks resolve cleanly even when toes touch.",
+      "nextStep": "Toe-profile rework in progress; drawing the 10% width-station markers onto the outline visual is queued behind it."
     },
     {
       "name": "HD-LOVE",
       "state": "waiting-on-jeremy",
-      "note": "App live end-to-end. Friend system shipped (build 16, commit 98f0ab5): unique usernames, search, friend requests, friends as synced People. Library matching section live at /library/#/matching. Two code tasks in flight: one fixing chat (optimistic send, correct message order), the grey-box swipe photo, meet-mode settings toggles, and collapsing connection descriptions behind an info circle; another wiring gender preference and age range into the discover matching query (they were previously ignored).",
+      "note": "App live end-to-end. Friend system shipped (build 16): unique usernames, search, friend requests, friends as synced People. Library matching section live at /library/#/matching. Chat and discover fixes shipped (commit faaf80d): optimistic send, correct message order, meet-mode toggles always visible, connection explainers behind an info circle, no-photo placeholder improved. A matching-filter task is still wiring gender preference and age range into the discover query.",
       "nextStep": "Friend-system migration applied. The matching-filter task will produce one more migration to run when it lands. Then finish the App Store submission: the walked-through blockers, upload the iPhone + iPad screenshots, submit from a fresh build (build 16+ carries the friend system)."
     },
     {

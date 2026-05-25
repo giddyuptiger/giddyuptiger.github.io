@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-25T00:05:00Z",
+  "lastUpdated": "2026-05-25T00:14:00Z",
   "projects": [
     {
       "name": "GRDN",
@@ -17,7 +17,7 @@
       "name": "HD-LOVE",
       "state": "waiting-on-jeremy",
       "note": "App live end-to-end. Shipped: friend system (build 16), chat/discover fixes (faaf80d), matching filter with gender/age (f92ced0), and fixes for the duplicate-message flicker and the discover-card grey box (build 19, commit 8260ffc). A task is completing every channel and gate interpretation so nothing shows a 'not written yet' placeholder. A context-aware compatibility-scoring spec was delivered to Jeremy to review.",
-      "nextStep": "Apply the two HD-LOVE Supabase migrations (combined copy-paste block sent: discover-filters then discover-photos). Review the compatibility-scoring spec. Then finish the App Store submission: blockers, iPhone + iPad screenshots, fresh build (build 19+)."
+      "nextStep": "Both Supabase migrations applied — gender/age matching and the discover-photo fix are live on the database. Review the compatibility-scoring spec. Then finish the App Store submission: blockers, iPhone + iPad screenshots, fresh build (build 19+ carries all the recent work)."
     },
     {
       "name": "irons-design",

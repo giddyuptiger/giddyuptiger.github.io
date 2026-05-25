@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-24T21:52:00Z",
+  "lastUpdated": "2026-05-24T22:18:00Z",
   "projects": [
     {
       "name": "GRDN",
@@ -9,15 +9,15 @@
     },
     {
       "name": "SCANDALS",
-      "state": "in-progress",
-      "note": "Moving to a single-photo scan. The separate heel photo is being removed and everything derived from the one top-down shot: widths measured at 10% intervals along the foot until the ankle obscures the heel, then the heel extrapolated from the last clean measurements. A code task is also investigating and improving toe detection so the small toes (3 to 5) are captured and the outline is accurate.",
-      "nextStep": "Code task in progress: single-photo flow plus toe-detection improvement."
+      "state": "waiting-on-jeremy",
+      "note": "v1.9.0 shipped (commit 8064d8b). Now a single-photo scan: the heel photo is removed, widths are sampled every 10% along the foot and extrapolated past where the ankle hides the heel. Toe detection (a U2-Net segmentation model) was tightened with a smaller merge window and a prominence filter so the small toes survive. If real photos still drop toes 3 to 5, the next move is a two-stage crop to feed the model more pixels per toe.",
+      "nextStep": "Take a real scan with the single-photo flow and check the numbers and whether the small toes come through."
     },
     {
       "name": "HD-LOVE",
       "state": "waiting-on-jeremy",
-      "note": "App live end-to-end. Library site, waitlist, App Store screenshots (iPhone + iPad) all shipped; iPad responsive layouts added. Daily 'Today' reading improved (2ac7583, 5a9b287). Two code tasks now in flight: a library section explaining the matching factors, and a friend system (unique usernames, search, friend requests, friends as synced people).",
-      "nextStep": "Finish the App Store submission — the walked-through blockers (Copyright, Content Rights, Privacy Policy URL, data questionnaire), upload the iPhone + iPad screenshots, submit. Ideally from a fresh build that includes the iPad layouts + the daily-reading update."
+      "note": "App live end-to-end. Friend system shipped (build 16, commit 98f0ab5): unique usernames, search, friend requests, friends as synced People. Library matching section live at /library/#/matching. A code task is now fixing chat (optimistic send, correct message order), the grey-box swipe photo, settings toggles for the meet modes, and collapsing the connection descriptions behind an info circle. Note flagged by the matching audit: the discover query ignores gender preference and age range (decision pending).",
+      "nextStep": "Apply the friend-system Supabase migration (copy-paste block sent). Then finish the App Store submission: the walked-through blockers, upload the iPhone + iPad screenshots, submit from a fresh build."
     },
     {
       "name": "irons-design",

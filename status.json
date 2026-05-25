@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-24T22:18:00Z",
+  "lastUpdated": "2026-05-24T22:30:00Z",
   "projects": [
     {
       "name": "GRDN",
@@ -9,9 +9,9 @@
     },
     {
       "name": "SCANDALS",
-      "state": "waiting-on-jeremy",
-      "note": "v1.9.0 shipped (commit 8064d8b). Now a single-photo scan: the heel photo is removed, widths are sampled every 10% along the foot and extrapolated past where the ankle hides the heel. Toe detection (a U2-Net segmentation model) was tightened with a smaller merge window and a prominence filter so the small toes survive. If real photos still drop toes 3 to 5, the next move is a two-stage crop to feed the model more pixels per toe.",
-      "nextStep": "Take a real scan with the single-photo flow and check the numbers and whether the small toes come through."
+      "state": "in-progress",
+      "note": "v1.9.0 shipped (commit 8064d8b): single-photo scan, heel photo removed, widths sampled every 10% and extrapolated. Toe profile is now being reworked: instead of reading toes off the low-res 320x320 segmentation mask (~30px across the toes), a task is tracing the front foot edge from the full-resolution photo so the five toe-tip peaks resolve cleanly even when toes touch.",
+      "nextStep": "Toe-profile rework in progress."
     },
     {
       "name": "HD-LOVE",

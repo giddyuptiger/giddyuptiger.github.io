@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-25T00:14:00Z",
+  "lastUpdated": "2026-05-25T01:05:00Z",
   "projects": [
     {
       "name": "GRDN",
@@ -85,9 +85,9 @@
     {
       "name": "Relationship growth",
       "icon": "🧭",
-      "due": "21-day process, begin when ready",
-      "note": "A 21-day structured reflection on your long-term relationship, in five phases, holding three honest outcomes. The program is uploaded and Claude has it.",
-      "nextStep": "Say the word and Claude starts Day 1 with you, pulling each day's prompts and reflecting alongside you. Continuity kept in one ongoing thread."
+      "due": "Day 1 of 21 underway",
+      "note": "A 21-day structured reflection on your long-term relationship, in five phases, holding three honest outcomes. Started on Day 1 (Phase 1: You First).",
+      "nextStep": "Day 1 prompts are with you. Journal when ready and Claude reflects alongside you; continuity held in this thread."
     },
     {
       "name": "Travel & housing",

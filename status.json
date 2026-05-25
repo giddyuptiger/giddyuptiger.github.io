@@ -1,6 +1,12 @@
 {
-  "lastUpdated": "2026-05-25T01:20:00Z",
+  "lastUpdated": "2026-05-25T01:32:00Z",
   "projects": [
+    {
+      "name": "iPhone Dock",
+      "state": "waiting-on-jeremy",
+      "note": "A physical product Jeremy is launching on Amazon. Currently setting up the Amazon product listing. Flagged top priority, finish ASAP.",
+      "nextStep": "Finish setting up the Amazon product listing. Top priority right now."
+    },
     {
       "name": "GRDN",
       "state": "waiting-on-jeremy",

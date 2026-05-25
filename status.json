@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-25T01:32:00Z",
+  "lastUpdated": "2026-05-25T01:48:00Z",
   "projects": [
     {
       "name": "iPhone Dock",
@@ -46,8 +46,8 @@
     {
       "name": "Futon",
       "state": "in-progress",
-      "note": "Launch-polish work all shipped. Now auditing learning content — Jeremy flagged that N5 only has ~20 modules, no other JLPT levels exist, grammar modules aren't testable, and one module is empty. A code task is auditing the content model, fixing the empty module + grammar-testing gap, and will recommend how to fill out the full curriculum.",
-      "nextStep": "Content audit in progress. Still pending from before: apply migration 00013 via 'supabase db push'; decide on the Achievements card (real system or remove for v1)."
+      "note": "Launch-polish work all shipped. A content task (restarted after the first attempt wedged) is fixing a vocabulary bug Jeremy hit — パン was mis-mapped and its quiz had no correct answer — and sweeping all vocab for the same class of error, plus fixing the empty module and the grammar-not-testable gap, and will recommend how to fill out the full JLPT curriculum.",
+      "nextStep": "Content task in progress. Still pending from before: apply migration 00013 via 'supabase db push'; decide on the Achievements card (real system or remove for v1)."
     },
     {
       "name": "PAPPY",

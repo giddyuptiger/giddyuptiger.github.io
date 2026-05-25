@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-24T23:08:00Z",
+  "lastUpdated": "2026-05-24T23:16:00Z",
   "projects": [
     {
       "name": "GRDN",
@@ -16,7 +16,7 @@
     {
       "name": "HD-LOVE",
       "state": "waiting-on-jeremy",
-      "note": "App live end-to-end. Friend system shipped (build 16): unique usernames, search, friend requests, friends as synced People. Library matching section live at /library/#/matching. Chat and discover fixes shipped (commit faaf80d): optimistic send, correct message order, meet-mode toggles always visible, connection explainers behind an info circle, no-photo placeholder improved. A matching-filter task is still wiring gender preference and age range into the discover query.",
+      "note": "App live end-to-end. Friend system shipped (build 16): unique usernames, search, friend requests, friends as synced People. Library matching section live at /library/#/matching. Chat and discover fixes shipped (commit faaf80d): optimistic send, correct message order, meet-mode toggles always visible, connection explainers behind an info circle, no-photo placeholder improved. A matching-filter task is still wiring gender preference and age range into the discover query. Queued behind it: a fix for the discover/swipe card showing a grey box even when the person has a photo (the photo loads fine post-match, so the discover query likely is not returning the photo URL).",
       "nextStep": "Friend-system migration applied. The matching-filter task will produce one more migration to run when it lands. Then finish the App Store submission: the walked-through blockers, upload the iPhone + iPad screenshots, submit from a fresh build (build 16+ carries the friend system)."
     },
     {

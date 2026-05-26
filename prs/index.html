@@ -11,7 +11,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>PRS Episode Command Center</title>
+<title>PRS Command Center</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -80,7 +80,31 @@
     border: solid #131313; border-width: 0 2px 2px 0;
     transform: rotate(45deg) translate(-1px,-1px);
   }
-  /* Metrics tile grid */
+  /* Owner chip next to role-group section title */
+  .owner-chip {
+    display: inline-flex; align-items: center;
+    margin-left: 8px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(212, 175, 55, 0.08);
+    border: 1px solid rgba(212, 175, 55, 0.35);
+    color: #d4af37;
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 0.02em; text-transform: none;
+    line-height: 1.4; white-space: nowrap;
+  }
+  /* Header back arrow (per-episode view only) */
+  .back-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    color: #c8c6c5;
+    transition: background 0.15s, color 0.15s;
+    text-decoration: none;
+    margin-right: 4px;
+  }
+  .back-btn:hover { background: #2a2a2a; color: #f2ca50; }
+  /* Per-episode metrics tile grid */
   .metric-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   @media (min-width: 640px) { .metric-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
   .metric-tile {
@@ -98,7 +122,7 @@
   }
   .metric-tile .val { font-size: 17px; font-weight: 700; color: #e5e2e1; line-height: 1.15; }
   .metric-tile .val.empty { color: #6f675a; font-weight: 500; }
-  /* Past episode card */
+  /* Past episode horizontal strip (used on per-episode view) */
   .past-strip { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
   .past-strip::-webkit-scrollbar { height: 6px; }
   .past-strip::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 3px; }
@@ -112,6 +136,53 @@
     transition: border-color 0.15s, background 0.15s;
   }
   .past-card:hover { border-color: #d4af37; background: #201f1f; }
+  /* Home view: aggregate strip */
+  .agg-strip { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  @media (min-width: 640px) { .agg-strip { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+  .agg-tile {
+    background: #1c1b1b;
+    border: 1px solid #4d4635;
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex; flex-direction: column; gap: 4px;
+    min-width: 0;
+  }
+  .agg-tile .lbl {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+    color: #c8c6c5; text-transform: uppercase;
+  }
+  .agg-tile .val { font-size: 22px; font-weight: 800; color: #f2ca50; line-height: 1.1; }
+  .agg-tile .val.empty { color: #6f675a; font-weight: 600; font-size: 18px; }
+  /* Home view: episode grid */
+  .ep-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  @media (min-width: 640px) { .ep-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .ep-card {
+    background: #201f1f;
+    border: 1px solid #4d4635;
+    border-radius: 14px;
+    padding: 16px 18px;
+    text-decoration: none; color: inherit;
+    transition: border-color 0.15s, background 0.15s, transform 0.15s;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .ep-card:hover { border-color: #d4af37; background: #262524; transform: translateY(-1px); }
+  .ep-card .head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .ep-card .name { font-size: 17px; font-weight: 700; color: #e5e2e1; line-height: 1.2; }
+  .ep-card .date { font-size: 11.5px; color: rgba(200,198,197,0.7); margin-top: 3px; }
+  .ep-card .metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .ep-card .metrics > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .ep-card .metrics .ml { font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em; color: #c8c6c5; text-transform: uppercase; }
+  .ep-card .metrics .mv { font-size: 14px; font-weight: 700; color: #e5e2e1; }
+  .ep-card .metrics .mv.empty { color: #6f675a; font-weight: 500; }
+  /* Status pill */
+  .pill {
+    display: inline-flex; align-items: center;
+    padding: 3px 9px; border-radius: 999px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; white-space: nowrap;
+  }
+  .pill.in-progress { background: rgba(242, 202, 80, 0.12); color: #f2ca50; border: 1px solid rgba(242, 202, 80, 0.4); }
+  .pill.shipped { background: rgba(200, 198, 197, 0.08); color: #c8c6c5; border: 1px solid rgba(200, 198, 197, 0.25); }
   /* Modal */
   .modal-bd {
     position: fixed; inset: 0; background: rgba(0,0,0,0.7);
@@ -143,9 +214,14 @@
 <body class="bg-surface text-on-surface flex flex-col min-h-screen">
 
 <header class="bg-surface-container border-b border-outline-variant flex justify-between items-center w-full px-5 h-16 sticky top-0 z-50 shadow-lg">
-  <div class="flex flex-col">
-    <h1 class="text-[20px] leading-tight tracking-tight text-primary font-bold">PRS COMMAND</h1>
-    <p class="text-[11.5px] text-secondary mt-0.5" id="ep-line">Loading…</p>
+  <div class="flex items-center min-w-0">
+    <a id="back-btn" href="/prs/" class="back-btn hidden" aria-label="Back to all episodes">
+      <span class="material-symbols-outlined text-[22px]">arrow_back</span>
+    </a>
+    <div class="flex flex-col min-w-0">
+      <h1 class="text-[20px] leading-tight tracking-tight text-primary font-bold">PRS COMMAND</h1>
+      <p class="text-[11.5px] text-secondary mt-0.5 truncate" id="ep-line">Loading…</p>
+    </div>
   </div>
   <div id="progress" class="hidden sm:flex items-center gap-2"></div>
 </header>
@@ -185,6 +261,16 @@
     "Launch Day": "rocket_launch",
     "Post-Launch": "visibility"
   };
+  // Team owners per role group. Fixed across episodes — hardcoded
+  // because it is the team's role structure, not per-episode data.
+  var OWNERS = {
+    "Editorial": "Jerry",
+    "Metadata & Upload": "Jerry",
+    "Ads & Marketing": "Jeremy",
+    "Social & Clips": "Juniper",
+    "Launch Day": "Everyone",
+    "Post-Launch": "Jeremy"
+  };
 
   // The 10 KPIs that get tracked per episode.
   var METRIC_DEFS = [
@@ -199,7 +285,7 @@
     { key: "ad_ctr_pct",            label: "Ad CTR",           fmt: "pct" },
     { key: "ad_cpv",                label: "Ad CPV",           fmt: "usd2" }
   ];
-  // Headline subset used in the past-episodes comparison cards.
+  // Headline subset used in the per-episode home cards + past-episodes strip.
   var HEADLINE_KEYS = ["views", "ctr_pct", "avg_view_pct"];
 
   // ============================================================
@@ -275,6 +361,14 @@
     });
   }
 
+  function isInProgress(e) {
+    var s = e && e.status ? String(e.status).toLowerCase() : "";
+    return s === "in-progress" || s === "in_progress" || s === "active";
+  }
+  function statusLabel(e) {
+    return isInProgress(e) ? "In progress" : "Shipped";
+  }
+
   function showMessage(title, body) {
     var c = document.getElementById("content");
     c.innerHTML = "";
@@ -285,8 +379,27 @@
   }
 
   // ============================================================
-  // Progress + episode header
+  // Header chrome
   // ============================================================
+  function setHeaderForHome() {
+    document.getElementById("back-btn").classList.add("hidden");
+    var line = document.getElementById("ep-line");
+    line.textContent = "Operational dashboard";
+    document.getElementById("progress").innerHTML = "";
+  }
+  function setHeaderForEpisode() {
+    document.getElementById("back-btn").classList.remove("hidden");
+    var line = document.getElementById("ep-line");
+    line.textContent = "";
+    if (!ep) return;
+    line.appendChild(document.createTextNode(ep.guest_name || ""));
+    if (ep.sheet_url) {
+      line.appendChild(document.createTextNode(" · "));
+      var a = el("a", "text-primary/80 hover:text-primary underline-offset-2 hover:underline", "Production sheet");
+      a.href = ep.sheet_url; a.target = "_blank"; a.rel = "noopener";
+      line.appendChild(a);
+    }
+  }
   function setProgress() {
     var total = items.length, done = items.filter(function (it) { return it.done; }).length;
     var pct = total > 0 ? Math.round(done * 100 / total) : 0;
@@ -301,7 +414,107 @@
   }
 
   // ============================================================
-  // Metrics card (this episode)
+  // Home view: aggregate strip + episode grid
+  // ============================================================
+  function renderHome(allEps) {
+    var c = document.getElementById("content");
+    c.innerHTML = "";
+
+    // Aggregate strip
+    var total = allEps.length;
+    var inProg = allEps.filter(isInProgress).length;
+    var totalViews = 0, ctrSum = 0, ctrN = 0, avgVwSum = 0, avgVwN = 0;
+    allEps.forEach(function (e) {
+      var m = e.metrics || {};
+      if (typeof m.views === "number" && !isNaN(m.views)) totalViews += m.views;
+      if (typeof m.ctr_pct === "number" && !isNaN(m.ctr_pct)) { ctrSum += m.ctr_pct; ctrN++; }
+      if (typeof m.avg_view_pct === "number" && !isNaN(m.avg_view_pct)) { avgVwSum += m.avg_view_pct; avgVwN++; }
+    });
+    var aggDefs = [
+      { lbl: "Episodes",    val: total > 0 ? String(total) : null },
+      { lbl: "In progress", val: inProg > 0 ? String(inProg) : null },
+      { lbl: "Total views", val: totalViews > 0 ? fmtN(totalViews) : null },
+      { lbl: "Avg CTR",     val: ctrN > 0 ? fmtPct(ctrSum / ctrN) : null },
+      { lbl: "Avg view %",  val: avgVwN > 0 ? fmtPct(avgVwSum / avgVwN) : null }
+    ];
+    var agg = el("section", "agg-strip");
+    aggDefs.forEach(function (a) {
+      var tile = el("div", "agg-tile");
+      html(tile, "span", "lbl", a.lbl);
+      var v = el("span", "val" + (a.val == null ? " empty" : ""));
+      v.textContent = a.val == null ? "—" : a.val;
+      tile.appendChild(v);
+      agg.appendChild(tile);
+    });
+    c.appendChild(agg);
+
+    // Episodes section
+    var section = el("section", "space-y-3");
+    var head = el("div", "flex items-center justify-between px-1");
+    var headLeft = el("div", "flex items-center gap-2");
+    headLeft.appendChild(icon("podcasts", "text-primary text-[20px]"));
+    html(headLeft, "h2", "text-[12px] font-bold tracking-widest text-primary uppercase", "Episodes");
+    head.appendChild(headLeft);
+    html(head, "span", "text-[11px] text-secondary font-medium", total + " total");
+    section.appendChild(head);
+
+    if (!allEps.length) {
+      var empty = el("div", "bg-surface-container rounded-xl border border-outline-variant p-6 text-center");
+      html(empty, "p", "text-[13px] text-on-surface-variant", "No episodes yet.");
+      section.appendChild(empty);
+      c.appendChild(section);
+      return;
+    }
+
+    // Sort: in-progress first, then by premiere_at desc (fallback created_at)
+    var sorted = allEps.slice().sort(function (a, b) {
+      var aIp = isInProgress(a), bIp = isInProgress(b);
+      if (aIp !== bIp) return aIp ? -1 : 1;
+      var ad = new Date(a.premiere_at || a.created_at || 0).getTime();
+      var bd = new Date(b.premiere_at || b.created_at || 0).getTime();
+      return bd - ad;
+    });
+
+    var grid = el("div", "ep-grid");
+    sorted.forEach(function (e) {
+      var card = document.createElement("a");
+      card.className = "ep-card";
+      card.href = "?episode=" + encodeURIComponent(e.slug);
+
+      var headRow = el("div", "head");
+      var nameWrap = el("div", "min-w-0");
+      html(nameWrap, "div", "name truncate", e.guest_name || "Untitled");
+      var d = e.premiere_at || e.created_at;
+      if (d) html(nameWrap, "div", "date", shortDate(d));
+      headRow.appendChild(nameWrap);
+
+      var pill = el("span", "pill " + (isInProgress(e) ? "in-progress" : "shipped"));
+      pill.textContent = statusLabel(e);
+      headRow.appendChild(pill);
+      card.appendChild(headRow);
+
+      var m = e.metrics || {};
+      var mGrid = el("div", "metrics");
+      HEADLINE_KEYS.forEach(function (key) {
+        var def = METRIC_DEFS.find(function (x) { return x.key === key; });
+        var cell = el("div");
+        html(cell, "span", "ml truncate", def.label);
+        var v = fmtMetric(def, m[key]);
+        var mv = el("span", "mv" + (v == null ? " empty" : ""));
+        mv.textContent = v == null ? "—" : v;
+        cell.appendChild(mv);
+        mGrid.appendChild(cell);
+      });
+      card.appendChild(mGrid);
+
+      grid.appendChild(card);
+    });
+    section.appendChild(grid);
+    c.appendChild(section);
+  }
+
+  // ============================================================
+  // Per-episode metrics card
   // ============================================================
   function renderMetricsCard(content) {
     var section = el("section", "bg-surface-container rounded-xl border border-outline-variant overflow-hidden");
@@ -353,7 +566,7 @@
   }
 
   // ============================================================
-  // Past episodes strip
+  // Past episodes strip (per-episode view)
   // ============================================================
   function renderPastEpisodesStrip(content) {
     var prior = (pastEps || []).filter(function (e) { return ep && e.slug !== ep.slug; });
@@ -474,7 +687,7 @@
   }
 
   // ============================================================
-  // Checklist (existing)
+  // Checklist
   // ============================================================
   function renderItem(item) {
     var row = document.createElement("details");
@@ -522,12 +735,14 @@
   function renderGroup(group, groupItems) {
     var section = el("section", "bg-surface-container rounded-xl border border-outline-variant overflow-hidden");
     var head = el("div", "flex items-center justify-between px-4 py-3 border-b border-outline-variant/30");
-    var left = el("div", "flex items-center gap-2.5");
-    left.appendChild(icon(ROLE_ICONS[group] || "task_alt", "text-primary text-[20px]"));
-    html(left, "h2", "text-[12px] font-bold tracking-widest text-primary uppercase", group);
+    var left = el("div", "flex items-center gap-2.5 min-w-0");
+    left.appendChild(icon(ROLE_ICONS[group] || "task_alt", "text-primary text-[20px] flex-shrink-0"));
+    html(left, "h2", "text-[12px] font-bold tracking-widest text-primary uppercase whitespace-nowrap", group);
+    var owner = OWNERS[group];
+    if (owner) html(left, "span", "owner-chip", owner);
     head.appendChild(left);
     var gdone = groupItems.filter(function (it) { return it.done; }).length;
-    html(head, "span", "text-[11px] text-secondary font-medium", gdone + " / " + groupItems.length);
+    html(head, "span", "text-[11px] text-secondary font-medium flex-shrink-0", gdone + " / " + groupItems.length);
     section.appendChild(head);
 
     groupItems.forEach(function (it) { section.appendChild(renderItem(it)); });
@@ -542,21 +757,10 @@
   }
 
   // ============================================================
-  // Render
+  // Per-episode render
   // ============================================================
   function render() {
-    var line = "";
-    if (ep) line = ep.guest_name;
-    var epLine = document.getElementById("ep-line");
-    epLine.textContent = "";
-    epLine.appendChild(document.createTextNode(line));
-    if (ep && ep.sheet_url) {
-      epLine.appendChild(document.createTextNode(" · "));
-      var a = el("a", "text-primary/80 hover:text-primary underline-offset-2 hover:underline", "Production sheet");
-      a.href = ep.sheet_url; a.target = "_blank"; a.rel = "noopener";
-      epLine.appendChild(a);
-    }
-
+    setHeaderForEpisode();
     setProgress();
 
     var c = document.getElementById("content");
@@ -582,7 +786,7 @@
     if (!items.length) {
       var card = el("div", "bg-surface-container rounded-xl border border-outline-variant p-6 space-y-3");
       html(card, "h2", "text-[14px] font-bold text-primary uppercase tracking-widest", "No items yet");
-      html(card, "p", "text-[13px] text-on-surface-variant", "This episode's checklist is empty. Run the seed SQL, or add items below.");
+      html(card, "p", "text-[13px] text-on-surface-variant", "This episode's checklist is empty.");
       c.appendChild(card);
     }
   }
@@ -632,12 +836,21 @@
   }
   function loadPastEpisodes() {
     return sb.from("prs_episodes")
-      .select("id,slug,guest_name,premiere_at,created_at,metrics,metrics_updated_at")
+      .select("id,slug,guest_name,status,premiere_at,created_at,metrics,metrics_updated_at")
       .order("premiere_at", { ascending: false, nullsFirst: false })
       .limit(8)
       .then(function (r) {
         if (r.error) { console.error(r.error); pastEps = []; return; }
         pastEps = r.data || [];
+      });
+  }
+  function loadAllEpisodes() {
+    return sb.from("prs_episodes")
+      .select("id,slug,guest_name,status,premiere_at,created_at,metrics,metrics_updated_at")
+      .order("created_at", { ascending: false, nullsFirst: false })
+      .then(function (r) {
+        if (r.error) { console.error(r.error); return []; }
+        return r.data || [];
       });
   }
   function subscribeRealtime() {
@@ -661,33 +874,25 @@
 
     var params = new URLSearchParams(window.location.search);
     var slug = params.get("episode");
+
     if (!slug) {
-      document.getElementById("ep-line").textContent = "Pick an episode";
-      // Load past episodes anyway so we can show a list
-      loadPastEpisodes().then(function () {
-        var c = document.getElementById("content");
-        c.innerHTML = "";
-        var card = el("div", "bg-surface-container rounded-xl border border-outline-variant p-6 space-y-3");
-        html(card, "h2", "text-[14px] font-bold text-primary uppercase tracking-widest", "Pick an episode");
-        html(card, "p", "text-[13px] text-on-surface-variant", "Append ?episode=<slug> to the URL. Recent episodes:");
-        var list = el("div", "space-y-2");
-        (pastEps || []).forEach(function (e) {
-          var a = el("a", "block px-3 py-2 rounded-lg bg-surface-container-low border border-outline-variant hover:border-primary text-[13px] text-on-surface");
-          a.href = "?episode=" + encodeURIComponent(e.slug);
-          a.textContent = e.guest_name + "  ·  " + e.slug;
-          list.appendChild(a);
-        });
-        card.appendChild(list);
-        c.appendChild(card);
-      });
+      // HOME VIEW
+      setHeaderForHome();
+      var c = document.getElementById("content");
+      c.innerHTML = "";
+      var skel = el("div", "text-[13px] text-secondary/70 px-1", "Loading episodes…");
+      c.appendChild(skel);
+      loadAllEpisodes().then(function (all) { renderHome(all); });
       return;
     }
 
+    // PER-EPISODE VIEW
     sb.from("prs_episodes").select("*").eq("slug", slug).single().then(function (r) {
       if (r.error || !r.data) {
+        document.getElementById("back-btn").classList.remove("hidden");
         document.getElementById("ep-line").textContent = "Episode not found";
         showMessage("Episode not found",
-          "No PRS episode with slug '" + slug + "'. Either the slug is wrong, or the seed has not been run yet.");
+          "We couldn't find that episode. Head back to the dashboard to pick one.");
         return;
       }
       ep = r.data;

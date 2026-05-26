@@ -235,14 +235,12 @@
         left.appendChild(meta);
         row.appendChild(left);
 
-        var right = el("div", "flex items-center flex-shrink-0");
         var ut = urgencyPill(it.urgency);
         if (ut) {
+          var right = el("div", "flex items-center flex-shrink-0");
           right.appendChild(ut);
-        } else {
-          right.appendChild(icon("chevron_right", "text-on-primary-container/40 text-[20px]"));
+          row.appendChild(right);
         }
-        row.appendChild(right);
         card.appendChild(row);
       }
     });

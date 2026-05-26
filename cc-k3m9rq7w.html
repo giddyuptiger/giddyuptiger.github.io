@@ -211,11 +211,11 @@
     if (!items.length) return;
     var sec = el("section", "space-y-2");
     html(sec, "h2", "text-[11px] font-bold tracking-widest text-primary pl-1", "DO NEXT");
-    var card = el("div", "bg-primary-container rounded-xl p-3 sm:p-4 border border-primary/20 shadow-xl space-y-3");
+    var card = el("div", "space-y-2");
 
     items.forEach(function (it, i) {
       if (i === 0) {
-        var hero = el("div", "bg-surface-container-lowest rounded-lg p-4 border border-outline-variant/30 flex justify-between items-start gap-3");
+        var hero = el("div", "bg-surface-container-lowest rounded-xl p-4 border border-primary/40 shadow-xl flex justify-between items-start gap-3");
         var body = el("div", "space-y-1 flex-1 min-w-0");
         html(body, "p", "text-[11px] font-bold tracking-widest text-primary uppercase truncate", it.name);
         html(body, "h3", "text-[18px] font-bold text-on-surface leading-snug", it.todo || "");
@@ -224,14 +224,14 @@
         if (ut) hero.appendChild(ut);
         card.appendChild(hero);
       } else {
-        var row = el("div", "bg-black/30 backdrop-blur-sm rounded-lg p-3 border border-white/5 flex items-center justify-between gap-3");
+        var row = el("div", "bg-surface-container-lowest rounded-lg p-3 border border-outline-variant/30 flex items-center justify-between gap-3");
         var left = el("div", "flex items-center gap-3 flex-1 min-w-0");
-        var iconBox = el("div", "w-9 h-9 rounded-md bg-black/30 flex items-center justify-center flex-shrink-0 text-[17px]");
+        var iconBox = el("div", "w-9 h-9 rounded-md bg-surface-container-high flex items-center justify-center flex-shrink-0 text-[17px]");
         iconBox.textContent = it.icon || "•";
         left.appendChild(iconBox);
         var meta = el("div", "min-w-0 flex-1");
-        html(meta, "p", "text-[11px] text-on-primary-container opacity-70 uppercase tracking-wider truncate", it.name);
-        html(meta, "p", "text-[14px] font-semibold text-on-primary-container leading-snug", it.todo || "");
+        html(meta, "p", "text-[11px] font-bold tracking-widest text-primary uppercase truncate", it.name);
+        html(meta, "p", "text-[14px] font-semibold text-on-surface leading-snug", it.todo || "");
         left.appendChild(meta);
         row.appendChild(left);
 

@@ -316,6 +316,27 @@
     content.appendChild(sec);
   }
 
+  function renderCurious(content, items) {
+    if (!items || !items.length) return;
+    var sec = el("section", "space-y-2");
+    html(sec, "h2", "text-[11px] font-bold tracking-widest text-primary pl-1", "CURIOUS?");
+    var card = el("div", "bg-surface-container rounded-xl border border-outline-variant divide-y divide-outline-variant/30 overflow-hidden");
+    items.forEach(function (it) {
+      var a = document.createElement("a");
+      a.href = it.url || "#";
+      a.className = "flex items-center justify-between gap-3 px-4 py-4 hover:bg-surface-container-high transition-colors";
+      a.style.textDecoration = "none";
+      var left = el("div", "space-y-1 flex-1 min-w-0");
+      html(left, "h4", "text-[15px] font-bold text-primary truncate", it.title || "");
+      if (it.blurb) html(left, "p", "text-[12.5px] text-secondary leading-snug", it.blurb);
+      a.appendChild(left);
+      a.appendChild(icon("chevron_right", "text-outline text-[20px] flex-shrink-0"));
+      card.appendChild(a);
+    });
+    sec.appendChild(card);
+    content.appendChild(sec);
+  }
+
   function renderDrawer(content, rest) {
     if (!rest.length) return;
     var drawer = document.createElement("details");
@@ -375,6 +396,9 @@
     renderBoard(content, active);
 
     renderShipped(content, shipped);
+
+    var curious = (data && data.curious) || [];
+    renderCurious(content, curious);
 
     var rest = projects.filter(function (p) {
       return p.state === "parked" || p.state === "done";

@@ -56,6 +56,23 @@
     -webkit-font-smoothing: antialiased;
     min-height: 100dvh;
   }
+  /* iPhone notch / home-indicator safe-area handling.
+     viewport-fit=cover is set in <meta>; these rules push the chrome
+     past the status-bar inset and home-indicator inset. */
+  .app-header {
+    padding-top: env(safe-area-inset-top);
+    padding-left: max(20px, env(safe-area-inset-left));
+    padding-right: max(20px, env(safe-area-inset-right));
+    /* base 64px content area + room for the notch */
+    height: calc(64px + env(safe-area-inset-top));
+  }
+  .app-main {
+    padding-left: max(20px, env(safe-area-inset-left));
+    padding-right: max(20px, env(safe-area-inset-right));
+  }
+  .app-footer {
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  }
   .material-symbols-outlined {
     font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
     display: inline-block; vertical-align: middle; user-select: none;
@@ -240,32 +257,50 @@
   .modal-bd {
     position: fixed; inset: 0; background: rgba(0,0,0,0.7);
     display: flex; align-items: flex-start; justify-content: center;
-    z-index: 100; padding: 24px 16px; overflow-y: auto;
+    z-index: 100; overflow-y: auto;
     backdrop-filter: blur(4px);
+    /* Safe-area-aware padding so modals don't sit under the iPhone notch. */
+    padding-top: calc(24px + env(safe-area-inset-top));
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
   }
   .modal-card {
     background: #201f1f;
     border: 1px solid #4d4635;
     border-radius: 14px;
-    width: 100%; max-width: 540px;
-    padding: 18px 18px 16px;
+    width: 100%; max-width: 480px;
+    padding: 22px 22px 20px;
     color: #e5e2e1;
   }
   .modal-card h3 {
     font-size: 12px; font-weight: 700; letter-spacing: 0.08em;
-    color: #f2ca50; text-transform: uppercase; margin-bottom: 14px;
+    color: #f2ca50; text-transform: uppercase; margin-bottom: 18px;
   }
-  .modal-card label { font-size: 11px; color: #c8c6c5; display: block; margin-bottom: 4px; font-weight: 600; }
+  .modal-card label { font-size: 11px; color: #c8c6c5; display: block; margin-bottom: 6px; font-weight: 600; }
   .modal-card input, .modal-card select, .modal-card textarea {
     width: 100%; background: #131313; border: 1px solid #4d4635; border-radius: 8px;
-    padding: 8px 10px; color: #e5e2e1; font-size: 14px;
+    padding: 10px 12px; color: #e5e2e1; font-size: 14px;
     transition: border-color 0.15s;
     font-family: inherit;
+    min-height: 40px;
+    box-sizing: border-box;
   }
   .modal-card input:focus, .modal-card select:focus, .modal-card textarea:focus {
     outline: none; border-color: #f2ca50;
   }
   .modal-card textarea { resize: vertical; min-height: 60px; }
+  /* New-episode modal: dates grid that stacks on narrow screens. */
+  .ne-dates {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  @media (min-width: 420px) {
+    .ne-dates { grid-template-columns: 1fr 1fr; gap: 16px; }
+  }
+  /* The form rows themselves get a bit more vertical space than the global space-y-3. */
+  .ne-form > * + * { margin-top: 16px; }
   /* Sponsor input modal row */
   .sponsor-input-row {
     background: #1c1b1b;
@@ -290,7 +325,7 @@
 </head>
 <body class="bg-surface text-on-surface flex flex-col min-h-screen">
 
-<header class="bg-surface-container border-b border-outline-variant flex justify-between items-center w-full px-5 h-16 sticky top-0 z-50 shadow-lg">
+<header class="app-header bg-surface-container border-b border-outline-variant flex justify-between items-center w-full sticky top-0 z-50 shadow-lg">
   <div class="flex items-center min-w-0">
     <a id="back-btn" href="/prs/" class="back-btn hidden" aria-label="Back to all episodes">
       <span class="material-symbols-outlined text-[22px]">arrow_back</span>
@@ -303,13 +338,13 @@
   <div id="progress" class="hidden sm:flex items-center gap-2"></div>
 </header>
 
-<main class="flex-1 px-5 py-6 max-w-screen-md mx-auto w-full">
+<main class="app-main flex-1 py-6 max-w-screen-md mx-auto w-full">
   <div id="content" class="space-y-5"></div>
 </main>
 
 <div id="modal-root"></div>
 
-<footer class="border-t border-outline-variant/30 flex flex-col items-center gap-1.5 py-6 text-secondary/70">
+<footer class="app-footer border-t border-outline-variant/30 flex flex-col items-center gap-1.5 pt-6 text-secondary/70">
   <span class="text-[11px] font-semibold tracking-widest text-primary/70">PRS COMMAND CENTER</span>
   <p class="text-[11px]">Live checklist + metrics. Anyone with the link can toggle, add items, and edit metrics.</p>
 </footer>
@@ -744,7 +779,7 @@
     html(card, "h3", null, "New episode");
 
     var form = document.createElement("form");
-    form.className = "space-y-3";
+    form.className = "ne-form";
 
     function field(labelText, name, type, required) {
       var wrap = document.createElement("div");
@@ -758,7 +793,7 @@
       return wrap;
     }
     form.appendChild(field("Guest name", "guest", "text", true));
-    var dates = el("div", "grid grid-cols-2 gap-3");
+    var dates = el("div", "ne-dates");
     dates.appendChild(field("Shooting date", "shoot", "date", false));
     dates.appendChild(field("Airing date", "air", "date", false));
     form.appendChild(dates);
@@ -1429,7 +1464,7 @@
   }
   function loadPastEpisodes() {
     return sb.from("prs_episodes")
-      .select("id,slug,guest_name,status,premiere_at,airing_date,shooting_date,transcript_received,created_at,metrics,metrics_updated_at")
+      .select("*")
       .order("premiere_at", { ascending: false, nullsFirst: false })
       .limit(8)
       .then(function (r) {
@@ -1439,11 +1474,14 @@
   }
   function loadAllEpisodes() {
     return sb.from("prs_episodes")
-      .select("id,slug,guest_name,status,premiere_at,airing_date,shooting_date,transcript_received,created_at,metrics,metrics_updated_at")
+      .select("*")
       .order("created_at", { ascending: false, nullsFirst: false })
       .then(function (r) {
-        if (r.error) { console.error(r.error); return []; }
-        return r.data || [];
+        if (r.error) {
+          console.error("loadAllEpisodes error:", r.error);
+          return { error: r.error, data: [] };
+        }
+        return { error: null, data: r.data || [] };
       });
   }
   function subscribeRealtime() {
@@ -1479,7 +1517,13 @@
       var c = document.getElementById("content");
       c.innerHTML = "";
       html(c, "div", "text-[13px] text-secondary/70 px-1", "Loading episodes…");
-      loadAllEpisodes().then(function (all) { renderHome(all); });
+      loadAllEpisodes().then(function (result) {
+        if (result.error) {
+          showMessage("Could not load episodes", result.error.message + " — if you just added new schema columns, run the migration in Supabase first.");
+          return;
+        }
+        renderHome(result.data);
+      });
       return;
     }
 

@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sacrena — Competitive Analysis">
+<meta name="theme-color" content="#131313">
+<meta name="robots" content="noindex, nofollow">
+<title>Sacrena — Competitive Analysis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #f2ca50;
+    --primary-dim: #d4af37;
+    --on-surface: #e5e2e1;
+    --on-surface-variant: #d0c5af;
+    --secondary: #c8c6c5;
+    --surface: #131313;
+    --surface-container: #201f1f;
+    --surface-container-low: #1c1b1b;
+    --surface-container-high: #2a2a2a;
+    --outline: #99907c;
+    --outline-variant: #4d4635;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    background-color: var(--surface);
+    margin: 0;
+    padding: 0;
+  }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: var(--on-surface);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100dvh;
+    line-height: 1.65;
+    font-size: 16px;
+  }
+
+  /* Sticky header */
+  header.site {
+    background-color: var(--surface-container);
+    border-bottom: 1px solid var(--outline-variant);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .header-inner {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .header-title {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .header-eyebrow {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--primary);
+    margin: 0;
+  }
+  .header-name {
+    font-size: 14px;
+    color: var(--secondary);
+    margin: 2px 0 0;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    color: var(--on-surface-variant);
+    text-decoration: none;
+    padding: 8px 12px;
+    border: 1px solid var(--outline-variant);
+    border-radius: 999px;
+    background: var(--surface-container-low);
+    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .back-link:hover {
+    color: var(--primary);
+    border-color: var(--primary);
+    background: var(--surface-container-high);
+  }
+  .back-arrow {
+    font-size: 16px;
+    line-height: 1;
+  }
+
+  /* Article */
+  main {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 32px 20px 64px;
+  }
+
+  article h1 {
+    color: var(--primary);
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+    margin: 0 0 8px;
+  }
+  article h2 {
+    color: var(--primary);
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.005em;
+    line-height: 1.25;
+    margin: 40px 0 14px;
+    padding-top: 16px;
+    border-top: 1px solid var(--outline-variant);
+  }
+  article h2:first-of-type { border-top: none; padding-top: 0; }
+  article h3 {
+    color: var(--on-surface);
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: 1.3;
+    margin: 28px 0 10px;
+  }
+  article h4.subtitle {
+    color: var(--on-surface-variant);
+    font-size: 17px;
+    font-weight: 500;
+    line-height: 1.35;
+    margin: 0 0 8px;
+  }
+  article .byline {
+    color: var(--secondary);
+    font-size: 13px;
+    font-style: italic;
+    margin: 0 0 8px;
+  }
+
+  article p {
+    margin: 0 0 16px;
+    color: var(--on-surface);
+  }
+  article p strong, article li strong, article td strong {
+    color: var(--primary);
+    font-weight: 700;
+  }
+  article em { color: var(--on-surface-variant); }
+
+  article a {
+    color: var(--primary);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(242, 202, 80, 0.3);
+    transition: border-color 0.15s ease;
+    word-break: break-word;
+  }
+  article a:hover { border-bottom-color: var(--primary); }
+
+  article hr {
+    border: none;
+    border-top: 1px solid var(--outline-variant);
+    margin: 32px 0;
+  }
+
+  article ul, article ol {
+    margin: 0 0 16px;
+    padding-left: 24px;
+  }
+  article li {
+    margin-bottom: 8px;
+    color: var(--on-surface);
+  }
+  article li::marker { color: var(--primary); }
+  article ul ul, article ol ol { margin-top: 8px; margin-bottom: 8px; }
+
+  article code {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+    background: var(--surface-container);
+    color: var(--primary);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.88em;
+  }
+
+  article blockquote {
+    margin: 16px 0;
+    padding: 12px 16px;
+    border-left: 3px solid var(--primary);
+    background: var(--surface-container-low);
+    color: var(--on-surface-variant);
+    border-radius: 0 8px 8px 0;
+  }
+  article blockquote p:last-child { margin-bottom: 0; }
+
+  /* Callout for the bolded standalone summary paragraphs */
+  article .callout {
+    background: var(--surface-container);
+    border: 1px solid var(--outline-variant);
+    border-left: 3px solid var(--primary);
+    padding: 16px 18px;
+    border-radius: 8px;
+    margin: 16px 0 24px;
+  }
+  article .callout p { margin: 0; }
+
+  /* Table */
+  .table-wrap {
+    overflow-x: auto;
+    margin: 0 0 20px;
+    border: 1px solid var(--outline-variant);
+    border-radius: 8px;
+    background: var(--surface-container-low);
+    -webkit-overflow-scrolling: touch;
+  }
+  article table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    min-width: 520px;
+  }
+  article th, article td {
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--outline-variant);
+    vertical-align: top;
+  }
+  article th {
+    background: var(--surface-container);
+    color: var(--primary);
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    position: sticky;
+    top: 0;
+  }
+  article tr:last-child td { border-bottom: none; }
+  article tr:hover td { background: rgba(242, 202, 80, 0.03); }
+
+  /* Footer */
+  footer.site {
+    border-top: 1px solid rgba(77, 70, 53, 0.4);
+    padding: 24px 20px 32px;
+    text-align: center;
+    color: rgba(200, 198, 197, 0.6);
+  }
+  footer.site .label {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    color: rgba(242, 202, 80, 0.7);
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 4px;
+  }
+  footer.site .note {
+    font-size: 11.5px;
+    margin: 0;
+  }
+
+  @media (max-width: 480px) {
+    body { font-size: 15.5px; }
+    article h1 { font-size: 25px; }
+    article h2 { font-size: 19px; }
+    article h3 { font-size: 16px; }
+    main { padding: 24px 16px 56px; }
+    .header-inner { padding: 12px 16px; }
+    .back-link { padding: 7px 10px; font-size: 12px; }
+    article ul, article ol { padding-left: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="header-inner">
+    <div class="header-title">
+      <p class="header-eyebrow">Curious</p>
+      <p class="header-name">Sacrena — Competitive Analysis</p>
+    </div>
+    <a href="/cc-k3m9rq7w.html" class="back-link" aria-label="Back to Command Center">
+      <span class="back-arrow" aria-hidden="true">←</span>
+      <span>Command</span>
+    </a>
+  </div>
+</header>
+
+<main>
+<article>
+
+<h1>HD-LOVE Competitive Analysis</h1>
+<h4 class="subtitle">Sacrena and the Spiritual / Conscious Dating Landscape</h4>
+<p class="byline"><em>Prepared for Jeremy · May 24, 2026</em></p>
+
+<hr>
+
+<h2>Executive Summary</h2>
+
+<div class="callout">
+<p><strong>Sacrena is a real competitor and the most direct threat HD-LOVE has — but it is also a warning and an opportunity.</strong> Sacrena ("The Sacred Relationship App") is roughly a year into serious public life, iterating aggressively (a dozen+ releases since August 2025), and has built a genuine following: ~366 iOS ratings at 4.5 stars, ~112 Google Play ratings at 4.0, and a self-reported ~29K downloads across 30+ countries. It does Human Design directly, which overlaps HD-LOVE's core.</p>
+</div>
+
+<p>But Sacrena's strategy is <strong>breadth, not depth</strong>. It stacks five-plus esoteric systems into one app — Western astrology, Vedic astrology, numerology, tarot, Human Design, a behavioral compatibility test, plus Jungian archetypes and "virtues." Human Design is one tab of five. No single system can go truly deep, and users have already flagged inaccurate astrology calculations. Sacrena is also shipping bugs: Google Play reviews describe failed logins, wiped profiles, and lost connections, which is why its Google rating (4.0) trails its iOS rating (4.5).</p>
+
+<p>The single most important strategic fact in this report: <strong>the Human-Design-native dating category has no credible incumbent.</strong> The one dedicated app — "Human Design Dating" — has not been updated since 2020 and sits at 2.67 stars. The astrology-dating field's flagship, NUiT, is shutting down its dating product. Struck has gone quiet. Sacrena treats HD as a feature, not a foundation. HD-LOVE can own a category that Sacrena only dabbles in.</p>
+
+<p><strong>What HD-LOVE should glean:</strong> the shared two-person "Decode" report as a screenshot-worthy artifact; à la carte one-time reports as a low-friction revenue rail ($2.99–$6.99); a named, percentage-scored compatibility breakdown; the anti-swipe / "every profile is a story" positioning; values-tag profile cards; and Sacrena's playful, human brand voice.</p>
+
+<p><strong>Where HD-LOVE should diverge:</strong> go deep on the one system instead of wide on five; frame Human Design as a practical "operating manual" rather than fortune-telling (this widens the audience and survives skeptics); make the <strong>daily reading loop</strong> the retention moat that no dating competitor has; and use the <strong>friend system + location-based discovery</strong> as a liquidity strategy — the niche-dating killer is an empty marketplace, and friendship plus local discovery keep the app useful when romantic density is low.</p>
+
+<hr>
+
+<h2>Part 1 — Sacrena: Deep Dive</h2>
+
+<h3>1.1 What it is and how mature it is</h3>
+
+<p>Sacrena bills itself as "a spirituality native platform for people who believe alignment of soul, values, and consciousness is the foundation of a real relationship." It is free to download with in-app purchases, rated 18+, and published by <strong>Sacrena LLC</strong>, a Delaware-registered company (registered-agent address in Middletown, DE; contact phone is a Sacramento, California area code). It is available on both iOS (iOS 17+) and Android.</p>
+
+<p><strong>Maturity read:</strong> Sacrena is early-stage but moving fast. Visible iOS version history runs from v1.2 (August 27, 2025) to v1.4.4 (May 16, 2026) — roughly a release every one to two weeks. Major milestones: a full interface redesign in August 2025, a Vedic/Western astrology toggle in September 2025, tarot birth-card compatibility in November 2025, and the Behavioral Compatibility feature in January 2026. This is a small team shipping continuously. It is not a polished, mature product — but it is not a hobby project either. Indicators (an <code>@sacrena.in</code> India Instagram handle, India-specific profile-verification requirements, several reviewer names) suggest US registration with development and a dual-market focus that includes India.</p>
+
+<p><strong>Scale:</strong> The website claims ~29K downloads across 30+ countries, ~12K profiles "built with intention," and 2,486 compatibility readings generated. Cross-checked against store data (~366 iOS ratings, ~112 Google ratings, "10K+" Google installs), these numbers are plausible but indicate a <strong>thin user base spread very thinly across geographies</strong> — a critical weakness discussed in Part 3.</p>
+
+<h3>1.2 Feature set — how each system is presented</h3>
+
+<p>Sacrena organizes the product around <strong>three profile pillars</strong> and a separate <strong>"Decode" compatibility engine</strong> with five lenses.</p>
+
+<p><strong>The three pillars (your profile):</strong></p>
+
+<ul>
+  <li><strong>Alignment</strong> — "the language of your soul." Includes <em>Archetypes</em> (explicitly modeled on Carl Jung's 12 archetypes — Healer, Manifestor, Truth Seeker, etc.), a <em>Vision Board</em> ("intentions made visible"), and <em>Virtues</em> (values that shape connection). Profile cards surface these as scannable values-style tags (e.g., "Water," "plant-based," "I have children," "Life partner").</li>
+  <li><strong>Astrology</strong> — a Vedic/Western toggle. Western shows Identity / Emotions / Social dimensions; both feed a multi-factor compatibility chart scored across eight life areas: <strong>Work, Attraction, Health, Intimacy, Friendship, Temperament, Love, Progeny</strong>.</li>
+  <li><strong>Reflection</strong> — journal prompts and guided self-discovery. Journal entries can be kept private or shared, so the profile becomes a living document rather than a static card.</li>
+</ul>
+
+<p><strong>The "Decode" engine (two-person compatibility), five lenses:</strong></p>
+
+<ol>
+  <li><strong>Human Design</strong> — "Decode your shared Human Design blueprint." The composite view shows <em>Definition</em> (e.g., "Single Definition"), a <em>Connection Theme</em> (e.g., "9-6 Nowhere to Go" — a real HD profile-line relationship theme), and <em>Dominance Channels</em> (e.g., Channel of Structuring 43-23, Channel of Logic 63-4, Channel of Inspiration 8-1). This is legitimate HD relationship mechanics, not a gimmick — and it directly overlaps HD-LOVE.</li>
+  <li><strong>Astrology</strong> — Vedic + Western synastry, transits, progressions.</li>
+  <li><strong>Numerology</strong> — Life Path, Soul Urge, Expression, compatibility.</li>
+  <li><strong>Tarot Reflections</strong> — daily draws and a partner/birth-card spread that produces named cards (e.g., "The Star," "The Moon").</li>
+  <li><strong>Behavioral Compatibility</strong> — a guided assessment producing an <strong>overall compatibility percentage</strong> (the screenshot shows "72% Overall Compatibility") broken into six named pillars: Lifestyle patterns, Social Time & Energy, Emotional Intelligence, Connection/Intimacy & Safety, Financial philosophy & Work, and Relationship structure.</li>
+</ol>
+
+<p>The takeaway: Sacrena is a <strong>spiritual buffet</strong>. Each lens is real and reasonably executed, but Human Design competes for attention with four other systems. Depth is structurally impossible when the product is this wide.</p>
+
+<h3>1.3 Onboarding and matching model</h3>
+
+<p>Sacrena's headline mechanic is <strong>"no swiping."</strong> The marketing copy is explicit: "Forget the endless scroll. Every profile is a story worth reading, not a split-second judgment." Users build one rich profile across the three pillars (archetypes, virtues, vision board, journals, plus birth data for the chart systems), browse a Discover feed, and move into a connections + chat layer. Verified and Premium members get badges in Discover. The model is values-and-chart-first, slow-dating, anti-dopamine. The app collects precise location (used for discovery) and is positioned around intentional, long-term-oriented connection rather than casual dating.</p>
+
+<h3>1.4 Monetization and pricing</h3>
+
+<p>Sacrena is free to download and runs <strong>three parallel revenue rails</strong> — a subscription, à la carte reports, and a consumable virtual currency:</p>
+
+<div class="table-wrap">
+<table>
+  <thead>
+    <tr><th>Item</th><th>Price</th><th>Type</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Premium — monthly ("Sacrena")</td><td>$15.99</td><td>Subscription</td></tr>
+    <tr><td>Premium — 3-month</td><td>$36.99 (~$12.33/mo)</td><td>Subscription</td></tr>
+    <tr><td>Premium — yearly</td><td>$108.99 (~$9.08/mo)</td><td>Subscription</td></tr>
+    <tr><td>HD Report</td><td>$6.99</td><td>One-time report</td></tr>
+    <tr><td>Numerology Report</td><td>$2.99</td><td>One-time report</td></tr>
+    <tr><td>7 Lotus</td><td>$4.99</td><td>Consumable currency</td></tr>
+    <tr><td>21 Lotus</td><td>$9.99</td><td>Consumable currency</td></tr>
+    <tr><td>60 Lotus</td><td>$19.99</td><td>Consumable currency</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>"Lotus" is an in-app currency for discrete actions (boosts, unlocks, super-connect-style actions). A user review indicates Sacrena paywalls <strong>seeing who liked you</strong> — a standard but friction-generating dating-app gate. The à la carte reports are notable: selling a one-time "HD Report" or "Numerology Report" lets Sacrena monetize curiosity from users who will not commit to a subscription.</p>
+
+<h3>1.5 Positioning and brand voice</h3>
+
+<p>Sacrena's positioning is sharp and consistent: <em>"The sacred arena. Dating with intention."</em> / <em>"Connection is sacred. Treat it that way."</em> Recurring phrases — "slow dating," "soul-first," "conscious love," "no algorithms," "depth first," "every feature is designed for meaningful connection, not dopamine hits." The most memorable line in the App Store copy: <em>"If mushrooms taught you we're all connected, Sacrena is where you meet others who get it."</em> The voice is unmistakably aimed at the meditators, plant-medicine, energy-work, manifestation crowd.</p>
+
+<p>The brand voice in <strong>customer interaction</strong> is a genuine strength. When a user posted a long satirical "Dark Souls RPG" review, the developer responded in the same register ("Our goal is to remove the poison swamps and emotional boss fights of modern dating… please report any confusing NPCs to our wizard support team"). That kind of playful, human, in-on-the-joke engagement builds real goodwill and is cheap to replicate.</p>
+
+<h3>1.6 Design and UX impression</h3>
+
+<p>From the App Store screenshots: a <strong>dark, moody, premium-feeling aesthetic</strong> — near-black backgrounds, lime/chartreuse accent color, restrained typography, geometric symbols. Profile cards are clean and photo-forward with values tags overlaid. The compatibility visualizations (the eight-factor astrology bar chart, the HD bodygraph, the six-pillar behavioral breakdown with a big percentage) are clear and screenshot-friendly. The overall impression is intentional and contemporary, closer to a wellness app than a typical dating app.</p>
+
+<p>The caveat: polish on the storefront does not match polish in the build. Google Play reviews describe a font that reads as "too fancy and bulky," a "Dismiss Profile" button that overlaps profile info on scroll, and gender/photo validation gaps.</p>
+
+<h3>1.7 Reviews — what users praise and what they complain about</h3>
+
+<p><strong>Praise (skews iOS, 4.5★ across ~366 ratings):</strong></p>
+<ul>
+  <li>The depth and authenticity resonate strongly with people burned out on mainstream apps. One long, heartfelt review: <em>"finally a place where who I am and what I stand for is not only recognized but the very foundation of the app itself."</em></li>
+  <li>Users like the combination of astrology + Human Design + numerology delivering "personalized insights that actually feel relevant."</li>
+  <li>"Fresh and deep," "doesn't feel like another dating app," "amazing for enlightened ones."</li>
+  <li>The interface is repeatedly called clean and intentional.</li>
+</ul>
+
+<p><strong>Complaints (skews Google Play, 4.0★ across ~112 ratings):</strong></p>
+<ul>
+  <li><strong>Technical instability.</strong> Failed phone/email verification and login; a user reporting the app "logged me out and completely erased my entire profile — all my connections gone."</li>
+  <li><strong>Accuracy doubts.</strong> At least one reviewer reports incorrect astrology calculations / a wrong chart — corrosive for an app whose entire promise is "the stars already agree."</li>
+  <li><strong>Paywall friction.</strong> Paying to see who likes you.</li>
+  <li><strong>UX nitpicks.</strong> Bulky fonts, overlapping buttons.</li>
+  <li><strong>Thin liquidity.</strong> Even positive reviewers frame engagement as "looking forward to seeing more people as it grows" — a tell that the marketplace is not yet dense.</li>
+</ul>
+
+<h3>1.8 Sacrena scorecard</h3>
+
+<p><strong>Strengths:</strong> crisp positioning and a coherent brand; a premium, distinctive visual identity; a genuine multi-system compatibility engine; three monetization rails; fast iteration; warm, human support voice; cross-platform (iOS + Android); a journaling/vision-board layer that makes profiles feel alive.</p>
+
+<p><strong>Weaknesses:</strong> spread thin across five-plus systems (no depth, accuracy risk); technical/QA instability; thin user liquidity spread across 30+ countries; HD is only one tab; esoteric overload can alienate the merely-curious; no daily-habit retention loop; "conscious community" is more slogan than feature.</p>
+
+<hr>
+
+<h2>Part 2 — The Broader Landscape</h2>
+
+<p>A scan of comparable apps in the spiritual / astrology / personality-based dating space. The pattern across the category is striking: <strong>almost everyone is struggling with the same problem — too few users — and the most-hyped names are dead, dying, or dormant.</strong></p>
+
+<h3>Comparison table</h3>
+
+<div class="table-wrap">
+<table>
+  <thead>
+    <tr>
+      <th>App</th>
+      <th>Core system</th>
+      <th>Matching model</th>
+      <th>Monetization</th>
+      <th>Status / scale</th>
+      <th>Key takeaway for HD-LOVE</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Sacrena</strong></td>
+      <td>HD + Vedic/Western astro + numerology + tarot + behavioral test</td>
+      <td>No-swipe, values + chart, Discover feed + chat</td>
+      <td>Subscription ($15.99/mo, $108.99/yr) + à la carte reports + Lotus currency</td>
+      <td>Active, ~1 yr public, ~29K downloads, iterating fast</td>
+      <td>The direct competitor; beatable on depth + reliability</td>
+    </tr>
+    <tr>
+      <td><strong>NUiT</strong></td>
+      <td>Western astrology (synastry)</td>
+      <td>Match %, Synastry scores (Romance/Friendship/Magnetism/Business), daily horoscopes</td>
+      <td>Freemium subscription</td>
+      <td><strong>Discontinuing its dating app</strong>; pivoting/rebuilding</td>
+      <td>Astrology-dating's flagship couldn't sustain it — a warning</td>
+    </tr>
+    <tr>
+      <td><strong>Struck</strong></td>
+      <td>Western astrology (full birth chart)</td>
+      <td>4 matches/day, message 2/day; pick 6 chart traits; "skeptics welcome"</td>
+      <td>Free at launch (subscription "considered")</td>
+      <td>Launched 2020 (LA/SF/NYC); appears dormant in 2026</td>
+      <td>Scarcity model + skeptic-inclusive framing are good ideas; city-by-city launch is the right liquidity play</td>
+    </tr>
+    <tr>
+      <td><strong>Stars Align</strong></td>
+      <td>Western astrology (NASA/JPL chart data, incl. Lilith/Juno/Chiron)</td>
+      <td>Astrology algorithm pairs natal charts</td>
+      <td>Freemium</td>
+      <td>Small, mixed reviews</td>
+      <td>"Accurate charts" as a selling point; reviewers still "ran out of matches"</td>
+    </tr>
+    <tr>
+      <td><strong>The Pattern</strong></td>
+      <td>Western astrology (personality + "Bonds")</td>
+      <td>"Connect" dating feature; run a Bond before you can like</td>
+      <td>Freemium subscription</td>
+      <td>Large, culturally prominent astrology app</td>
+      <td>Best-in-class compatibility <em>artifact</em> (named Bond types); dating is bolted onto a content app</td>
+    </tr>
+    <tr>
+      <td><strong>Boo</strong></td>
+      <td>MBTI / 16-types + Big Five personality</td>
+      <td>Personality-matched dating <strong>+ "Universes" interest communities + friend-finding</strong></td>
+      <td>Freemium (see-who-likes-you, filters, etc.)</td>
+      <td>Large global base, ~4.2★</td>
+      <td>The model HD-LOVE's friend system should study: dating + friends + community in one app</td>
+    </tr>
+    <tr>
+      <td><strong>Human Design Dating</strong> (M. Nigametzianov)</td>
+      <td>Human Design only</td>
+      <td>HD matchmaking, gender/age filters, composite charts</td>
+      <td>Free + subscription for full bodygraph</td>
+      <td><strong>Dormant</strong> — last updated 2020, 2.67★, 12 ratings</td>
+      <td>The <em>only</em> dedicated HD dating app, and it is effectively abandoned. The category is wide open.</td>
+    </tr>
+    <tr>
+      <td><strong>Co-Star</strong></td>
+      <td>Western astrology</td>
+      <td>Not a dating app — daily horoscopes + friend compatibility</td>
+      <td>Freemium + reports</td>
+      <td>Very large</td>
+      <td>Proves daily astrology <em>content</em> drives habit; no dating, no HD</td>
+    </tr>
+    <tr>
+      <td><strong>Spiritual Singles / Conscious Singles / MeetMindful / dharmaMatch</strong></td>
+      <td>Values / lifestyle (not chart-based)</td>
+      <td>Web-first profile-and-message dating</td>
+      <td>Subscription</td>
+      <td>Established but dated; Spiritual Singles cites ~91K members</td>
+      <td>The "conscious dating" incumbents — older audience, no spiritual-systems engine, ripe for disruption by a modern app</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<p>A note on <strong>"Ogenie"</strong>: this name did not surface in App Store, Google Play, or general web searches. It may be a very new app, a regional release, or a slight misspelling. It could not be verified for this report — worth a direct App Store check or a corrected spelling from Jeremy.</p>
+
+<h3>Reading the landscape</h3>
+
+<p>Three conclusions matter for HD-LOVE:</p>
+
+<ol>
+  <li><strong>The category's hardest problem is liquidity, not differentiation.</strong> NUiT is shutting down its dating app and explicitly cites rebuilding the "community." Struck launched city-by-city and went quiet. Stars Align reviewers "ran out of matches." Sacrena's own happy reviewers say they are "waiting for it to grow." Every one of these apps can produce a beautiful compatibility reading; almost none can produce enough <em>nearby people</em> to date.</li>
+  <li><strong>The most durable apps in the adjacent space added non-dating value.</strong> Co-Star and The Pattern are habit-forming <em>content</em> apps that happen to (sometimes) offer connection. Boo added friend-finding and interest communities. Pure niche dating apps die; apps that are useful even when you are not actively dating survive.</li>
+  <li><strong>Human Design as a dating foundation is unclaimed.</strong> The astrology-dating lane is crowded and littered with failures. The HD-dating lane has exactly one entrant, and it is dead. Sacrena is the only active app touching HD for dating — and for them it is a side dish.</li>
+</ol>
+
+<hr>
+
+<h2>Part 3 — Synthesis for HD-LOVE</h2>
+
+<h3>3.1 What HD-LOVE should glean (borrow deliberately)</h3>
+
+<ol>
+  <li><strong>Ship a shared, two-person "Decode"-style report as the hero artifact.</strong> Sacrena's strongest screenshot is the <em>shared</em> HD blueprint — Definition, Connection Theme, Dominance Channels of the composite. People want a tangible, screenshot-worthy thing that describes <em>the relationship</em>, not two separate profiles. HD-LOVE should make the composite/connection chart the centerpiece — and, being HD-native, do it with more rigor: the four HD connection types (electromagnetic, dominance, compromise, companionship channels), defined/open centers in the composite, and what each means in practice.</li>
+  <li><strong>Add a named, percentage-scored compatibility breakdown.</strong> Sacrena's "72% Overall Compatibility → six pillars" is psychologically sticky; people love a number and a breakdown. HD-LOVE can build an HD-native version: an overall connection score decomposed into HD-grounded pillars (e.g., Energy & Attraction, Communication, Decision-making, Intimacy, Day-to-day rhythm, Growth edges) — derived from real channel and center mechanics rather than a generic quiz.</li>
+  <li><strong>Open an à la carte report revenue rail.</strong> Sacrena sells a one-time "HD Report" ($6.99) and "Numerology Report" ($2.99) separately from its subscription. This monetizes curious users who will never subscribe. HD-LOVE should sell a one-time <strong>full relationship composite report</strong> (and possibly an individual deep-dive report) at a $4.99–$9.99 price point.</li>
+  <li><strong>Borrow the anti-swipe positioning copy.</strong> "Every profile is a story worth reading, not a split-second judgment" / "designed for meaningful connection, not dopamine hits" is excellent, on-message copy. HD-LOVE's equivalent should be HD-flavored: matching on <em>how you are actually built</em>, not on a photo.</li>
+  <li><strong>Use values-tag profile cards.</strong> Sacrena's scannable tags (practices, lifestyle, relationship intent) make a profile legible in seconds without swipe-culture superficiality. HD-LOVE can do this with HD-native tags (Type, Authority, Profile, key channels) plus lifestyle values.</li>
+  <li><strong>Adopt the warm, playful brand voice — especially in support and review responses.</strong> Sacrena's witty developer replies cost nothing and build loyalty. HD-LOVE should respond to every review and support message in a human, on-brand voice.</li>
+  <li><strong>Add a reflection/journaling layer that deepens the profile over time.</strong> Sacrena's shareable journals make the profile a living document. HD-LOVE's daily reading loop is a natural host for this: let users journal against their daily reading, optionally surfacing entries on the profile.</li>
+  <li><strong>Benchmark pricing to Sacrena.</strong> Sacrena's $15.99/mo and $108.99/yr set the category's willingness-to-pay anchor. HD-LOVE can price in the same band, but should <strong>never paywall the daily reading loop</strong> — that is the retention engine and must stay free.</li>
+</ol>
+
+<h3>3.2 Where competitors are weak — the gaps and opportunities</h3>
+
+<ol>
+  <li><strong>Breadth without depth.</strong> Sacrena runs five-plus systems; none can go deep, and accuracy is already being questioned. <strong>Opportunity:</strong> HD-LOVE can be the <em>authority</em> on the one system that defines it. Depth in Human Design — done correctly — is a moat Sacrena structurally cannot match without abandoning its identity.</li>
+  <li><strong>Technical instability.</strong> Sacrena is shipping bugs (wiped profiles, failed logins, lost connections). <strong>Opportunity:</strong> reliability and polish are a real, winnable differentiator. A user whose connections vanished does not come back.</li>
+  <li><strong>The empty-marketplace problem.</strong> This is the category killer. NUiT is shutting down over it; everyone else is thin. <strong>Opportunity:</strong> HD-LOVE's <strong>location-based discovery + friend system</strong> are exactly the right hedges — <em>if framed correctly</em>. An app that helps you meet aligned people nearby for <em>friendship or romance</em> is useful at low density; a pure romance app is useless until it is dense. Lean all the way into this.</li>
+  <li><strong>No retention loop.</strong> Sacrena, Struck, Stars Align, and the dedicated HD app are all essentially one-shot: get the reading, get (or fail to get) a match, leave. <strong>Opportunity:</strong> HD-LOVE's <strong>daily reading loop</strong> is a retention engine no dating competitor in this space has. Co-Star and The Pattern prove daily astrology content is habit-forming — but they are not dating apps. HD-LOVE can be the only product that pairs a daily-habit content loop <em>with</em> dating.</li>
+  <li><strong>Esoteric overload alienates the merely-curious.</strong> Tarot + Vedic + numerology + archetypes reads as "woo" to a large, moderately-interested middle. Struck deliberately courted skeptics. <strong>Opportunity:</strong> Human Design has a systematic, typology feel (closer to MBTI than to fortune-telling). Framed as practical self-knowledge, it travels to a much wider audience than a tarot-and-Vedic stack.</li>
+  <li><strong>The HD-dating category has no living incumbent.</strong> The one dedicated HD dating app is dead. Sacrena treats HD as a feature. <strong>Opportunity:</strong> HD-LOVE can credibly claim and own "the Human Design relationship app" before Sacrena's HD tab matures or anyone else enters.</li>
+  <li><strong>The "conscious dating" incumbents are dated.</strong> Spiritual Singles, Conscious Singles, MeetMindful, dharmaMatch are web-era, profile-and-message products with no spiritual-systems engine. <strong>Opportunity:</strong> their audiences are reachable by a modern, mobile-first, HD-native app.</li>
+</ol>
+
+<h3>3.3 How HD-LOVE should differentiate (not just copy)</h3>
+
+<p><strong>Position as the definitive Human Design relationship app — not a spiritual buffet.</strong> Sacrena's weakness is its breadth. HD-LOVE's strategy should be the inverse: one system, mastered. The pitch is "the app built entirely around how you and another person are actually wired," not "all the cosmic systems in one place." Resist the temptation to bolt on tarot and numerology to match Sacrena's feature list — that would forfeit the only structural advantage HD-LOVE has.</p>
+
+<p><strong>Frame Human Design as an operating manual, not a prophecy.</strong> Sacrena leans mystical ("the stars already agree"). HD-LOVE should lean <em>practical</em>: HD as a guide to decision-making, energy management, communication styles, and how two specific people's energies interact day to day. This framing (a) widens the audience to include the typology-curious and the skeptic-adjacent, (b) makes the daily reading genuinely useful rather than horoscope-fluffy, and (c) survives the credibility test better than "your charts are compatible."</p>
+
+<p><strong>Make the daily reading loop the core moat.</strong> No dating competitor in this space has a daily-habit engine. Build it as the heartbeat of the app: a daily personal reading, plus — once a user has connections — a daily relational insight for an existing connection ("today's energy between you and ___"). This turns HD-LOVE from a one-shot matcher into a daily-open app, which solves retention <em>and</em> keeps users present when romantic liquidity is low.</p>
+
+<p><strong>Use friends + location as a deliberate liquidity strategy, not a side feature.</strong> The friend system under construction is the single smartest hedge against the empty-marketplace death that is killing this category. Position HD-LOVE explicitly as a way to meet HD-aligned people nearby — for friendship, community, <em>or</em> romance. This makes the app valuable in any city from day one, gives users a reason to invite friends (network growth), and means a thin romantic pool is not a dead app. Boo's "Universes" communities are the proof case worth studying.</p>
+
+<p><strong>Win on accuracy and rigor.</strong> When a competitor ships wrong charts, getting the mechanics demonstrably right is a moat. Consider crediting or partnering with recognized HD practitioners, showing the actual composite mechanics transparently, and letting power users see the real bodygraph interaction. Sacrena's HD is competent but shallow; HD-LOVE can be unambiguously the most accurate and the deepest.</p>
+
+<p><strong>Own the connection artifact.</strong> Make the HD composite the most beautiful, most rigorous, most shareable two-person report in the category — better than Sacrena's "shared blueprint," better than The Pattern's "Bonds." It should be the thing users screenshot and send to the person it is about.</p>
+
+<h3>3.4 Recommended priorities</h3>
+
+<ol>
+  <li><strong>Lock the positioning now:</strong> "the Human Design relationship app" — depth over breadth, operating-manual over prophecy. Claim the category before Sacrena's HD tab matures.</li>
+  <li><strong>Make the two-person HD composite report the hero feature</strong>, with a named overall connection score and HD-grounded pillar breakdown.</li>
+  <li><strong>Keep the daily reading loop free and central</strong>, and extend it to relational daily insights for existing connections.</li>
+  <li><strong>Frame and build the friend system as a liquidity strategy</strong> — meet aligned people nearby for friendship or romance — and make it a growth/invite engine.</li>
+  <li><strong>Monetize with a Sacrena-benchmarked subscription plus à la carte one-time reports</strong> ($4.99–$9.99); never paywall the daily loop.</li>
+  <li><strong>Compete hard on reliability and polish</strong> — Sacrena is visibly losing users to bugs.</li>
+  <li><strong>Adopt a warm, playful, human brand voice</strong> in copy, support, and every review response.</li>
+  <li><strong>Do not copy the buffet.</strong> Resist adding tarot/numerology/Vedic astrology. Breadth is Sacrena's weakness; depth is HD-LOVE's only durable moat.</li>
+</ol>
+
+<hr>
+
+<h2>Sources</h2>
+
+<ul>
+  <li><a href="https://apps.apple.com/us/app/sacrena/id6476568656">Sacrena — App Store (US)</a></li>
+  <li><a href="https://play.google.com/store/apps/details?id=com.dating.sacrenacompose">Sacrena — Google Play</a></li>
+  <li><a href="https://sacrena.com/">Sacrena — official website</a></li>
+  <li><a href="https://www.sacrena.com/faq">Sacrena — FAQ</a></li>
+  <li><a href="https://nuitapp.com/">NUiT — official site</a> and <a href="https://nuitapp.com/cosmic-connection-blog/nuit-transition-news/">NUiT transition / discontinuation notice</a></li>
+  <li><a href="https://techcrunch.com/2020/07/20/after-numerous-rejections-strucks-dating-app-for-the-co-star-crowd-hits-the-app-store/">Struck — TechCrunch launch coverage</a> and <a href="https://www.purewow.com/news/struck-astrology-dating-app">PureWow on Struck</a></li>
+  <li><a href="https://www.starsalign.co/">Stars Align — official site</a> and <a href="https://apps.apple.com/us/app/stars-align/id1564257846">App Store</a></li>
+  <li><a href="https://apps.apple.com/us/app/the-pattern-astrology/id1071085727">The Pattern — App Store</a></li>
+  <li><a href="https://www.datingapps.com/reviews/boo/">Boo — dating app review</a></li>
+  <li><a href="https://apps.apple.com/us/app/human-design-dating/id1308190922">Human Design Dating — App Store</a> and <a href="https://humandesigndating.org/en/home/">humandesigndating.org</a></li>
+  <li><a href="https://www.datingnews.com/daters-pulse/best-spiritual-dating-sites/">Best Spiritual Dating Sites 2026 — DatingNews</a></li>
+  <li><a href="https://www.spiritualsingles.com/">Spiritual Singles</a></li>
+  <li>Sacrena App Store screenshots provided by Jeremy (profile card, astrology compatibility, Human Design blueprint, behavioral compatibility)</li>
+</ul>
+
+</article>
+</main>
+
+<footer class="site">
+  <span class="label">Internal · Private</span>
+  <p class="note">A working analysis for HD-LOVE, not a public publication. Unlisted, not indexed.</p>
+</footer>
+
+</body>
+</html>

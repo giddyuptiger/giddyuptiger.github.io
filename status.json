@@ -1,5 +1,8 @@
 {
-  "lastUpdated": "2026-05-25T03:20:00Z",
+  "lastUpdated": "2026-05-26T16:43:50Z",
+  "curious": [
+    { "title": "Sacrena — competitive analysis", "blurb": "A deep read on Sacrena, the spiritual-relationship app that overlaps HD-LOVE's core. What to glean, where to diverge.", "url": "/curious/sacrena.html" }
+  ],
   "projects": [
     {
       "name": "iPhone Dock",

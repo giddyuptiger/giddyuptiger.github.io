@@ -1,7 +1,11 @@
 {
-  "lastUpdated": "2026-05-26T16:43:50Z",
+  "lastUpdated": "2026-05-26T21:06:31Z",
   "curious": [
-    { "title": "Sacrena — competitive analysis", "blurb": "A deep read on Sacrena, the spiritual-relationship app that overlaps HD-LOVE's core. What to glean, where to diverge.", "url": "/curious/sacrena.html" }
+    {
+      "title": "Sacrena — competitive analysis",
+      "blurb": "A deep read on Sacrena, the spiritual-relationship app that overlaps HD-LOVE's core. What to glean, where to diverge.",
+      "url": "/curious/sacrena.html"
+    }
   ],
   "projects": [
     {
@@ -109,12 +113,12 @@
     {
       "name": "Wedding speech",
       "icon": "💍",
-      "priority": 2,
+      "priority": 3,
       "urgency": "by May 31",
-      "shortStatus": "Officiating a friend's June wedding",
-      "todo": "Send Claude details on the couple",
-      "note": "Officiating a friend's wedding in June. Wants the speech drafted this coming week.",
-      "nextStep": "Send Claude details on the couple, how you know them, their story, tone you want, and Claude will draft the speech."
+      "shortStatus": "Outline ready, waiting on couple details",
+      "todo": "Outline drafted, awaiting couple details",
+      "note": "Officiating a friend's wedding in June. 5-minute speech. Outline structured: gathering / about this couple / on love & partnership / vows / pronouncement. Filled-in draft ready as soon as Jeremy sends details on the couple.",
+      "nextStep": "Outline locked. When you send the couple's names, how you know them, their story, and the tone you want, Claude will write the full 5-min draft."
     },
     {
       "name": "Relationship growth",
@@ -143,15 +147,55 @@
     }
   ],
   "recentlyShipped": [
-    { "project": "GRDN", "what": "10-min Gate Pause Live Activity dismissal fix: deadline handed to iOS via native bridge (build 1.11.5+5)", "date": "2026-05-25" },
-    { "project": "FUTON", "what": "Vocab dupes swept (~100 affected primary forms incl. パン), empty grammar module populated, 3 new N5 grammar modules added (build 0.7.1+2)", "date": "2026-05-25" },
-    { "project": "PRS", "what": "Episode Command Center v1 built: per-episode interactive checklist at /prs/?episode=slug, Supabase-backed, anyone can toggle and add items", "date": "2026-05-25" },
-    { "project": "HD-LOVE", "what": "Full Profile + Definition descriptions on the Me screen (build 20)", "date": "2026-05-25" },
-    { "project": "HD-LOVE", "what": "Duplicate-message and discover-card photo fixes (build 19)", "date": "2026-05-25" },
-    { "project": "HD-LOVE", "what": "Matching filter wired up with gender + age (build 18)", "date": "2026-05-25" },
-    { "project": "HD-LOVE", "what": "Friend system: unique usernames, search, requests, friends as synced People (build 16)", "date": "2026-05-24" },
-    { "project": "SCANDALS", "what": "v1.10.0: single-photo scan and 5-of-5 toe-tip detection from a full-resolution front-edge trace", "date": "2026-05-24" },
-    { "project": "PRS", "what": "First agentic Rob Morrow production sheet, plus the PDF rendering and the SOP updated for the PDF output convention", "date": "2026-05-25" },
-    { "project": "Command Center", "what": "linkinbio page live at giddyuptiger.github.io/linkinbio/; this command center rebuilt and themed dark with gold accents", "date": "2026-05-25" }
+    {
+      "project": "GRDN",
+      "what": "10-min Gate Pause Live Activity dismissal fix: deadline handed to iOS via native bridge (build 1.11.5+5)",
+      "date": "2026-05-25"
+    },
+    {
+      "project": "FUTON",
+      "what": "Vocab dupes swept (~100 affected primary forms incl. パン), empty grammar module populated, 3 new N5 grammar modules added (build 0.7.1+2)",
+      "date": "2026-05-25"
+    },
+    {
+      "project": "PRS",
+      "what": "Episode Command Center v1 built: per-episode interactive checklist at /prs/?episode=slug, Supabase-backed, anyone can toggle and add items",
+      "date": "2026-05-25"
+    },
+    {
+      "project": "HD-LOVE",
+      "what": "Full Profile + Definition descriptions on the Me screen (build 20)",
+      "date": "2026-05-25"
+    },
+    {
+      "project": "HD-LOVE",
+      "what": "Duplicate-message and discover-card photo fixes (build 19)",
+      "date": "2026-05-25"
+    },
+    {
+      "project": "HD-LOVE",
+      "what": "Matching filter wired up with gender + age (build 18)",
+      "date": "2026-05-25"
+    },
+    {
+      "project": "HD-LOVE",
+      "what": "Friend system: unique usernames, search, requests, friends as synced People (build 16)",
+      "date": "2026-05-24"
+    },
+    {
+      "project": "SCANDALS",
+      "what": "v1.10.0: single-photo scan and 5-of-5 toe-tip detection from a full-resolution front-edge trace",
+      "date": "2026-05-24"
+    },
+    {
+      "project": "PRS",
+      "what": "First agentic Rob Morrow production sheet, plus the PDF rendering and the SOP updated for the PDF output convention",
+      "date": "2026-05-25"
+    },
+    {
+      "project": "Command Center",
+      "what": "linkinbio page live at giddyuptiger.github.io/linkinbio/; this command center rebuilt and themed dark with gold accents",
+      "date": "2026-05-25"
+    }
   ]
 }

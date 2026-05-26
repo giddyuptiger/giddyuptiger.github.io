@@ -1,81 +1,96 @@
 {
-  "lastUpdated": "2026-05-25T01:48:00Z",
+  "lastUpdated": "2026-05-25T02:00:00Z",
   "projects": [
     {
       "name": "iPhone Dock",
       "state": "waiting-on-jeremy",
+      "priority": 1,
+      "urgency": "ASAP",
+      "shortStatus": "Setting up the Amazon listing",
       "note": "A physical product Jeremy is launching on Amazon. Currently setting up the Amazon product listing. Flagged top priority, finish ASAP.",
       "nextStep": "Finish setting up the Amazon product listing. Top priority right now."
     },
     {
       "name": "GRDN",
       "state": "waiting-on-jeremy",
-      "note": "iOS: exit-65 archive fix pushed (commit e27ba73, build 1.11.3+4) — rive_native native library now built on CI before the archive; re-run pending. Web: already live at grdnapp.com. Home-screen redesign delivered — full analysis, an ideal-home-screen spec (one job: start a focus session against today's top task; one bright button; the garden fills the dead space), and a copy-paste Google Stitch prompt. Spec saved to docs/homescreen-redesign.md.",
-      "nextStep": "Re-run the GRDN Xcode Cloud build to confirm the iOS fix. Home-screen: run the Stitch prompt, pick a design, then Claude can build the redesigned home screen."
+      "shortStatus": "iOS build re-run pending; Live Activity bug in flight",
+      "note": "iOS: exit-65 archive fix pushed (commit e27ba73, build 1.11.3+4) — rive_native native library now built on CI before the archive; re-run pending. Web: already live at grdnapp.com. Home-screen redesign delivered — full analysis, an ideal-home-screen spec (one job: start a focus session against today's top task; one bright button; the garden fills the dead space), and a copy-paste Google Stitch prompt. Spec saved to docs/homescreen-redesign.md. A task is also investigating a bug where the 10-minute Gate Pause Live Activity does not clear when the countdown finishes.",
+      "nextStep": "Re-run the GRDN Xcode Cloud build to confirm the iOS fix. Home-screen: run the Stitch prompt, pick a design, then Claude can build the redesigned home screen. Live Activity bug fix incoming."
     },
     {
       "name": "SCANDALS",
       "state": "in-progress",
+      "shortStatus": "v1.10.0 shipped; deploy fix + width markers + 13-point export in flight",
       "note": "v1.10.0 shipped: single-photo scan, optional flash toggle, and a reworked toe profile that traces the front foot edge in the full-resolution photo (~0.1mm per pixel, far sharper than the old 320px mask) so the five toe-tip peaks resolve even when toes touch. An urgent task is fixing a broken/stale GitHub Pages deploy Jeremy hit: a JS chunk fails to load and the live site was serving pre-v1.9.0 code.",
-      "nextStep": "Deploy fix in progress. Then the 10% width-station markers get drawn onto the outline visual."
+      "nextStep": "Deploy fix in progress. Then the 10% width-station markers get drawn onto the outline visual, then the 13-point export (5 toe tips, inside big toe, 2 ball-cross-section edges, 2 arch-cross-section edges, 3 heel) for Jeremy's Grasshopper algorithm."
     },
     {
       "name": "HD-LOVE",
       "state": "waiting-on-jeremy",
+      "shortStatus": "Live end-to-end; finish App Store submission from build 20+",
       "note": "App live end-to-end. Recent: friend system, chat/discover fixes, gender/age matching filter, duplicate-message and discover-photo fixes, and full Profile + Definition descriptions on the Me screen (build 20). A task is still completing every channel and gate interpretation so nothing shows a 'not written yet' placeholder. A context-aware compatibility-scoring spec was delivered to Jeremy to review.",
-      "nextStep": "Both Supabase migrations applied — gender/age matching and the discover-photo fix are live on the database. Review the compatibility-scoring spec. Then finish the App Store submission: blockers, iPhone + iPad screenshots, fresh build (build 19+ carries all the recent work)."
+      "nextStep": "Both Supabase migrations applied. Review the compatibility-scoring spec. Then finish the App Store submission: blockers, iPhone + iPad screenshots, fresh build (build 20+ carries all the recent work)."
     },
     {
       "name": "irons-design",
       "state": "done",
+      "shortStatus": "Live on Cloudflare",
       "note": "Live on Cloudflare — resolving with valid SSL and the correct content.",
-      "nextStep": "Live — nothing pending."
+      "nextStep": "Live, nothing pending."
     },
     {
       "name": "WEATHER",
       "state": "waiting-on-jeremy",
+      "shortStatus": "Build 22 to TestFlight, then resubmit",
       "note": "App Store rejection (ITMS-90129) fixed; Mirror exercise now has a close button on every step. Code-complete at v1.3.0.",
       "nextStep": "Confirm build 22 reached TestFlight and resubmit to App Store review."
     },
     {
       "name": "POSTURE",
       "state": "waiting-on-jeremy",
+      "shortStatus": "Auto-capture shipped; smoke test pending",
       "note": "Auto-capture (hands-free 4-view camera) shipped. Supabase keep-alive is running green — the project won't auto-pause anymore.",
       "nextStep": "Smoke-test the auto-capture flow in Expo Go on your iPhone."
     },
     {
       "name": "Futon",
       "state": "in-progress",
+      "shortStatus": "Vocab fix + content audit task running",
       "note": "Launch-polish work all shipped. A content task (restarted after the first attempt wedged) is fixing a vocabulary bug Jeremy hit — パン was mis-mapped and its quiz had no correct answer — and sweeping all vocab for the same class of error, plus fixing the empty module and the grammar-not-testable gap, and will recommend how to fill out the full JLPT curriculum.",
       "nextStep": "Content task in progress. Still pending from before: apply migration 00013 via 'supabase db push'; decide on the Achievements card (real system or remove for v1)."
     },
     {
       "name": "PAPPY",
       "state": "done",
+      "shortStatus": "v2.5.10 live on Firebase",
       "note": "v2.5.10 (billing null-guard + crash fix) deployed to Firebase and live for users.",
-      "nextStep": "Live and stable — nothing pending."
+      "nextStep": "Live and stable, nothing pending."
     },
     {
       "name": "irons-holistic",
       "state": "done",
+      "shortStatus": "Live",
       "note": "Static recreation of irons.be deployed and live.",
-      "nextStep": "Live — nothing pending."
+      "nextStep": "Live, nothing pending."
     },
     {
       "name": "888-process",
       "state": "parked",
+      "shortStatus": "Paused",
       "note": "Paused by your decision.",
-      "nextStep": "Parked — no action planned."
+      "nextStep": "Parked, no action planned."
     },
     {
       "name": "PRIMAL",
       "state": "parked",
+      "shortStatus": "Paused for AI Voice Agent focus",
       "note": "On hold by your decision. This is the customer-facing 'Primal Moves' fitness-studio app (front-end built; Firebase + Stripe backend built and pushed). Paused to focus on the separate AI Voice Agent — the sales-agent MVP in the primal-agent repo. Distinct project from this one.",
-      "nextStep": "Parked — no action planned."
+      "nextStep": "Parked, no action planned."
     },
     {
       "name": "AI Voice Agent",
       "state": "waiting-on-jeremy",
+      "shortStatus": "Feature-complete in mock; awaiting provisioning + gym platform pick",
       "note": "Feature-complete in mock mode — foundation, dashboard, outbound campaign engine, and an interactive voice test harness all built and verified: typecheck clean, 42/42 tests pass, boots with no API keys. Try it now with 'npm run harness'. Everything buildable without external services is done. Repo: giddyuptiger/primal-agent (commit 96ded86).",
       "nextStep": "Two things, both yours: (1) provisioning — Twilio + A2P 10DLC, Deepgram, TTS, Supabase, Resend, Claude key, a host (see docs/PROVISIONING.md; start the A2P registration first, it's the slowest); (2) decide the gym platform (Mindbody/F45) so the real booking adapter can be built."
     }
@@ -84,30 +99,42 @@
     {
       "name": "Wedding speech",
       "icon": "💍",
-      "due": "— aim to finish by ~May 31",
+      "priority": 2,
+      "urgency": "by May 31",
+      "shortStatus": "Officiating a friend's June wedding",
       "note": "Officiating a friend's wedding in June. Wants the speech drafted this coming week.",
-      "nextStep": "Send Claude details on the couple — how you know them, their story, tone you want — and Claude will draft the speech."
+      "nextStep": "Send Claude details on the couple, how you know them, their story, tone you want, and Claude will draft the speech."
     },
     {
       "name": "Relationship growth",
       "icon": "🧭",
-      "due": "Day 1 of 21 underway",
+      "shortStatus": "Day 1 of 21 underway",
       "note": "A 21-day structured reflection on your long-term relationship, in five phases, holding three honest outcomes. Started on Day 1 (Phase 1: You First).",
       "nextStep": "Day 1 prompts are with you. Journal when ready and Claude reflects alongside you; continuity held in this thread."
     },
     {
       "name": "Travel & housing",
       "icon": "✈️",
-      "due": "June 25 onward",
+      "urgency": "from June 25",
+      "shortStatus": "ANC to LA flight + LA housing",
       "note": "ANC to LA flight after the wedding (~June 25). LA stay June 25 to July 20. London July 20 to ~Aug 5. Post-London housing to be decided ~Aug 5.",
       "nextStep": "Book the ANC to LA flight and line up LA housing for June 25 to July 20."
     },
     {
       "name": "Meditation retreat",
       "icon": "🧘",
-      "due": "during the LA stay, June 25 to July 20",
+      "shortStatus": "InsightLA July 10-13 recommended",
       "note": "A roughly 3-day Vipassana or silent meditation retreat while you're in LA, between Alaska and London. Claude is researching options reachable from LA with dates inside that window.",
-      "nextStep": "Claude brings back a shortlist (dates, location, cost, level required, how to register); you pick one and book it."
+      "nextStep": "InsightLA Summer Insight Retreat July 10-13 is the recommended pick; register at insightla.org and you're set."
     }
+  ],
+  "recentlyShipped": [
+    { "project": "HD-LOVE", "what": "Full Profile + Definition descriptions on the Me screen (build 20)", "date": "2026-05-25" },
+    { "project": "HD-LOVE", "what": "Duplicate-message and discover-card photo fixes (build 19)", "date": "2026-05-25" },
+    { "project": "HD-LOVE", "what": "Matching filter wired up with gender + age (build 18)", "date": "2026-05-25" },
+    { "project": "HD-LOVE", "what": "Friend system: unique usernames, search, requests, friends as synced People (build 16)", "date": "2026-05-24" },
+    { "project": "SCANDALS", "what": "v1.10.0: single-photo scan and 5-of-5 toe-tip detection from a full-resolution front-edge trace", "date": "2026-05-24" },
+    { "project": "PRS", "what": "First agentic Rob Morrow production sheet, plus the PDF rendering and the SOP updated for the PDF output convention", "date": "2026-05-25" },
+    { "project": "Command Center", "what": "linkinbio page live at giddyuptiger.github.io/linkinbio/; this command center page rebuilt with Do Next, compact board, and Recently Shipped", "date": "2026-05-25" }
   ]
 }

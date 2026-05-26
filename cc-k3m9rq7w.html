@@ -207,7 +207,141 @@
     return p;
   }
 
-  function renderDoNext(content, items) {
+  // ───── Snooze (per-device, localStorage) ─────
+  var SNOOZE_KEY = "cc_snoozes_v2";
+  function snoozeRead() {
+    try { return JSON.parse(localStorage.getItem(SNOOZE_KEY) || "{}"); }
+    catch (e) { return {}; }
+  }
+  function snoozeWrite(obj) {
+    try { localStorage.setItem(SNOOZE_KEY, JSON.stringify(obj)); } catch (e) {}
+  }
+  function snoozeActive(name) {
+    var s = snoozeRead();
+    var until = s[name];
+    if (!until) return null;
+    if (Date.now() >= until) {
+      delete s[name];
+      snoozeWrite(s);
+      return null;
+    }
+    return until;
+  }
+  function snoozeSet(name, ms) {
+    var s = snoozeRead();
+    s[name] = Date.now() + ms;
+    snoozeWrite(s);
+  }
+  function snoozeUntil(name, ts) {
+    var s = snoozeRead();
+    s[name] = ts;
+    snoozeWrite(s);
+  }
+  function snoozeClear(name) {
+    var s = snoozeRead();
+    delete s[name];
+    snoozeWrite(s);
+  }
+  function snoozeOptions() {
+    var now = new Date();
+    var tomorrow8 = new Date(now);
+    tomorrow8.setDate(tomorrow8.getDate() + 1);
+    tomorrow8.setHours(8, 0, 0, 0);
+    return [
+      { label: "1 hour",     ms: 60*60*1000 },
+      { label: "4 hours",    ms: 4*60*60*1000 },
+      { label: "Tomorrow 8a", ts: tomorrow8.getTime() },
+      { label: "3 days",     ms: 3*24*60*60*1000 },
+      { label: "1 week",     ms: 7*24*60*60*1000 }
+    ];
+  }
+  function formatWake(ts) {
+    var d = new Date(ts);
+    var diff = ts - Date.now();
+    if (diff < 60*60*1000) return "in " + Math.max(1, Math.round(diff/60000)) + "m";
+    if (diff < 24*60*60*1000) return "in " + Math.round(diff/3600000) + "h";
+    return d.toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  }
+
+  function attachSnoozeSwipe(rowEl, itemName, onSnoozed) {
+    var startX = 0, currentX = 0, dragging = false, opened = false;
+    var actions = null;
+
+    function ensureActions() {
+      if (actions) return actions;
+      actions = el("div", "absolute inset-y-0 right-0 flex items-center pr-2 gap-1 opacity-0 transition-opacity pointer-events-none");
+      snoozeOptions().forEach(function (opt) {
+        var b = el("button", "bg-primary/15 text-primary text-[11px] font-bold px-2 py-1 rounded-full whitespace-nowrap hover:bg-primary/25");
+        b.textContent = opt.label;
+        b.addEventListener("click", function (e) {
+          e.stopPropagation();
+          if (opt.ts) snoozeUntil(itemName, opt.ts);
+          else snoozeSet(itemName, opt.ms);
+          if (onSnoozed) onSnoozed();
+        });
+        actions.appendChild(b);
+      });
+      rowEl.appendChild(actions);
+      return actions;
+    }
+
+    rowEl.style.position = "relative";
+    rowEl.style.touchAction = "pan-y";
+
+    function open() {
+      ensureActions();
+      rowEl.style.transition = "transform 0.2s ease";
+      rowEl.style.transform = "translateX(-72%)";
+      actions.style.opacity = "1";
+      actions.style.pointerEvents = "auto";
+      opened = true;
+    }
+    function close() {
+      rowEl.style.transition = "transform 0.2s ease";
+      rowEl.style.transform = "translateX(0)";
+      if (actions) {
+        actions.style.opacity = "0";
+        actions.style.pointerEvents = "none";
+      }
+      opened = false;
+    }
+
+    rowEl.addEventListener("touchstart", function (e) {
+      startX = e.touches[0].clientX;
+      currentX = startX;
+      dragging = true;
+      rowEl.style.transition = "";
+    }, { passive: true });
+    rowEl.addEventListener("touchmove", function (e) {
+      if (!dragging) return;
+      currentX = e.touches[0].clientX;
+      var dx = currentX - startX;
+      if (dx < 0) {
+        ensureActions();
+        actions.style.opacity = Math.min(1, Math.abs(dx)/80);
+        actions.style.pointerEvents = Math.abs(dx) > 30 ? "auto" : "none";
+        rowEl.style.transform = "translateX(" + Math.max(dx, -300) + "px)";
+      } else if (opened && dx > 0) {
+        rowEl.style.transform = "translateX(" + Math.min(dx - rowEl.offsetWidth*0.72, 0) + "px)";
+      }
+    }, { passive: true });
+    rowEl.addEventListener("touchend", function () {
+      if (!dragging) return;
+      dragging = false;
+      var dx = currentX - startX;
+      if (!opened && dx < -50) open();
+      else if (opened && dx > 50) close();
+      else if (opened) open();
+      else close();
+    });
+
+    // Tap outside to close (clicking the row itself when opened)
+    rowEl.addEventListener("click", function () {
+      if (opened) close();
+    });
+  }
+
+  function renderDoNext(content, items, onSnoozeChange) {
     if (!items.length) return;
     var sec = el("section", "space-y-2");
     html(sec, "h2", "text-[11px] font-bold tracking-widest text-primary pl-1", "DO NEXT");
@@ -215,16 +349,17 @@
 
     items.forEach(function (it, i) {
       if (i === 0) {
-        var hero = el("div", "bg-surface-container-lowest rounded-xl p-4 border border-primary/40 shadow-xl flex justify-between items-start gap-3");
+        var hero = el("div", "bg-surface-container-lowest rounded-xl p-4 border border-primary/40 shadow-xl flex justify-between items-start gap-3 overflow-hidden");
         var body = el("div", "space-y-1 flex-1 min-w-0");
         html(body, "p", "text-[11px] font-bold tracking-widest text-primary uppercase truncate", it.name);
         html(body, "h3", "text-[18px] font-bold text-on-surface leading-snug", it.todo || "");
         hero.appendChild(body);
         var ut = urgencyPill(it.urgency);
         if (ut) hero.appendChild(ut);
+        attachSnoozeSwipe(hero, it.name, onSnoozeChange);
         card.appendChild(hero);
       } else {
-        var row = el("div", "bg-surface-container-lowest rounded-lg p-3 border border-outline-variant/30 flex items-center justify-between gap-3");
+        var row = el("div", "bg-surface-container-lowest rounded-lg p-3 border border-outline-variant/30 flex items-center justify-between gap-3 overflow-hidden");
         var left = el("div", "flex items-center gap-3 flex-1 min-w-0");
         var iconBox = el("div", "w-9 h-9 rounded-md bg-surface-container-high flex items-center justify-center flex-shrink-0 text-[17px]");
         iconBox.textContent = it.icon || "•";
@@ -241,8 +376,47 @@
           right.appendChild(ut);
           row.appendChild(right);
         }
+        attachSnoozeSwipe(row, it.name, onSnoozeChange);
         card.appendChild(row);
       }
+    });
+    sec.appendChild(card);
+
+    // Hint (only show first time)
+    if (!localStorage.getItem("cc_snooze_hint_seen")) {
+      var hint = el("p", "text-[11px] text-on-surface-variant/60 italic pl-2 pt-1", "Swipe left on any item to snooze it.");
+      sec.appendChild(hint);
+      setTimeout(function () { localStorage.setItem("cc_snooze_hint_seen", "1"); }, 5000);
+    }
+    content.appendChild(sec);
+  }
+
+  function renderSnoozed(content, snoozedItems, onWake) {
+    if (!snoozedItems.length) return;
+    var sec = el("section", "space-y-2 opacity-90");
+    html(sec, "h2", "text-[11px] font-bold tracking-widest text-secondary pl-1", "SNOOZED (" + snoozedItems.length + ")");
+    var card = el("div", "bg-surface-container rounded-xl border border-outline-variant/40 divide-y divide-outline-variant/20 overflow-hidden");
+    snoozedItems.forEach(function (it) {
+      var row = el("div", "px-4 py-3 flex items-center justify-between gap-3");
+      var left = el("div", "flex items-center gap-2 flex-1 min-w-0");
+      html(left, "span", "text-[15px] flex-shrink-0", it.icon || "💤");
+      var meta = el("div", "min-w-0 flex-1");
+      html(meta, "p", "text-[11px] font-bold tracking-widest text-secondary uppercase truncate", it.name);
+      html(meta, "p", "text-[13px] text-on-surface-variant truncate", it.todo || "");
+      left.appendChild(meta);
+      row.appendChild(left);
+
+      var right = el("div", "flex items-center gap-2 flex-shrink-0");
+      html(right, "span", "text-[11px] text-on-surface-variant", formatWake(it.snoozedUntil));
+      var wake = el("button", "text-[11px] text-primary font-bold hover:underline px-1", "Wake");
+      wake.addEventListener("click", function (e) {
+        e.stopPropagation();
+        snoozeClear(it.name);
+        if (onWake) onWake();
+      });
+      right.appendChild(wake);
+      row.appendChild(right);
+      card.appendChild(row);
     });
     sec.appendChild(card);
     content.appendChild(sec);
@@ -358,7 +532,9 @@
     return ap - bp;
   }
 
+  var lastData = null;
   function render(data) {
+    lastData = data;
     document.getElementById("updated-text").textContent =
       "Updated " + formatUpdated(data.lastUpdated);
 
@@ -382,7 +558,18 @@
       }
     });
     doItems.sort(compareP);
-    renderDoNext(content, doItems);
+    var activeItems = [];
+    var snoozedItems = [];
+    doItems.forEach(function (it) {
+      var until = snoozeActive(it.name);
+      if (until) snoozedItems.push(Object.assign({}, it, { snoozedUntil: until }));
+      else activeItems.push(it);
+    });
+    function onSnoozeChange() {
+      // Re-render the page after a snooze action
+      render(data);
+    }
+    renderDoNext(content, activeItems, onSnoozeChange);
 
     var active = projects.filter(function (p) {
       return p.state === "waiting-on-jeremy" || p.state === "in-progress";
@@ -394,6 +581,8 @@
       return compareP(a, b);
     });
     renderBoard(content, active);
+
+    renderSnoozed(content, snoozedItems, onSnoozeChange);
 
     renderShipped(content, shipped);
 

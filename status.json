@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-25T02:45:00Z",
+  "lastUpdated": "2026-05-25T03:20:00Z",
   "projects": [
     {
       "name": "iPhone Dock",
@@ -14,17 +14,17 @@
     {
       "name": "GRDN",
       "state": "waiting-on-jeremy",
-      "shortStatus": "iOS build re-run pending; Live Activity bug in flight",
+      "shortStatus": "iOS exit-65 fix + Live Activity fix pushed (build 1.11.5+5); web live",
       "todo": "Re-run the Xcode Cloud build",
-      "note": "iOS: exit-65 archive fix pushed (commit e27ba73, build 1.11.3+4) — rive_native native library now built on CI before the archive; re-run pending. Web: already live at grdnapp.com. Home-screen redesign delivered — full analysis, an ideal-home-screen spec (one job: start a focus session against today's top task; one bright button; the garden fills the dead space), and a copy-paste Google Stitch prompt. Spec saved to docs/homescreen-redesign.md. A task is also investigating a bug where the 10-minute Gate Pause Live Activity does not clear when the countdown finishes.",
-      "nextStep": "Re-run the GRDN Xcode Cloud build to confirm the iOS fix. Home-screen: run the Stitch prompt, pick a design, then Claude can build the redesigned home screen. Live Activity bug fix incoming."
+      "note": "iOS: exit-65 archive fix shipped (build 1.11.3+4) and the 10-min Gate Pause Live Activity dismissal bug fixed (build 1.11.5+5, commit b392cd6). Root cause of the Live Activity bug: dismissal timers ran in the Dart isolate, but iOS suspends Flutter during the 10-min unlock window so the timers never fired. Fix hands the dismissal deadline to iOS itself via `.after(endDate)` policy through a small native Swift bridge, so iOS dismisses the activity on time regardless of Flutter's state. Web live at grdnapp.com. Home-screen redesign spec is delivered.",
+      "nextStep": "Re-run the GRDN Xcode Cloud build (now also picks up the Live Activity fix). Home-screen: run the Stitch prompt, pick a design, then Claude can build the redesigned home screen."
     },
     {
       "name": "SCANDALS",
       "state": "in-progress",
-      "shortStatus": "v1.10.0 shipped; deploy fix + width markers + 13-point export in flight",
-      "note": "v1.10.0 shipped: single-photo scan, optional flash toggle, and a reworked toe profile that traces the front foot edge in the full-resolution photo (~0.1mm per pixel, far sharper than the old 320px mask) so the five toe-tip peaks resolve even when toes touch. An urgent task is fixing a broken/stale GitHub Pages deploy Jeremy hit: a JS chunk fails to load and the live site was serving pre-v1.9.0 code.",
-      "nextStep": "Deploy fix in progress. Then the 10% width-station markers get drawn onto the outline visual, then the 13-point export (5 toe tips, inside big toe, 2 ball-cross-section edges, 2 arch-cross-section edges, 3 heel) for Jeremy's Grasshopper algorithm."
+      "shortStatus": "v1.10.0 shipped; consolidated 13-point + width markers task running",
+      "note": "v1.10.0 shipped: single-photo scan, optional flash toggle, and a reworked toe profile that traces the front foot edge in the full-resolution photo so the five toe-tip peaks resolve cleanly even when toes touch. A consolidated task is now landing the rest of the visual rework: 10% width-station markers on the outline (measured vs extrapolated styled differently), the 13-point export model (5 toe tips + inside-big-toe + 2 edges at 1/3 cross-section + 2 edges at 2/3 cross-section + 3 heel points) for Grasshopper, removing the obsolete ball/arch/heel key, removing the bogus heel-alignment warning (the calf obscures the heel so the program can't actually judge it), and fixing the 0 mm heel-extrapolation glitch.",
+      "nextStep": "Consolidated SCANDALS task in flight. After it lands, take a real scan to verify the 13-point output and the cleaner visual."
     },
     {
       "name": "HD-LOVE",
@@ -59,10 +59,11 @@
     },
     {
       "name": "Futon",
-      "state": "in-progress",
-      "shortStatus": "Vocab fix + content audit task running",
-      "note": "Launch-polish work all shipped. A content task (restarted after the first attempt wedged) is fixing a vocabulary bug Jeremy hit — パン was mis-mapped and its quiz had no correct answer — and sweeping all vocab for the same class of error, plus fixing the empty module and the grammar-not-testable gap, and will recommend how to fill out the full JLPT curriculum.",
-      "nextStep": "Content task in progress. Still pending from before: apply migration 00013 via 'supabase db push'; decide on the Achievements card (real system or remove for v1)."
+      "state": "waiting-on-jeremy",
+      "shortStatus": "Vocab dupes + 3 new grammar modules shipped (build 0.7.1+2); migrations need applying",
+      "todo": "Apply FUTON migrations 00013 + 00014",
+      "note": "Launch-polish all shipped. Content audit landed (commit a00dff7, build 0.7.1+2). Root cause of the パン bug: 4 separate DB rows for primary_form='パン' (different JMdict sense IDs); same pattern across ~100 N5 primary forms. Migration 00014 has 777 DELETEs that remove non-canonical duplicates. Also: the empty 'Basic Grammar' module got populated, and 3 new N5 grammar modules added (Particles, Polite Verbs, Adjectives) since only 1 of 93 grammar nodes had been assigned to a module. Curriculum recommendation: N4-N1 have full vocab/grammar but zero modules; staged N4-N1 kanji backfill from May 22 is the obvious next batch.",
+      "nextStep": "Apply FUTON migrations 00013 + 00014 (combined copy-paste block sent). Decide on the Achievements card (real system or remove for v1). Then build out the next batches of modules per the audit's recommendation."
     },
     {
       "name": "PAPPY",
@@ -139,6 +140,9 @@
     }
   ],
   "recentlyShipped": [
+    { "project": "GRDN", "what": "10-min Gate Pause Live Activity dismissal fix: deadline handed to iOS via native bridge (build 1.11.5+5)", "date": "2026-05-25" },
+    { "project": "FUTON", "what": "Vocab dupes swept (~100 affected primary forms incl. パン), empty grammar module populated, 3 new N5 grammar modules added (build 0.7.1+2)", "date": "2026-05-25" },
+    { "project": "PRS", "what": "Episode Command Center v1 built: per-episode interactive checklist at /prs/?episode=slug, Supabase-backed, anyone can toggle and add items", "date": "2026-05-25" },
     { "project": "HD-LOVE", "what": "Full Profile + Definition descriptions on the Me screen (build 20)", "date": "2026-05-25" },
     { "project": "HD-LOVE", "what": "Duplicate-message and discover-card photo fixes (build 19)", "date": "2026-05-25" },
     { "project": "HD-LOVE", "what": "Matching filter wired up with gender + age (build 18)", "date": "2026-05-25" },

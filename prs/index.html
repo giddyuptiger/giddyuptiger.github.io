@@ -73,6 +73,66 @@
   .app-footer {
     padding-bottom: calc(24px + env(safe-area-inset-bottom));
   }
+  /* Home view: extra top breathing room on the iPhone notch.
+     viewport-fit=cover lets the page render under the status bar; this
+     ensures the first content element ("Dashboard" topBar) clears it. */
+  main.is-home {
+    padding-top: max(1.5rem, env(safe-area-inset-top));
+  }
+
+  /* Per-episode prominent progress bar (in content, below header). */
+  .ep-progress {
+    display: flex; align-items: center; gap: 12px;
+    padding: 4px 2px 2px;
+  }
+  .ep-progress .bar {
+    flex: 1; height: 6px;
+    background: rgba(77, 70, 53, 0.4);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .ep-progress .bar .fill {
+    height: 100%;
+    background: linear-gradient(90deg, #d4af37, #f2ca50);
+    transition: width 0.35s ease;
+  }
+  .ep-progress .txt {
+    font-size: 12px; font-weight: 600; color: #c8c6c5;
+    white-space: nowrap;
+  }
+  .ep-progress .txt .pct { color: #f2ca50; font-weight: 700; margin-left: 2px; }
+
+  /* Section-level completion badge: gold filled pill with checkmark.
+     Replaces the muted "X / N" count chip when a section is 100% done. */
+  .section-done-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 9px 3px 6px;
+    border-radius: 999px;
+    background: #f2ca50;
+    color: #3c2f00;
+    font-size: 10px; font-weight: 800; letter-spacing: 0.04em;
+    line-height: 1.3;
+  }
+  .section-done-badge .material-symbols-outlined {
+    font-variation-settings: 'FILL' 1, 'wght' 700;
+    font-size: 14px !important;
+  }
+  /* Section as a <details> — hide native marker, fade out the summary
+     bottom-border when collapsed so the rounded card looks clean. */
+  details.section > summary {
+    list-style: none;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(77, 70, 53, 0.3);
+    transition: background 0.15s, border-color 0.15s;
+  }
+  details.section > summary::-webkit-details-marker { display: none; }
+  details.section:not([open]) > summary { border-bottom-color: transparent; }
+  details.section[open] > summary .chev { transform: rotate(90deg); }
+  details.section > summary:hover { background: #2a2a2a; }
+  /* Slight visual de-emphasis when a section is fully complete + collapsed. */
+  details.section.complete:not([open]) {
+    border-color: rgba(77, 70, 53, 0.5);
+  }
   .material-symbols-outlined {
     font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
     display: inline-block; vertical-align: middle; user-select: none;
@@ -485,6 +545,10 @@
   var items = [];
   var sponsors = [];
   var pastEps = [];
+  // Per-section user-intent for expand/collapse. Map: group name -> bool.
+  // Set when the user clicks a section summary; cleared when items inside
+  // the section change (so the auto-rule re-applies on the next render).
+  var sectionUserState = {};
 
   function el(tag, cls, text) {
     var e = document.createElement(tag);
@@ -573,6 +637,26 @@
       .replace(/^-+|-+$/g, "");
   }
 
+  // Counts for a given role-group, including sponsor "Cut into show" rows
+  // for the Sponsorship section.
+  function groupCounts(group, groupItems) {
+    var total = groupItems.length;
+    var done = groupItems.filter(function (it) { return it.done; }).length;
+    if (group === "Sponsorship") {
+      total += sponsors.length;
+      done += sponsors.filter(function (s) { return !!s.cut_into_show; }).length;
+    }
+    return { total: total, done: done };
+  }
+  // Whether a section should render expanded. Respects explicit user
+  // intent if set; otherwise auto-rule: collapsed iff 100% complete.
+  function shouldSectionBeOpen(group, groupItems) {
+    if (sectionUserState.hasOwnProperty(group)) return sectionUserState[group];
+    var c = groupCounts(group, groupItems);
+    if (c.total === 0) return true;
+    return c.done < c.total;
+  }
+
   function showMessage(title, body) {
     var c = document.getElementById("content");
     c.innerHTML = "";
@@ -629,6 +713,9 @@
   function renderHome(allEps) {
     var c = document.getElementById("content");
     c.innerHTML = "";
+    // Flag the main element so the home view gets safe-area top padding.
+    var mainEl = document.querySelector("main");
+    if (mainEl) mainEl.classList.add("is-home");
 
     // Top action bar with the "+ New episode" button.
     var topBar = el("div", "flex items-center justify-between");
@@ -882,6 +969,32 @@
     return sb.from("prs_checklist_items").insert(rows).then(function (r) {
       if (r.error) throw r.error;
     });
+  }
+
+  // ============================================================
+  // Per-episode: overall progress bar (prominent, in content)
+  // ============================================================
+  function renderEpProgress(content) {
+    var totalItems = items.length;
+    var doneItems = items.filter(function (it) { return it.done; }).length;
+    var totalSp = sponsors.length;
+    var doneSp = sponsors.filter(function (s) { return !!s.cut_into_show; }).length;
+    var total = totalItems + totalSp;
+    var done = doneItems + doneSp;
+    if (!total) return;
+    var pct = Math.round(done * 100 / total);
+    var block = el("section", "ep-progress");
+    var bar = el("div", "bar");
+    var fill = el("div", "fill");
+    fill.style.width = pct + "%";
+    bar.appendChild(fill);
+    block.appendChild(bar);
+    var txt = el("div", "txt");
+    txt.textContent = done + " of " + total + " done · ";
+    var pctSpan = el("span", "pct", pct + "%");
+    txt.appendChild(pctSpan);
+    block.appendChild(txt);
+    content.appendChild(block);
   }
 
   // ============================================================
@@ -1306,28 +1419,50 @@
     return row;
   }
   function renderGroup(group, groupItems) {
-    var section = el("section", "bg-surface-container rounded-xl border border-outline-variant overflow-hidden");
-    var head = el("div", "flex items-center justify-between px-4 py-3 border-b border-outline-variant/30");
+    var counts = groupCounts(group, groupItems);
+    var allDone = counts.total > 0 && counts.done === counts.total;
+
+    // Section is a <details> so it can collapse. The auto-rule collapses
+    // 100%-complete sections by default; the user can override per section.
+    var section = document.createElement("details");
+    section.className = "section bg-surface-container rounded-xl border border-outline-variant overflow-hidden" + (allDone ? " complete" : "");
+    section.open = shouldSectionBeOpen(group, groupItems);
+
+    var summary = document.createElement("summary");
+    summary.className = "flex items-center justify-between px-4 py-3";
+
     var left = el("div", "flex items-center gap-2.5 min-w-0");
     left.appendChild(icon(ROLE_ICONS[group] || "task_alt", "text-primary text-[20px] flex-shrink-0"));
     html(left, "h2", "text-[12px] font-bold tracking-widest text-primary uppercase whitespace-nowrap", group);
     var owner = OWNERS[group];
     if (owner) html(left, "span", "owner-chip", owner);
-    head.appendChild(left);
+    summary.appendChild(left);
 
-    // Count items + sponsor rows (for Sponsorship) for the section progress.
-    var doneCount = groupItems.filter(function (it) { return it.done; }).length;
-    var totalCount = groupItems.length;
-    if (group === "Sponsorship") {
-      doneCount += sponsors.filter(function (s) { return !!s.cut_into_show; }).length;
-      totalCount += sponsors.length;
+    var right = el("div", "flex items-center gap-2 flex-shrink-0");
+    if (allDone) {
+      var badge = el("span", "section-done-badge");
+      badge.appendChild(icon("check", ""));
+      html(badge, "span", null, counts.done + " / " + counts.total);
+      right.appendChild(badge);
+    } else if (counts.total > 0) {
+      html(right, "span", "text-[11px] text-secondary font-medium", counts.done + " / " + counts.total);
+    } else {
+      html(right, "span", "text-[11px] text-secondary/60 font-medium", "empty");
     }
-    html(head, "span", "text-[11px] text-secondary font-medium flex-shrink-0", doneCount + " / " + totalCount);
-    section.appendChild(head);
+    right.appendChild(icon("chevron_right", "chev text-outline text-[18px]"));
+    summary.appendChild(right);
+
+    // Track user expand/collapse intent. <details> auto-toggles its own
+    // [open] state on click; we record the new value after the toggle.
+    summary.addEventListener("click", function () {
+      setTimeout(function () { sectionUserState[group] = section.open; }, 0);
+    });
+
+    section.appendChild(summary);
 
     groupItems.forEach(function (it) { section.appendChild(renderItem(it)); });
 
-    // Sponsor rows live inside the Sponsorship section, below the "Input Sponsors" task.
+    // Sponsor rows live inside the Sponsorship section, below "Input Sponsors".
     if (group === "Sponsorship" && sponsors.length) {
       sponsors.forEach(function (s) { section.appendChild(renderSponsorRow(s)); });
     }
@@ -1335,7 +1470,7 @@
     var addBtn = el("button", "w-full px-4 py-3 text-left text-[12px] text-secondary hover:bg-surface-container-high hover:text-primary transition-colors flex items-center gap-2 border-t border-outline-variant/30");
     addBtn.appendChild(icon("add", "text-[18px]"));
     html(addBtn, "span", null, "Add an item");
-    addBtn.addEventListener("click", function () { addItem(group); });
+    addBtn.addEventListener("click", function (e) { e.preventDefault(); addItem(group); });
     section.appendChild(addBtn);
 
     return section;
@@ -1350,7 +1485,11 @@
 
     var c = document.getElementById("content");
     c.innerHTML = "";
+    // Per-episode view: drop the home-view top padding flag.
+    var mainEl = document.querySelector("main");
+    if (mainEl) mainEl.classList.remove("is-home");
 
+    renderEpProgress(c);
     if (ep) renderMetricsCard(c);
     renderPastEpisodesStrip(c);
 
@@ -1387,6 +1526,9 @@
     var nowIso = new Date().toISOString();
     item.done = newDone;
     item.done_at = newDone ? nowIso : null;
+    // Clear explicit user expand-state on this section so the auto-rule
+    // re-applies (e.g., auto-collapse when the section transitions to 100%).
+    if (item.role_group) delete sectionUserState[item.role_group];
     render();
     sb.from("prs_checklist_items").update({
       done: newDone,
@@ -1411,6 +1553,7 @@
     var nowIso = new Date().toISOString();
     s.cut_into_show = newCut;
     s.cut_at = newCut ? nowIso : null;
+    delete sectionUserState["Sponsorship"];
     render();
     sb.from("prs_sponsors").update({
       cut_into_show: newCut,
@@ -1431,6 +1574,8 @@
     if (!title || !title.trim()) return;
     var groupItems = items.filter(function (it) { return it.role_group === group; });
     var maxSort = groupItems.reduce(function (m, it) { return Math.max(m, it.sort_order || 0); }, 0);
+    // A new item makes the section no longer 100% — re-apply the auto-rule.
+    delete sectionUserState[group];
     sb.from("prs_checklist_items").insert({
       episode_id: ep.id, role_group: group, title: title.trim(),
       sort_order: maxSort + 10, done: false

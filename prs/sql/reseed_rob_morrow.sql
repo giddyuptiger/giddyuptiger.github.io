@@ -1,16 +1,15 @@
--- PRS Episode Command Center — Rob Morrow seed
--- Run after schema.sql. Idempotent on the episode row; items are inserted fresh each run, so only run once unless you've cleared existing Rob Morrow items.
--- Every checklist item is fully self-contained: titles, descriptions, chapters, tags, ad copy, comment seeds, etc. are baked in here so the operator never has to open the production sheet.
+-- PRS Episode Command Center — Rob Morrow RE-seed
+-- Paste-and-run helper for Supabase to update Jeremy's existing rows to the new self-contained instructions.
+-- Safe to run multiple times — the delete clears all existing Rob Morrow checklist rows first, then the inserts recreate them from scratch.
+-- Does NOT touch prs_episodes (the episode row is preserved with its toggled/non-toggled state intact).
 
-insert into prs_episodes (slug, guest_name, status, sheet_url)
-values (
-  'rob-morrow',
-  'Rob Morrow',
-  'in-progress',
-  'https://drive.google.com/file/d/1DG5O-o-eCrA4ovw2N3faeKkhMF9QVcZA/view?usp=drivesdk'
-)
-on conflict (slug) do nothing;
+begin;
 
+-- 1) Clear existing Rob Morrow checklist items.
+delete from prs_checklist_items
+where episode_id = (select id from prs_episodes where slug = 'rob-morrow');
+
+-- 2) Reinsert with the new self-contained instructions_md bodies.
 with ep as (select id from prs_episodes where slug = 'rob-morrow')
 insert into prs_checklist_items (episode_id, role_group, title, instructions_md, sort_order)
 select ep.id, x.role_group, x.title, x.instructions_md, x.sort_order
@@ -52,3 +51,5 @@ from ep, (values
   ('Post-Launch', 'Day-3 ad spend pacing check', 'Confirm the campaign is pacing as expected. Adjust if the $80/day is over/underspending.', 240),
   ('Post-Launch', 'Mark production sheet shipped', 'Update RobMorrow_ProductionSheet.md status. Add a "Recently shipped" entry on the project command center (status.json recentlyShipped array).', 250)
 ) as x(role_group, title, instructions_md, sort_order);
+
+commit;

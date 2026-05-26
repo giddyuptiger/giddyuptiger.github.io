@@ -80,6 +80,51 @@
     padding-top: max(1.5rem, env(safe-area-inset-top));
   }
 
+  /* Responsive 16:9 YouTube embed inside the "THIS EPISODE" card. */
+  .video-embed {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #000;
+    border-bottom: 1px solid rgba(77, 70, 53, 0.3);
+  }
+  /* aspect-ratio is well-supported on iOS Safari 15+ / Android Chrome 88+ */
+  .video-embed iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+  .video-empty {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(77, 70, 53, 0.3);
+    background: #0e0e0e;
+  }
+  .video-empty .msg {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; color: #c8c6c5;
+  }
+  /* "Watch" pill on home episode cards. */
+  .watch-pill {
+    display: inline-flex; align-items: center; gap: 3px;
+    background: rgba(242, 202, 80, 0.1);
+    border: 1px solid rgba(242, 202, 80, 0.35);
+    color: #f2ca50;
+    padding: 2px 8px 2px 6px;
+    border-radius: 999px;
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em;
+    cursor: pointer;
+    line-height: 1.4;
+  }
+  .watch-pill:hover { background: rgba(242, 202, 80, 0.18); }
+  .watch-pill .material-symbols-outlined {
+    font-variation-settings: 'FILL' 1, 'wght' 700;
+    font-size: 13px !important;
+  }
+
   /* Per-episode prominent progress bar (in content, below header). */
   .ep-progress {
     display: flex; align-items: center; gap: 12px;
@@ -637,6 +682,20 @@
       .replace(/^-+|-+$/g, "");
   }
 
+  // Pull the 11-char YouTube video ID out of any form of YouTube URL the
+  // team might paste: watch, share-short, embed, shorts, live, or a bare ID.
+  // Returns null if the input doesn't look like a YouTube URL/ID.
+  function parseYouTubeId(input) {
+    if (!input) return null;
+    var s = String(input).trim();
+    var m;
+    if ((m = s.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/))) return m[1];
+    if ((m = s.match(/[?&]v=([a-zA-Z0-9_-]{11})/))) return m[1];
+    if ((m = s.match(/youtube\.com\/(?:embed|shorts|v|live)\/([a-zA-Z0-9_-]{11})/))) return m[1];
+    if ((m = s.match(/^([a-zA-Z0-9_-]{11})$/))) return m[1];
+    return null;
+  }
+
   // Counts for a given role-group, including sponsor "Cut into show" rows
   // for the Sponsorship section.
   function groupCounts(group, groupItems) {
@@ -826,6 +885,19 @@
       var trChip = el("span", "pill " + (e.transcript_received ? "tr-ok" : "tr-pending"));
       trChip.textContent = e.transcript_received ? "Transcript ✓" : "Transcript pending";
       meta.appendChild(trChip);
+      // "Watch" pill — opens YouTube in a new tab without navigating
+      // away from the home dashboard.
+      if (e.video_url) {
+        var watchBtn = el("button", "watch-pill");
+        watchBtn.type = "button";
+        watchBtn.appendChild(icon("play_arrow", ""));
+        html(watchBtn, "span", null, "Watch");
+        watchBtn.addEventListener("click", function (ev) {
+          ev.preventDefault(); ev.stopPropagation();
+          window.open(e.video_url, "_blank", "noopener");
+        });
+        meta.appendChild(watchBtn);
+      }
       nameWrap.appendChild(meta);
       headRow.appendChild(nameWrap);
 
@@ -1007,12 +1079,47 @@
     left.appendChild(icon("insights", "text-primary text-[20px]"));
     html(left, "h2", "text-[12px] font-bold tracking-widest text-primary uppercase", "This Episode");
     head.appendChild(left);
+
+    var headBtns = el("div", "flex items-center gap-3");
+    var vidBtn = el("button", "text-[11px] text-secondary hover:text-primary transition-colors flex items-center gap-1");
+    vidBtn.appendChild(icon(ep && ep.video_id ? "smart_display" : "videocam", "text-[14px]"));
+    html(vidBtn, "span", null, ep && ep.video_id ? "Video" : "Set video");
+    vidBtn.addEventListener("click", openEditVideoUrl);
+    headBtns.appendChild(vidBtn);
+
     var editBtn = el("button", "text-[11px] text-secondary hover:text-primary transition-colors flex items-center gap-1");
     editBtn.appendChild(icon("edit", "text-[14px]"));
     html(editBtn, "span", null, "Edit");
     editBtn.addEventListener("click", openEditMetrics);
-    head.appendChild(editBtn);
+    headBtns.appendChild(editBtn);
+
+    head.appendChild(headBtns);
     section.appendChild(head);
+
+    // Mini player embed (or empty-state prompt) sits between the header and
+    // the metrics grid. Auto-syncs with whatever video_id Jeremy/Tyler sets.
+    if (ep && ep.video_id) {
+      var embedWrap = el("div", "video-embed");
+      var iframe = document.createElement("iframe");
+      iframe.src = "https://www.youtube.com/embed/" + encodeURIComponent(ep.video_id);
+      iframe.title = (ep.guest_name || "PRS") + " — YouTube video player";
+      iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+      iframe.allowFullscreen = true;
+      iframe.referrerPolicy = "strict-origin-when-cross-origin";
+      embedWrap.appendChild(iframe);
+      section.appendChild(embedWrap);
+    } else {
+      var empty = el("div", "video-empty");
+      var msg = el("div", "msg");
+      msg.appendChild(icon("videocam", "text-secondary/70 text-[18px]"));
+      html(msg, "span", null, "No video attached yet.");
+      empty.appendChild(msg);
+      var add = el("button", "text-[12px] font-semibold text-primary hover:underline");
+      add.textContent = "Add video URL";
+      add.addEventListener("click", openEditVideoUrl);
+      empty.appendChild(add);
+      section.appendChild(empty);
+    }
 
     var body = el("div", "px-4 py-3");
     var m = ep && ep.metrics ? ep.metrics : {};
@@ -1168,6 +1275,109 @@
       render();
       loadPastEpisodes();
     });
+  }
+
+  // ============================================================
+  // Video-URL edit modal (paste any YouTube URL → stored as video_url + video_id)
+  // ============================================================
+  function openEditVideoUrl() {
+    var root = document.getElementById("modal-root");
+    root.innerHTML = "";
+    var bd = el("div", "modal-bd");
+    bd.addEventListener("click", function (e) { if (e.target === bd) closeModal(); });
+    var card = el("div", "modal-card");
+    html(card, "h3", null, ep && ep.video_url ? "Edit video URL" : "Set video URL");
+
+    html(card, "p", "text-[12px] text-secondary mb-3",
+      "Paste any YouTube URL — watch page, share link, embed, or shorts. We'll extract the video ID and embed the mini player on this episode.");
+
+    var form = document.createElement("form");
+    form.className = "ne-form";
+
+    var wrap = document.createElement("div");
+    var lbl = el("label", null, "YouTube URL");
+    lbl.setAttribute("for", "vid-url");
+    wrap.appendChild(lbl);
+    var inp = document.createElement("input");
+    inp.id = "vid-url"; inp.name = "url"; inp.type = "url";
+    inp.placeholder = "https://www.youtube.com/watch?v=…";
+    if (ep && ep.video_url) inp.value = ep.video_url;
+    wrap.appendChild(inp);
+    var hint = el("p", "text-[11px] text-secondary/70 mt-1.5", "");
+    wrap.appendChild(hint);
+    form.appendChild(wrap);
+
+    var err = el("p", "text-[12px] text-error", "");
+    err.style.display = "none";
+    form.appendChild(err);
+
+    function refreshHint() {
+      var vid = parseYouTubeId(inp.value);
+      if (vid) hint.textContent = "Parsed video ID: " + vid;
+      else if (inp.value.trim()) hint.textContent = "Couldn't parse a YouTube video ID from that URL.";
+      else hint.textContent = "";
+    }
+    inp.addEventListener("input", refreshHint);
+    refreshHint();
+
+    var actions = el("div", "flex justify-between items-center gap-2 mt-4");
+    var leftActs = el("div", "flex items-center gap-2");
+    if (ep && ep.video_url) {
+      var clear = el("button", "px-3 py-2 text-[12px] font-semibold text-error/80 hover:text-error transition-colors");
+      clear.type = "button"; clear.textContent = "Remove";
+      clear.addEventListener("click", function () {
+        if (!confirm("Remove the video from this episode?")) return;
+        saveVideoUrl(null, null);
+      });
+      leftActs.appendChild(clear);
+    }
+    actions.appendChild(leftActs);
+
+    var rightActs = el("div", "flex items-center gap-2");
+    var cancel = el("button", "px-4 py-2 text-[12px] font-semibold text-secondary hover:text-on-surface transition-colors");
+    cancel.type = "button"; cancel.textContent = "Cancel";
+    cancel.addEventListener("click", closeModal);
+    rightActs.appendChild(cancel);
+    var save = el("button", "px-4 py-2 text-[12px] font-bold bg-primary text-on-primary rounded-lg hover:opacity-90 transition-opacity");
+    save.type = "submit"; save.textContent = "Save";
+    rightActs.appendChild(save);
+    actions.appendChild(rightActs);
+    form.appendChild(actions);
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      err.style.display = "none";
+      var raw = inp.value.trim();
+      if (!raw) {
+        err.textContent = "Enter a URL, or click Remove to clear the video.";
+        err.style.display = "block"; return;
+      }
+      var vid = parseYouTubeId(raw);
+      if (!vid) {
+        err.textContent = "Couldn't parse a YouTube video ID. Paste a youtube.com/watch, youtu.be, /embed, or /shorts URL.";
+        err.style.display = "block"; return;
+      }
+      save.disabled = true; save.textContent = "Saving…";
+      saveVideoUrl(raw, vid);
+    });
+
+    card.appendChild(form);
+    bd.appendChild(card);
+    root.appendChild(bd);
+    setTimeout(function () { inp.focus(); }, 50);
+  }
+  function saveVideoUrl(videoUrl, videoId) {
+    sb.from("prs_episodes")
+      .update({ video_url: videoUrl, video_id: videoId })
+      .eq("id", ep.id)
+      .select().single()
+      .then(function (r) {
+        if (r.error) { alert("Save failed: " + r.error.message); return; }
+        ep = r.data;
+        closeModal();
+        render();
+        loadPastEpisodes();
+      });
   }
 
   // ============================================================

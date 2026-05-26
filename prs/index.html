@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PRS Command">
+<meta name="theme-color" content="#131313">
+<meta name="robots" content="noindex, nofollow">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>PRS Episode Command Center</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "primary": "#f2ca50",
+          "primary-container": "#d4af37",
+          "on-primary": "#3c2f00",
+          "on-primary-container": "#554300",
+          "secondary": "#c8c6c5",
+          "on-surface": "#e5e2e1",
+          "on-surface-variant": "#d0c5af",
+          "surface": "#131313",
+          "background": "#131313",
+          "surface-container": "#201f1f",
+          "surface-container-low": "#1c1b1b",
+          "surface-container-lowest": "#0e0e0e",
+          "surface-container-high": "#2a2a2a",
+          "outline": "#99907c",
+          "outline-variant": "#4d4635",
+          "error": "#ffb4ab",
+          "error-container": "#93000a",
+          "on-error-container": "#ffdad6"
+        },
+        fontFamily: { "sans": ["Inter", "system-ui", "sans-serif"] }
+      }
+    }
+  };
+</script>
+<style>
+  html, body { background-color: #131313; }
+  body {
+    font-family: 'Inter', sans-serif;
+    color: #e5e2e1;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100dvh;
+  }
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    display: inline-block; vertical-align: middle; user-select: none;
+  }
+  details > summary { list-style: none; cursor: pointer; }
+  details > summary::-webkit-details-marker { display: none; }
+  details[open] > summary .chev { transform: rotate(90deg); }
+  .chev { transition: transform 0.18s ease; display: inline-block; }
+  /* Custom checkbox */
+  .cb {
+    appearance: none; -webkit-appearance: none;
+    width: 20px; height: 20px;
+    border: 1.5px solid #99907c;
+    border-radius: 5px;
+    background: transparent;
+    cursor: pointer; flex-shrink: 0;
+    transition: background 0.15s, border-color 0.15s;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .cb:checked {
+    background: #f2ca50; border-color: #f2ca50;
+  }
+  .cb:checked::after {
+    content: ""; width: 6px; height: 10px;
+    border: solid #131313; border-width: 0 2px 2px 0;
+    transform: rotate(45deg) translate(-1px,-1px);
+  }
+</style>
+</head>
+<body class="bg-surface text-on-surface flex flex-col min-h-screen">
+
+<header class="bg-surface-container border-b border-outline-variant flex justify-between items-center w-full px-5 h-16 sticky top-0 z-50 shadow-lg">
+  <div class="flex flex-col">
+    <h1 class="text-[20px] leading-tight tracking-tight text-primary font-bold">PRS COMMAND</h1>
+    <p class="text-[11.5px] text-secondary mt-0.5" id="ep-line">Loading…</p>
+  </div>
+  <div id="progress" class="hidden sm:flex items-center gap-2"></div>
+</header>
+
+<main class="flex-1 px-5 py-6 max-w-screen-md mx-auto w-full">
+  <div id="content" class="space-y-5"></div>
+</main>
+
+<footer class="border-t border-outline-variant/30 flex flex-col items-center gap-1.5 py-6 text-secondary/70">
+  <span class="text-[11px] font-semibold tracking-widest text-primary/70">PRS COMMAND CENTER</span>
+  <p class="text-[11px]">Live checklist. Anyone with the link can toggle and add items.</p>
+</footer>
+
+<script>
+(function () {
+  // ============================================================
+  // CONFIG. Fill in after creating the PRS Supabase project.
+  // ============================================================
+  var SUPABASE_URL = "PLACEHOLDER_URL";
+  var SUPABASE_ANON_KEY = "PLACEHOLDER_KEY";
+
+  var ROLE_GROUPS = [
+    "Editorial",
+    "Metadata & Upload",
+    "Ads & Marketing",
+    "Social & Clips",
+    "Launch Day",
+    "Post-Launch"
+  ];
+  var ROLE_ICONS = {
+    "Editorial": "edit_note",
+    "Metadata & Upload": "cloud_upload",
+    "Ads & Marketing": "campaign",
+    "Social & Clips": "movie",
+    "Launch Day": "rocket_launch",
+    "Post-Launch": "visibility"
+  };
+
+  // ============================================================
+  // State + helpers
+  // ============================================================
+  var sb = null;
+  var ep = null;
+  var items = [];
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function html(parent, tag, cls, text) {
+    var e = el(tag, cls, text); parent.appendChild(e); return e;
+  }
+  function icon(name, cls) {
+    var s = document.createElement("span");
+    s.className = "material-symbols-outlined " + (cls || "");
+    s.textContent = name; return s;
+  }
+  function isConfigured() {
+    return SUPABASE_URL && SUPABASE_URL.indexOf("PLACEHOLDER") !== 0 &&
+           SUPABASE_ANON_KEY && SUPABASE_ANON_KEY.indexOf("PLACEHOLDER") !== 0;
+  }
+
+  // ============================================================
+  // Setup / error states
+  // ============================================================
+  function showSetup() {
+    var c = document.getElementById("content");
+    c.innerHTML = "";
+    document.getElementById("ep-line").textContent = "Needs Supabase config";
+    var card = el("div", "bg-surface-container rounded-xl border border-outline-variant p-6 space-y-3");
+    html(card, "h2", "text-[14px] font-bold text-primary uppercase tracking-widest", "Setup required");
+    html(card, "p", "text-[13px] text-on-surface-variant leading-relaxed",
+      "This page is wired up but not yet pointed at a Supabase project. To finish setup: " +
+      "create a Supabase project named PRS, run schema.sql and seed_rob_morrow.sql in the SQL editor, " +
+      "then send Jeremy the project URL and anon key so they can be pasted into this page's CONFIG block.");
+    var p = el("p", "text-[12px] text-secondary mt-2");
+    p.innerHTML = "SQL files are in this repo at <code class=\"bg-surface-container-high px-1.5 py-0.5 rounded text-primary/80\">prs/sql/</code>.";
+    card.appendChild(p);
+    c.appendChild(card);
+  }
+  function showMessage(title, body) {
+    var c = document.getElementById("content");
+    c.innerHTML = "";
+    var card = el("div", "bg-surface-container rounded-xl border border-outline-variant p-6 space-y-2");
+    html(card, "h2", "text-[14px] font-bold text-primary uppercase tracking-widest", title);
+    html(card, "p", "text-[13px] text-on-surface-variant leading-relaxed", body);
+    c.appendChild(card);
+  }
+
+  // ============================================================
+  // Render
+  // ============================================================
+  function setProgress() {
+    var total = items.length, done = items.filter(function (it) { return it.done; }).length;
+    var pct = total > 0 ? Math.round(done * 100 / total) : 0;
+    var p = document.getElementById("progress");
+    p.innerHTML = "";
+    var label = el("span", "text-[12px] text-secondary", done + " / " + total);
+    p.appendChild(label);
+    var bar = el("div", "w-32 h-1.5 bg-surface-container-high rounded-full overflow-hidden");
+    var fill = el("div", "h-full bg-primary transition-all duration-300");
+    fill.style.width = pct + "%";
+    bar.appendChild(fill);
+    p.appendChild(bar);
+  }
+
+  function renderItem(item) {
+    var row = document.createElement("details");
+    row.className = "border-t border-outline-variant/30";
+
+    var summary = document.createElement("summary");
+    summary.className = "flex items-center gap-3 px-4 py-3 hover:bg-surface-container-high transition-colors";
+
+    var cbWrap = el("label", "flex-shrink-0 cursor-pointer flex items-center");
+    cbWrap.addEventListener("click", function (e) { e.stopPropagation(); });
+    var cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.className = "cb";
+    cb.checked = !!item.done;
+    cb.addEventListener("change", function () { toggleItem(item); });
+    cbWrap.appendChild(cb);
+    summary.appendChild(cbWrap);
+
+    var titleEl = el("span",
+      "flex-1 min-w-0 text-[14px] " + (item.done ? "text-secondary line-through" : "text-on-surface"),
+      item.title);
+    summary.appendChild(titleEl);
+
+    summary.appendChild(icon("chevron_right", "chev text-outline text-[20px] flex-shrink-0"));
+    row.appendChild(summary);
+
+    if (item.instructions_md) {
+      var detail = el("div", "px-4 pb-3 pl-12 text-[13px] text-on-surface-variant leading-relaxed whitespace-pre-wrap");
+      detail.textContent = item.instructions_md;
+      row.appendChild(detail);
+    }
+    var actions = el("div", "px-4 pb-3 pl-12 flex gap-3 items-center");
+    var del = el("button", "text-[11px] text-secondary hover:text-error transition-colors", "Delete");
+    del.addEventListener("click", function (e) { e.stopPropagation(); deleteItem(item); });
+    actions.appendChild(del);
+    if (item.done_at) {
+      var done = el("span", "text-[11px] text-secondary/60");
+      try { done.textContent = "checked " + new Date(item.done_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }); } catch (e) {}
+      actions.appendChild(done);
+    }
+    row.appendChild(actions);
+
+    return row;
+  }
+
+  function renderGroup(group, groupItems) {
+    var section = el("section", "bg-surface-container rounded-xl border border-outline-variant overflow-hidden");
+    var head = el("div", "flex items-center justify-between px-4 py-3 border-b border-outline-variant/30");
+    var left = el("div", "flex items-center gap-2.5");
+    left.appendChild(icon(ROLE_ICONS[group] || "task_alt", "text-primary text-[20px]"));
+    html(left, "h2", "text-[12px] font-bold tracking-widest text-primary uppercase", group);
+    head.appendChild(left);
+    var gdone = groupItems.filter(function (it) { return it.done; }).length;
+    html(head, "span", "text-[11px] text-secondary font-medium", gdone + " / " + groupItems.length);
+    section.appendChild(head);
+
+    groupItems.forEach(function (it) { section.appendChild(renderItem(it)); });
+
+    var addBtn = el("button", "w-full px-4 py-3 text-left text-[12px] text-secondary hover:bg-surface-container-high hover:text-primary transition-colors flex items-center gap-2 border-t border-outline-variant/30");
+    addBtn.appendChild(icon("add", "text-[18px]"));
+    html(addBtn, "span", null, "Add an item");
+    addBtn.addEventListener("click", function () { addItem(group); });
+    section.appendChild(addBtn);
+
+    return section;
+  }
+
+  function render() {
+    var line = "";
+    if (ep) {
+      line = ep.guest_name;
+      if (ep.sheet_url) line += " · ";
+    }
+    var epLine = document.getElementById("ep-line");
+    epLine.textContent = "";
+    epLine.appendChild(document.createTextNode(line));
+    if (ep && ep.sheet_url) {
+      var a = el("a", "text-primary/80 hover:text-primary underline-offset-2 hover:underline", "Production sheet");
+      a.href = ep.sheet_url; a.target = "_blank"; a.rel = "noopener";
+      epLine.appendChild(a);
+    }
+
+    setProgress();
+
+    var c = document.getElementById("content");
+    c.innerHTML = "";
+
+    var byGroup = {};
+    items.forEach(function (it) {
+      var g = it.role_group || "Other";
+      if (!byGroup[g]) byGroup[g] = [];
+      byGroup[g].push(it);
+    });
+
+    var rendered = {};
+    ROLE_GROUPS.forEach(function (g) {
+      if (byGroup[g]) {
+        c.appendChild(renderGroup(g, byGroup[g]));
+        rendered[g] = true;
+      }
+    });
+    // Any custom groups added later
+    Object.keys(byGroup).forEach(function (g) {
+      if (!rendered[g]) c.appendChild(renderGroup(g, byGroup[g]));
+    });
+
+    if (!items.length) {
+      var card = el("div", "bg-surface-container rounded-xl border border-outline-variant p-6 space-y-3");
+      html(card, "h2", "text-[14px] font-bold text-primary uppercase tracking-widest", "No items yet");
+      html(card, "p", "text-[13px] text-on-surface-variant", "This episode's checklist is empty. Run the seed SQL, or add items below.");
+      c.appendChild(card);
+    }
+  }
+
+  // ============================================================
+  // Mutations
+  // ============================================================
+  function toggleItem(item) {
+    var newDone = !item.done;
+    item.done = newDone;
+    item.done_at = newDone ? new Date().toISOString() : null;
+    render();
+    sb.from("prs_checklist_items").update({
+      done: newDone,
+      done_at: newDone ? new Date().toISOString() : null
+    }).eq("id", item.id).then(function (r) {
+      if (r.error) { console.error(r.error); alert("Toggle failed: " + r.error.message); load(); }
+    });
+  }
+  function addItem(group) {
+    var title = prompt("New item for " + group + ":");
+    if (!title || !title.trim()) return;
+    var groupItems = items.filter(function (it) { return it.role_group === group; });
+    var maxSort = groupItems.reduce(function (m, it) { return Math.max(m, it.sort_order || 0); }, 0);
+    sb.from("prs_checklist_items").insert({
+      episode_id: ep.id,
+      role_group: group,
+      title: title.trim(),
+      sort_order: maxSort + 10,
+      done: false
+    }).then(function (r) {
+      if (r.error) { alert("Add failed: " + r.error.message); }
+      // realtime will refresh
+    });
+  }
+  function deleteItem(item) {
+    if (!confirm("Delete this item?\n\n" + item.title)) return;
+    sb.from("prs_checklist_items").delete().eq("id", item.id).then(function (r) {
+      if (r.error) { alert("Delete failed: " + r.error.message); }
+    });
+  }
+
+  // ============================================================
+  // Load + realtime
+  // ============================================================
+  function load() {
+    return sb.from("prs_checklist_items")
+      .select("*").eq("episode_id", ep.id).order("sort_order", { ascending: true })
+      .then(function (r) {
+        if (r.error) { console.error(r.error); showMessage("Error", r.error.message); return; }
+        items = r.data || [];
+        render();
+      });
+  }
+  function subscribe() {
+    sb.channel("prs-items-" + ep.id)
+      .on("postgres_changes",
+          { event: "*", schema: "public", table: "prs_checklist_items", filter: "episode_id=eq." + ep.id },
+          function () { load(); })
+      .subscribe();
+  }
+
+  // ============================================================
+  // Init
+  // ============================================================
+  function init() {
+    if (!isConfigured()) { showSetup(); return; }
+
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    var params = new URLSearchParams(window.location.search);
+    var slug = params.get("episode");
+    if (!slug) {
+      document.getElementById("ep-line").textContent = "No episode in URL";
+      showMessage("Pick an episode",
+        "Append ?episode=<slug> to the URL. Example: ?episode=rob-morrow");
+      return;
+    }
+
+    sb.from("prs_episodes").select("*").eq("slug", slug).single().then(function (r) {
+      if (r.error || !r.data) {
+        document.getElementById("ep-line").textContent = "Episode not found";
+        showMessage("Episode not found",
+          "No PRS episode with slug '" + slug + "'. Either the slug is wrong, or the seed has not been run yet.");
+        return;
+      }
+      ep = r.data;
+      load().then(subscribe);
+    });
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>

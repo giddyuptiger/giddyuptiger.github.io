@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-25T02:00:00Z",
+  "lastUpdated": "2026-05-25T02:45:00Z",
   "projects": [
     {
       "name": "iPhone Dock",
@@ -7,6 +7,7 @@
       "priority": 1,
       "urgency": "ASAP",
       "shortStatus": "Setting up the Amazon listing",
+      "todo": "Finish the Amazon listing",
       "note": "A physical product Jeremy is launching on Amazon. Currently setting up the Amazon product listing. Flagged top priority, finish ASAP.",
       "nextStep": "Finish setting up the Amazon product listing. Top priority right now."
     },
@@ -14,6 +15,7 @@
       "name": "GRDN",
       "state": "waiting-on-jeremy",
       "shortStatus": "iOS build re-run pending; Live Activity bug in flight",
+      "todo": "Re-run the Xcode Cloud build",
       "note": "iOS: exit-65 archive fix pushed (commit e27ba73, build 1.11.3+4) — rive_native native library now built on CI before the archive; re-run pending. Web: already live at grdnapp.com. Home-screen redesign delivered — full analysis, an ideal-home-screen spec (one job: start a focus session against today's top task; one bright button; the garden fills the dead space), and a copy-paste Google Stitch prompt. Spec saved to docs/homescreen-redesign.md. A task is also investigating a bug where the 10-minute Gate Pause Live Activity does not clear when the countdown finishes.",
       "nextStep": "Re-run the GRDN Xcode Cloud build to confirm the iOS fix. Home-screen: run the Stitch prompt, pick a design, then Claude can build the redesigned home screen. Live Activity bug fix incoming."
     },
@@ -28,6 +30,7 @@
       "name": "HD-LOVE",
       "state": "waiting-on-jeremy",
       "shortStatus": "Live end-to-end; finish App Store submission from build 20+",
+      "todo": "Finish the App Store submission",
       "note": "App live end-to-end. Recent: friend system, chat/discover fixes, gender/age matching filter, duplicate-message and discover-photo fixes, and full Profile + Definition descriptions on the Me screen (build 20). A task is still completing every channel and gate interpretation so nothing shows a 'not written yet' placeholder. A context-aware compatibility-scoring spec was delivered to Jeremy to review.",
       "nextStep": "Both Supabase migrations applied. Review the compatibility-scoring spec. Then finish the App Store submission: blockers, iPhone + iPad screenshots, fresh build (build 20+ carries all the recent work)."
     },
@@ -42,6 +45,7 @@
       "name": "WEATHER",
       "state": "waiting-on-jeremy",
       "shortStatus": "Build 22 to TestFlight, then resubmit",
+      "todo": "Confirm build 22 on TestFlight, then resubmit",
       "note": "App Store rejection (ITMS-90129) fixed; Mirror exercise now has a close button on every step. Code-complete at v1.3.0.",
       "nextStep": "Confirm build 22 reached TestFlight and resubmit to App Store review."
     },
@@ -49,6 +53,7 @@
       "name": "POSTURE",
       "state": "waiting-on-jeremy",
       "shortStatus": "Auto-capture shipped; smoke test pending",
+      "todo": "Smoke-test auto-capture in Expo Go",
       "note": "Auto-capture (hands-free 4-view camera) shipped. Supabase keep-alive is running green — the project won't auto-pause anymore.",
       "nextStep": "Smoke-test the auto-capture flow in Expo Go on your iPhone."
     },
@@ -91,6 +96,7 @@
       "name": "AI Voice Agent",
       "state": "waiting-on-jeremy",
       "shortStatus": "Feature-complete in mock; awaiting provisioning + gym platform pick",
+      "todo": "Start the A2P 10DLC registration",
       "note": "Feature-complete in mock mode — foundation, dashboard, outbound campaign engine, and an interactive voice test harness all built and verified: typecheck clean, 42/42 tests pass, boots with no API keys. Try it now with 'npm run harness'. Everything buildable without external services is done. Repo: giddyuptiger/primal-agent (commit 96ded86).",
       "nextStep": "Two things, both yours: (1) provisioning — Twilio + A2P 10DLC, Deepgram, TTS, Supabase, Resend, Claude key, a host (see docs/PROVISIONING.md; start the A2P registration first, it's the slowest); (2) decide the gym platform (Mindbody/F45) so the real booking adapter can be built."
     }
@@ -102,6 +108,7 @@
       "priority": 2,
       "urgency": "by May 31",
       "shortStatus": "Officiating a friend's June wedding",
+      "todo": "Send Claude details on the couple",
       "note": "Officiating a friend's wedding in June. Wants the speech drafted this coming week.",
       "nextStep": "Send Claude details on the couple, how you know them, their story, tone you want, and Claude will draft the speech."
     },
@@ -109,6 +116,7 @@
       "name": "Relationship growth",
       "icon": "🧭",
       "shortStatus": "Day 1 of 21 underway",
+      "todo": "Journal Day 1",
       "note": "A 21-day structured reflection on your long-term relationship, in five phases, holding three honest outcomes. Started on Day 1 (Phase 1: You First).",
       "nextStep": "Day 1 prompts are with you. Journal when ready and Claude reflects alongside you; continuity held in this thread."
     },
@@ -117,6 +125,7 @@
       "icon": "✈️",
       "urgency": "from June 25",
       "shortStatus": "ANC to LA flight + LA housing",
+      "todo": "Book the ANC to LA flight",
       "note": "ANC to LA flight after the wedding (~June 25). LA stay June 25 to July 20. London July 20 to ~Aug 5. Post-London housing to be decided ~Aug 5.",
       "nextStep": "Book the ANC to LA flight and line up LA housing for June 25 to July 20."
     },
@@ -124,6 +133,7 @@
       "name": "Meditation retreat",
       "icon": "🧘",
       "shortStatus": "InsightLA July 10-13 recommended",
+      "todo": "Register for InsightLA July 10-13",
       "note": "A roughly 3-day Vipassana or silent meditation retreat while you're in LA, between Alaska and London. Claude is researching options reachable from LA with dates inside that window.",
       "nextStep": "InsightLA Summer Insight Retreat July 10-13 is the recommended pick; register at insightla.org and you're set."
     }
@@ -135,6 +145,6 @@
     { "project": "HD-LOVE", "what": "Friend system: unique usernames, search, requests, friends as synced People (build 16)", "date": "2026-05-24" },
     { "project": "SCANDALS", "what": "v1.10.0: single-photo scan and 5-of-5 toe-tip detection from a full-resolution front-edge trace", "date": "2026-05-24" },
     { "project": "PRS", "what": "First agentic Rob Morrow production sheet, plus the PDF rendering and the SOP updated for the PDF output convention", "date": "2026-05-25" },
-    { "project": "Command Center", "what": "linkinbio page live at giddyuptiger.github.io/linkinbio/; this command center page rebuilt with Do Next, compact board, and Recently Shipped", "date": "2026-05-25" }
+    { "project": "Command Center", "what": "linkinbio page live at giddyuptiger.github.io/linkinbio/; this command center rebuilt and themed dark with gold accents", "date": "2026-05-25" }
   ]
 }

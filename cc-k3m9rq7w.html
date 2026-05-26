@@ -1,198 +1,114 @@
 <!DOCTYPE html>
-<html lang="en">
+<html class="dark" lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Command Center">
-<meta name="theme-color" content="#b07d3a">
+<meta name="theme-color" content="#131313">
 <meta name="robots" content="noindex, nofollow">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Project Command Center</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "primary": "#f2ca50",
+          "primary-container": "#d4af37",
+          "on-primary": "#3c2f00",
+          "on-primary-container": "#554300",
+          "secondary": "#c8c6c5",
+          "on-surface": "#e5e2e1",
+          "on-surface-variant": "#d0c5af",
+          "surface": "#131313",
+          "background": "#131313",
+          "surface-container": "#201f1f",
+          "surface-container-low": "#1c1b1b",
+          "surface-container-lowest": "#0e0e0e",
+          "surface-container-high": "#2a2a2a",
+          "surface-variant": "#353534",
+          "outline": "#99907c",
+          "outline-variant": "#4d4635",
+          "error-container": "#93000a",
+          "on-error-container": "#ffdad6"
+        },
+        fontFamily: {
+          "sans": ["Inter", "system-ui", "sans-serif"]
+        }
+      }
+    }
+  };
+</script>
 <style>
-  :root { color-scheme: light; }
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { background-color: #131313; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background: #f5f3ef;
-    color: #1e1b16;
-    line-height: 1.5;
+    font-family: 'Inter', sans-serif;
+    color: #e5e2e1;
     -webkit-font-smoothing: antialiased;
-    padding: env(safe-area-inset-top) 0 0 0;
+    min-height: 100dvh;
   }
-  .wrap { max-width: 620px; margin: 0 auto; padding: 18px 14px 44px; }
-
-  header { margin-bottom: 14px; }
-  h1 { font-size: 21px; font-weight: 700; letter-spacing: -0.01em; }
-  .updated { font-size: 13px; color: #8a8175; margin-top: 3px; }
-
-  /* pulse strip */
-  .pulse { display: flex; gap: 14px; margin-top: 10px; flex-wrap: wrap; }
-  .pulse-item { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #6f675a; }
-  .pulse-dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
-  .pulse-dot.needs { background: #d88a3a; }
-  .pulse-dot.moving { background: #5b8aaf; }
-  .pulse-dot.done { background: #6ba36e; }
-
-  .card {
-    background: #fffdfa;
-    border: 1px solid #e7e2d9;
-    border-radius: 14px;
-    padding: 16px 16px 14px;
-    margin-bottom: 14px;
-    box-shadow: 0 1px 2px rgba(40,33,20,0.04);
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    display: inline-block;
+    vertical-align: middle;
+    user-select: none;
   }
-  .card h2 {
-    font-size: 12px; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.08em; color: #b07d3a; margin-bottom: 10px;
-  }
-
-  /* Do Next */
-  .do {
-    display: flex; gap: 12px; align-items: flex-start;
-    padding: 12px 0;
-    border-top: 1px solid #f0ece3;
-  }
-  .do:first-of-type { border-top: none; padding-top: 4px; }
-  .do.hero {
-    background: linear-gradient(180deg, #fbf3e1 0%, #f9eed4 100%);
-    border: 1px solid #e5c98a;
-    border-radius: 12px;
-    padding: 16px 14px;
-    margin-bottom: 8px;
-    box-shadow: 0 2px 6px rgba(176,125,58,0.10);
-  }
-  .do.hero + .do { padding-top: 12px; border-top: none; }
-  .do-icon {
-    flex: 0 0 auto; width: 32px; height: 32px; border-radius: 9px;
-    display: flex; align-items: center; justify-content: center; font-size: 17px;
-    background: #f4ecdc;
-  }
-  .do.hero .do-icon { background: #b07d3a; color: #fffdf8; box-shadow: 0 1px 2px rgba(120,84,30,0.25); }
-  .do-body { flex: 1; min-width: 0; }
-  .do-nm {
-    font-weight: 700; font-size: 15px;
-    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-  }
-  .do.hero .do-nm { font-size: 17px; }
-  .do-step { font-size: 13.5px; color: #6f675a; margin-top: 4px; }
-  .do.hero .do-step { font-size: 14.5px; color: #5a5240; }
-
-  .tag {
-    display: inline-block; font-size: 10.5px; font-weight: 700;
-    padding: 2.5px 7px; border-radius: 6px;
-    letter-spacing: 0.05em; text-transform: uppercase;
-    background: #f4dca0; color: #7d5a1f; white-space: nowrap;
-  }
-  .tag.asap { background: #ecb1a0; color: #8b3a2e; }
-  .tag.date { background: #f4dca0; color: #7d5a1f; }
-
-  /* board: compact, expandable rows */
-  .row { border-top: 1px solid #f0ece3; }
-  .row:first-of-type { border-top: none; }
-  .row summary {
-    display: flex; gap: 10px; align-items: center;
-    padding: 11px 0;
-    cursor: pointer; list-style: none;
-  }
-  .row summary::-webkit-details-marker { display: none; }
-  .pill {
-    flex: 0 0 auto;
-    font-size: 10.5px; font-weight: 700;
-    padding: 3px 8px; border-radius: 7px;
-    text-transform: uppercase; letter-spacing: 0.04em;
-    white-space: nowrap;
-  }
-  .pill.needs { background: #f4d4a3; color: #8b5a1f; }
-  .pill.moving { background: #cad8e6; color: #2e5777; }
-  .pill.parked { background: #e6e0d4; color: #6f675a; }
-  .pill.done { background: #cde0ce; color: #2e5b3a; }
-  .row-name { flex: 0 0 auto; font-weight: 700; font-size: 14px; }
-  .row-status {
-    flex: 1; min-width: 0; font-size: 13px; color: #8a8175;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .chev { flex: 0 0 auto; color: #c4bba8; font-size: 14px; transition: transform 0.18s; }
-  .row[open] > summary .chev { transform: rotate(90deg); }
-  .row-detail {
-    padding: 4px 0 14px 0;
-    font-size: 13.5px; color: #5a5240;
-  }
-  .row-detail .next { margin-top: 10px; color: #4a4232; }
-  .row-detail .next-label { color: #b07d3a; font-weight: 700; }
-
-  /* recently shipped */
-  .ship {
-    display: flex; gap: 10px; align-items: flex-start;
-    padding: 8px 0;
-    border-top: 1px solid #f0ece3;
-  }
-  .ship:first-of-type { border-top: none; padding-top: 2px; }
-  .ship-check {
-    color: #6ba36e; flex: 0 0 auto; font-size: 13px; line-height: 1.6;
-    width: 16px; text-align: center;
-  }
-  .ship-body { flex: 1; min-width: 0; font-size: 13px; color: #6f675a; line-height: 1.55; }
-  .ship-body b { color: #2a2620; font-weight: 700; }
-  .ship-date { color: #a89f8d; font-size: 12px; margin-left: 6px; white-space: nowrap; }
-
-  /* parked + done drawer */
-  details.drawer {
-    background: #fffdfa;
-    border: 1px solid #e7e2d9;
-    border-radius: 14px;
-    padding: 12px 16px;
-    margin-bottom: 14px;
-  }
-  details.drawer summary {
-    list-style: none; cursor: pointer;
-    display: flex; align-items: center; gap: 8px;
-    font-size: 13px; color: #8a8175;
-  }
-  details.drawer summary::-webkit-details-marker { display: none; }
-  details.drawer summary .chev { margin-left: auto; }
-  details.drawer[open] > summary .chev { transform: rotate(90deg); }
-  details.drawer .drawer-rows { margin-top: 8px; padding-top: 8px; border-top: 1px solid #f0ece3; }
-
-  .msg { font-size: 14px; color: #6f675a; padding: 6px 0; }
-
-  footer { font-size: 11.5px; color: #a89f8f; text-align: center; margin-top: 18px; line-height: 1.7; }
-  footer code {
-    background: #ece7dd; border-radius: 4px; padding: 1px 5px;
-    font-size: 11px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  details > summary { list-style: none; cursor: pointer; }
+  details > summary::-webkit-details-marker { display: none; }
+  details[open] > summary .chev { transform: rotate(90deg); }
+  .chev { transition: transform 0.18s ease; display: inline-block; }
+  .pulse-dot { animation: pulseFade 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+  @keyframes pulseFade {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .45; }
   }
 </style>
 </head>
-<body>
-<div class="wrap">
+<body class="bg-surface text-on-surface flex flex-col min-h-screen">
 
-  <header>
-    <h1>Project Command Center</h1>
-    <div class="updated" id="updated">Loading&hellip;</div>
-    <div class="pulse" id="pulse"></div>
-  </header>
+<header class="bg-surface-container border-b border-outline-variant flex justify-between items-center w-full px-5 h-16 sticky top-0 z-50 shadow-lg">
+  <div class="flex flex-col">
+    <h1 class="text-[22px] leading-tight tracking-tight text-primary font-bold">COMMAND</h1>
+    <p class="text-[11.5px] text-secondary flex items-center gap-1.5 mt-0.5">
+      <span class="w-1.5 h-1.5 rounded-full bg-primary pulse-dot"></span>
+      <span id="updated-text">Loading…</span>
+    </p>
+  </div>
+  <div class="hidden sm:flex gap-1.5" id="pulse-desktop"></div>
+</header>
 
-  <div id="content">
-    <div class="card"><div class="msg">Loading the board&hellip;</div></div>
+<main class="flex-1 px-5 py-6 max-w-screen-sm mx-auto w-full space-y-6">
+
+  <div class="flex sm:hidden justify-between items-center bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5" id="pulse-mobile"></div>
+
+  <div id="content" class="space-y-6">
+    <div class="bg-surface-container rounded-xl p-4 text-secondary">Loading…</div>
   </div>
 
-  <footer>
-    Live status. Renders from <code>status.json</code>.<br>
-    Private page, unlisted URL, not indexed.
-  </footer>
+</main>
 
-</div>
+<footer class="border-t border-outline-variant/30 flex flex-col items-center gap-1.5 py-6 text-secondary/70">
+  <span class="text-[11px] font-semibold tracking-widest text-primary/70">COMMAND CENTER</span>
+  <p class="text-[11px]">Live status from <code class="bg-surface-container px-1.5 py-0.5 rounded text-primary/80">status.json</code> · unlisted, not indexed</p>
+</footer>
 
 <script>
 (function () {
   var STATES = {
-    "waiting-on-jeremy": { pill: "needs",  label: "Needs you" },
-    "in-progress":       { pill: "moving", label: "In progress" },
-    "parked":            { pill: "parked", label: "Parked" },
-    "done":              { pill: "done",   label: "Done" }
+    "waiting-on-jeremy": { label: "Needs you", pill: "amber" },
+    "in-progress":       { label: "In progress", pill: "blue" },
+    "parked":            { label: "Parked", pill: "gray" },
+    "done":              { label: "Done", pill: "green" }
   };
 
   function el(tag, cls, text) {
@@ -200,6 +116,17 @@
     if (cls) e.className = cls;
     if (text != null) e.textContent = text;
     return e;
+  }
+  function html(parent, tag, cls, text) {
+    var e = el(tag, cls, text);
+    parent.appendChild(e);
+    return e;
+  }
+  function icon(name, cls) {
+    var s = document.createElement("span");
+    s.className = "material-symbols-outlined " + (cls || "");
+    s.textContent = name;
+    return s;
   }
 
   function formatUpdated(raw) {
@@ -211,7 +138,6 @@
       hour: "numeric", minute: "2-digit"
     });
   }
-
   function shortDate(s) {
     if (!s) return "";
     var d = new Date(s);
@@ -219,74 +145,135 @@
     return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
   }
 
+  function dotClass(c) {
+    return ({
+      amber: "bg-amber-500",
+      blue:  "bg-blue-500",
+      green: "bg-green-500",
+      gray:  "bg-gray-500"
+    })[c] || "bg-gray-500";
+  }
+  function pillClasses(state) {
+    if (state === "waiting-on-jeremy") return "bg-amber-500/10 text-amber-500 border-amber-500/20";
+    if (state === "in-progress")       return "bg-blue-500/10 text-blue-400 border-blue-500/20";
+    if (state === "done")              return "bg-green-500/10 text-green-400 border-green-500/20";
+    return "bg-gray-500/10 text-gray-400 border-gray-500/20";
+  }
+
   function pulseStrip(projects) {
     var counts = { needs: 0, moving: 0, done: 0 };
     projects.forEach(function (p) {
       if (p.state === "waiting-on-jeremy") counts.needs++;
-      else if (p.state === "in-progress") counts.moving++;
-      else if (p.state === "done") counts.done++;
+      else if (p.state === "in-progress")  counts.moving++;
+      else if (p.state === "done")         counts.done++;
     });
-    var pulse = document.getElementById("pulse");
-    pulse.innerHTML = "";
-    [
-      { cls: "needs",  n: counts.needs,  label: "need you" },
-      { cls: "moving", n: counts.moving, label: "moving" },
-      { cls: "done",   n: counts.done,   label: "done" }
-    ].forEach(function (it) {
-      var item = el("div", "pulse-item");
-      item.appendChild(el("span", "pulse-dot " + it.cls));
-      item.appendChild(el("span", null, it.n + " " + it.label));
-      pulse.appendChild(item);
+    var items = [
+      { dot: "amber", n: counts.needs,  label: "need you" },
+      { dot: "blue",  n: counts.moving, label: "moving" },
+      { dot: "green", n: counts.done,   label: "done" }
+    ];
+
+    var desk = document.getElementById("pulse-desktop");
+    desk.innerHTML = "";
+    items.forEach(function (it) {
+      var chip = el("div", "flex items-center gap-1.5 bg-surface-container-high px-2.5 py-1 rounded-full");
+      html(chip, "span", "w-2 h-2 rounded-full " + dotClass(it.dot));
+      html(chip, "span", "text-[12px] text-on-surface font-medium", String(it.n));
+      desk.appendChild(chip);
     });
+
+    var mob = document.getElementById("pulse-mobile");
+    mob.innerHTML = "";
+    html(mob, "span", "text-[10.5px] font-bold tracking-widest text-secondary", "STATUS");
+    var inner = el("div", "flex gap-3");
+    items.forEach(function (it) {
+      var item = el("div", "flex items-center gap-1.5");
+      html(item, "span", "w-2 h-2 rounded-full " + dotClass(it.dot));
+      html(item, "span", "text-[12px] text-on-surface", it.n + " " + it.label);
+      inner.appendChild(item);
+    });
+    mob.appendChild(inner);
   }
 
-  function urgencyTag(urgency) {
+  function urgencyPill(urgency) {
     if (!urgency) return null;
-    var t = el("span", "tag");
-    if (/asap/i.test(urgency)) t.className = "tag asap";
-    else if (/\bby\b|\bdue\b|\bjan\b|\bfeb\b|\bmar\b|\bapr\b|\bmay\b|\bjun\b|\bjul\b|\baug\b|\bsep\b|\boct\b|\bnov\b|\bdec\b|\bfrom\b/i.test(urgency))
-      t.className = "tag date";
-    t.textContent = urgency;
-    return t;
+    var p = el("span", "");
+    if (/asap/i.test(urgency)) {
+      p.className = "bg-error-container text-on-error-container font-bold text-[10px] px-2 py-0.5 rounded-full tracking-widest uppercase whitespace-nowrap";
+    } else {
+      p.className = "bg-primary/15 text-primary font-bold text-[10px] px-2 py-0.5 rounded-full tracking-wider whitespace-nowrap";
+    }
+    p.textContent = urgency;
+    return p;
   }
 
   function renderDoNext(content, items) {
     if (!items.length) return;
-    var card = el("div", "card");
-    card.appendChild(el("h2", null, "Do next"));
+    var sec = el("section", "space-y-2");
+    html(sec, "h2", "text-[11px] font-bold tracking-widest text-primary pl-1", "DO NEXT");
+    var card = el("div", "bg-primary-container rounded-xl p-3 sm:p-4 border border-primary/20 shadow-xl space-y-3");
+
     items.forEach(function (it, i) {
-      var row = el("div", "do" + (i === 0 ? " hero" : ""));
-      var icon = el("div", "do-icon");
-      icon.textContent = it.icon || "❗️";
-      row.appendChild(icon);
-      var body = el("div", "do-body");
-      var nm = el("div", "do-nm");
-      nm.appendChild(document.createTextNode(it.name));
-      var ut = urgencyTag(it.urgency);
-      if (ut) nm.appendChild(ut);
-      body.appendChild(nm);
-      if (it.nextStep) body.appendChild(el("div", "do-step", it.nextStep));
-      row.appendChild(body);
-      card.appendChild(row);
+      if (i === 0) {
+        var hero = el("div", "bg-surface-container-lowest rounded-lg p-4 border border-outline-variant/30 flex justify-between items-start gap-3");
+        var body = el("div", "space-y-1 flex-1 min-w-0");
+        html(body, "p", "text-[11px] font-bold tracking-widest text-primary uppercase truncate", it.name);
+        html(body, "h3", "text-[18px] font-bold text-on-surface leading-snug", it.nextStep || "");
+        hero.appendChild(body);
+        var ut = urgencyPill(it.urgency);
+        if (ut) hero.appendChild(ut);
+        card.appendChild(hero);
+      } else {
+        var row = el("div", "bg-black/30 backdrop-blur-sm rounded-lg p-3 border border-white/5 flex items-center justify-between gap-3");
+        var left = el("div", "flex items-center gap-3 flex-1 min-w-0");
+        var iconBox = el("div", "w-9 h-9 rounded-md bg-black/30 flex items-center justify-center flex-shrink-0 text-[17px]");
+        iconBox.textContent = it.icon || "•";
+        left.appendChild(iconBox);
+        var meta = el("div", "min-w-0 flex-1");
+        html(meta, "p", "text-[11px] text-on-primary-container opacity-70 uppercase tracking-wider truncate", it.name);
+        html(meta, "p", "text-[14px] font-semibold text-on-primary-container leading-snug", it.nextStep || "");
+        left.appendChild(meta);
+        row.appendChild(left);
+
+        var right = el("div", "flex items-center flex-shrink-0");
+        var ut = urgencyPill(it.urgency);
+        if (ut) {
+          right.appendChild(ut);
+        } else {
+          right.appendChild(icon("chevron_right", "text-on-primary-container/40 text-[20px]"));
+        }
+        row.appendChild(right);
+        card.appendChild(row);
+      }
     });
-    content.appendChild(card);
+    sec.appendChild(card);
+    content.appendChild(sec);
   }
 
   function renderBoardRow(p) {
-    var st = STATES[p.state] || { pill: "parked", label: p.state || "" };
+    var st = STATES[p.state] || { label: p.state || "", pill: "gray" };
     var row = document.createElement("details");
-    row.className = "row";
     var summary = document.createElement("summary");
-    summary.appendChild(el("span", "pill " + st.pill, st.label));
-    summary.appendChild(el("span", "row-name", p.name));
-    summary.appendChild(el("span", "row-status", p.shortStatus || ""));
-    summary.appendChild(el("span", "chev", "›"));
+    summary.className = "px-4 py-4 flex items-center justify-between gap-3 hover:bg-surface-container-high transition-colors";
+
+    var left = el("div", "space-y-1 flex-1 min-w-0");
+    html(left, "h4", "text-[15px] font-bold text-on-surface truncate", p.name);
+    if (p.shortStatus) html(left, "p", "text-[12px] text-secondary truncate", p.shortStatus);
+    summary.appendChild(left);
+
+    var right = el("div", "flex items-center gap-2 flex-shrink-0");
+    var pill = el("span", "px-2.5 py-1 rounded-full font-bold text-[10px] uppercase tracking-wider whitespace-nowrap border " + pillClasses(p.state), st.label);
+    right.appendChild(pill);
+    right.appendChild(icon("chevron_right", "text-outline text-[20px] chev"));
+    summary.appendChild(right);
     row.appendChild(summary);
-    var detail = el("div", "row-detail");
-    if (p.note) detail.appendChild(el("div", null, p.note));
+
+    var detail = el("div", "px-4 pb-4 text-[13px] text-on-surface-variant space-y-2 leading-relaxed");
+    if (p.note) html(detail, "p", null, p.note);
     if (p.nextStep) {
-      var ns = el("div", "next");
-      ns.appendChild(el("span", "next-label", "Next: "));
+      var ns = el("p", null);
+      var lbl = el("span", "text-primary font-bold", "Next: ");
+      ns.appendChild(lbl);
       ns.appendChild(document.createTextNode(p.nextStep));
       detail.appendChild(ns);
     }
@@ -294,57 +281,66 @@
     return row;
   }
 
-  function renderBoard(content, activeProjects) {
-    if (!activeProjects.length) return;
-    var card = el("div", "card");
-    card.appendChild(el("h2", null, "The board"));
-    activeProjects.forEach(function (p) { card.appendChild(renderBoardRow(p)); });
-    content.appendChild(card);
+  function renderBoard(content, active) {
+    if (!active.length) return;
+    var sec = el("section", "space-y-2");
+    html(sec, "h2", "text-[11px] font-bold tracking-widest text-secondary pl-1", "THE BOARD");
+    var card = el("div", "bg-surface-container rounded-xl border border-outline-variant divide-y divide-outline-variant/30 overflow-hidden");
+    active.forEach(function (p) { card.appendChild(renderBoardRow(p)); });
+    sec.appendChild(card);
+    content.appendChild(sec);
   }
 
   function renderShipped(content, ships) {
     if (!ships || !ships.length) return;
-    var card = el("div", "card");
-    card.appendChild(el("h2", null, "Recently shipped"));
+    var sec = el("section", "space-y-2 opacity-90");
+    html(sec, "h2", "text-[11px] font-bold tracking-widest text-secondary pl-1", "RECENTLY SHIPPED");
+    var card = el("div", "bg-surface-container-low rounded-xl border border-outline-variant divide-y divide-outline-variant/20");
     ships.forEach(function (s) {
-      var row = el("div", "ship");
-      row.appendChild(el("span", "ship-check", "✓"));
-      var body = el("div", "ship-body");
-      body.appendChild(el("b", null, s.project));
+      var row = el("div", "px-4 py-3 flex items-start gap-3");
+      var check = icon("check_circle", "text-green-500 text-[17px] flex-shrink-0 mt-0.5");
+      check.style.fontVariationSettings = "'FILL' 1";
+      row.appendChild(check);
+      var body = el("div", "flex-1 min-w-0 text-[13px] text-on-surface-variant leading-snug");
+      var b = el("span", "text-on-surface font-bold");
+      b.textContent = s.project;
+      body.appendChild(b);
       body.appendChild(document.createTextNode(": " + s.what));
       if (s.date) {
-        var d = el("span", "ship-date", shortDate(s.date));
+        var d = el("span", "text-secondary/70 text-[11px] ml-2 whitespace-nowrap");
+        d.textContent = shortDate(s.date);
         body.appendChild(d);
       }
       row.appendChild(body);
       card.appendChild(row);
     });
-    content.appendChild(card);
+    sec.appendChild(card);
+    content.appendChild(sec);
   }
 
-  function renderDrawer(content, restProjects) {
-    if (!restProjects.length) return;
+  function renderDrawer(content, rest) {
+    if (!rest.length) return;
     var drawer = document.createElement("details");
-    drawer.className = "drawer";
+    drawer.className = "bg-surface-container rounded-xl border border-outline-variant overflow-hidden";
     var summary = document.createElement("summary");
-    summary.appendChild(document.createTextNode("Parked and done (" + restProjects.length + ")"));
-    summary.appendChild(el("span", "chev", "›"));
+    summary.className = "w-full flex items-center justify-between px-4 py-4 hover:bg-surface-container-high transition-colors text-secondary";
+    html(summary, "span", "text-[12px] font-semibold tracking-wider", "Parked and done (" + rest.length + ")");
+    summary.appendChild(icon("chevron_right", "chev text-[20px]"));
     drawer.appendChild(summary);
-    var rows = el("div", "drawer-rows");
-    restProjects.forEach(function (p) { rows.appendChild(renderBoardRow(p)); });
-    drawer.appendChild(rows);
+    var inner = el("div", "divide-y divide-outline-variant/30 border-t border-outline-variant/30");
+    rest.forEach(function (p) { inner.appendChild(renderBoardRow(p)); });
+    drawer.appendChild(inner);
     content.appendChild(drawer);
   }
 
   function compareP(a, b) {
     var ap = typeof a.priority === "number" ? a.priority : 999;
     var bp = typeof b.priority === "number" ? b.priority : 999;
-    if (ap !== bp) return ap - bp;
-    return 0;
+    return ap - bp;
   }
 
   function render(data) {
-    document.getElementById("updated").textContent =
+    document.getElementById("updated-text").textContent =
       "Updated " + formatUpdated(data.lastUpdated);
 
     var content = document.getElementById("content");
@@ -355,34 +351,20 @@
 
     pulseStrip(projects);
 
-    // Do Next: waiting-on-jeremy projects + personal items with a nextStep, sorted by priority
     var doItems = [];
     projects.forEach(function (p) {
       if (p.state === "waiting-on-jeremy") {
-        doItems.push({
-          name: p.name,
-          icon: "❗️",
-          nextStep: p.nextStep,
-          urgency: p.urgency,
-          priority: p.priority
-        });
+        doItems.push({ name: p.name, icon: "❗", nextStep: p.nextStep, urgency: p.urgency, priority: p.priority });
       }
     });
     personal.forEach(function (p) {
       if (p.nextStep) {
-        doItems.push({
-          name: p.name,
-          icon: p.icon || "•",
-          nextStep: p.nextStep,
-          urgency: p.urgency,
-          priority: p.priority
-        });
+        doItems.push({ name: p.name, icon: p.icon || "•", nextStep: p.nextStep, urgency: p.urgency, priority: p.priority });
       }
     });
     doItems.sort(compareP);
     renderDoNext(content, doItems);
 
-    // Board: active projects only (waiting-on-jeremy + in-progress)
     var active = projects.filter(function (p) {
       return p.state === "waiting-on-jeremy" || p.state === "in-progress";
     });
@@ -394,10 +376,8 @@
     });
     renderBoard(content, active);
 
-    // Recently shipped
     renderShipped(content, shipped);
 
-    // Parked + done drawer
     var rest = projects.filter(function (p) {
       return p.state === "parked" || p.state === "done";
     });
@@ -409,12 +389,10 @@
     renderDrawer(content, rest);
   }
 
-  function fail(message) {
-    document.getElementById("updated").textContent = "";
+  function fail(msg) {
     var content = document.getElementById("content");
     content.innerHTML = "";
-    var card = el("div", "card");
-    card.appendChild(el("div", "msg", message));
+    var card = el("div", "bg-surface-container rounded-xl p-4 text-secondary", msg);
     content.appendChild(card);
   }
 
@@ -422,10 +400,10 @@
     .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
     .then(render)
     .catch(function (e) {
-      fail("Could not load the status board (" + e.message +
-           "). It will appear here once status.json is published.");
+      fail("Could not load the status board (" + e.message + ").");
     });
 })();
 </script>
+
 </body>
 </html>

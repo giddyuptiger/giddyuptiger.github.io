@@ -93,6 +93,18 @@
     letter-spacing: 0.02em; text-transform: none;
     line-height: 1.4; white-space: nowrap;
   }
+  /* Per-row owner chip — smaller, used when an item's owner differs from section owner */
+  .row-owner-chip {
+    display: inline-flex; align-items: center;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: rgba(200, 198, 197, 0.08);
+    border: 1px solid rgba(200, 198, 197, 0.3);
+    color: #c8c6c5;
+    font-size: 9.5px; font-weight: 600;
+    line-height: 1.4; white-space: nowrap;
+    margin-left: 6px;
+  }
   /* Header back arrow (per-episode view only) */
   .back-btn {
     display: inline-flex; align-items: center; justify-content: center;
@@ -122,7 +134,7 @@
   }
   .metric-tile .val { font-size: 17px; font-weight: 700; color: #e5e2e1; line-height: 1.15; }
   .metric-tile .val.empty { color: #6f675a; font-weight: 500; }
-  /* Past episode horizontal strip (used on per-episode view) */
+  /* Past episodes horizontal strip (per-episode view) */
   .past-strip { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
   .past-strip::-webkit-scrollbar { height: 6px; }
   .past-strip::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 3px; }
@@ -136,7 +148,7 @@
     transition: border-color 0.15s, background 0.15s;
   }
   .past-card:hover { border-color: #d4af37; background: #201f1f; }
-  /* Home view: aggregate strip */
+  /* Home view aggregate strip */
   .agg-strip { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   @media (min-width: 640px) { .agg-strip { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
   .agg-tile {
@@ -153,7 +165,7 @@
   }
   .agg-tile .val { font-size: 22px; font-weight: 800; color: #f2ca50; line-height: 1.1; }
   .agg-tile .val.empty { color: #6f675a; font-weight: 600; font-size: 18px; }
-  /* Home view: episode grid */
+  /* Home view episode grid */
   .ep-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
   @media (min-width: 640px) { .ep-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   .ep-card {
@@ -163,18 +175,19 @@
     padding: 16px 18px;
     text-decoration: none; color: inherit;
     transition: border-color 0.15s, background 0.15s, transform 0.15s;
-    display: flex; flex-direction: column; gap: 14px;
+    display: flex; flex-direction: column; gap: 12px;
   }
   .ep-card:hover { border-color: #d4af37; background: #262524; transform: translateY(-1px); }
   .ep-card .head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
   .ep-card .name { font-size: 17px; font-weight: 700; color: #e5e2e1; line-height: 1.2; }
-  .ep-card .date { font-size: 11.5px; color: rgba(200,198,197,0.7); margin-top: 3px; }
+  .ep-card .meta { font-size: 11px; color: rgba(200,198,197,0.7); margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
+  .ep-card .meta .sep { color: rgba(200,198,197,0.35); }
   .ep-card .metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
   .ep-card .metrics > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
   .ep-card .metrics .ml { font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em; color: #c8c6c5; text-transform: uppercase; }
   .ep-card .metrics .mv { font-size: 14px; font-weight: 700; color: #e5e2e1; }
   .ep-card .metrics .mv.empty { color: #6f675a; font-weight: 500; }
-  /* Status pill */
+  /* Status pill (also reused for transcript pill style) */
   .pill {
     display: inline-flex; align-items: center;
     padding: 3px 9px; border-radius: 999px;
@@ -182,7 +195,47 @@
     text-transform: uppercase; white-space: nowrap;
   }
   .pill.in-progress { background: rgba(242, 202, 80, 0.12); color: #f2ca50; border: 1px solid rgba(242, 202, 80, 0.4); }
+  .pill.planned { background: rgba(212, 175, 55, 0.06); color: #d4af37; border: 1px solid rgba(212, 175, 55, 0.3); }
   .pill.shipped { background: rgba(200, 198, 197, 0.08); color: #c8c6c5; border: 1px solid rgba(200, 198, 197, 0.25); }
+  .pill.tr-ok { background: rgba(141, 219, 162, 0.1); color: #8ddba2; border: 1px solid rgba(141, 219, 162, 0.3); font-weight: 600; letter-spacing: 0.02em; text-transform: none; }
+  .pill.tr-pending { background: rgba(200, 198, 197, 0.06); color: rgba(200, 198, 197, 0.7); border: 1px solid rgba(200, 198, 197, 0.18); font-weight: 600; letter-spacing: 0.02em; text-transform: none; }
+  /* Inline "+ New episode" button on home */
+  .new-ep-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: #f2ca50; color: #3c2f00;
+    font-size: 12px; font-weight: 700;
+    border: none; cursor: pointer;
+    transition: opacity 0.15s, transform 0.15s;
+  }
+  .new-ep-btn:hover { opacity: 0.92; transform: translateY(-1px); }
+  /* Inline call-to-action button used in the expanded "Input Sponsors" item */
+  .cta-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    background: #f2ca50; color: #3c2f00;
+    font-size: 12px; font-weight: 700;
+    border: none; cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .cta-btn:hover { opacity: 0.92; }
+  /* Sponsor row (in Sponsorship section, below "Input Sponsors") */
+  .sponsor-row {
+    border-top: 1px solid rgba(77, 70, 53, 0.3);
+    padding: 12px 16px;
+    display: flex; gap: 12px; align-items: flex-start;
+  }
+  .sponsor-row .body { flex: 1; min-width: 0; }
+  .sponsor-row .name { font-size: 14px; font-weight: 600; color: #e5e2e1; line-height: 1.2; }
+  .sponsor-row .name.cut { color: #c8c6c5; text-decoration: line-through; }
+  .sponsor-row .sub { font-size: 11.5px; color: rgba(200, 198, 197, 0.7); margin-top: 3px; display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
+  .sponsor-row .sub .sep { color: rgba(200, 198, 197, 0.35); }
+  .sponsor-row .notes { font-size: 12.5px; color: #d0c5af; margin-top: 6px; line-height: 1.5; white-space: pre-wrap; }
+  .sponsor-row .actions { font-size: 11px; color: #c8c6c5; }
+  .sponsor-row .del-btn { color: rgba(200, 198, 197, 0.55); cursor: pointer; padding: 2px 6px; font-size: 11px; background: none; border: none; }
+  .sponsor-row .del-btn:hover { color: #ffb4ab; }
   /* Modal */
   .modal-bd {
     position: fixed; inset: 0; background: rgba(0,0,0,0.7);
@@ -194,7 +247,7 @@
     background: #201f1f;
     border: 1px solid #4d4635;
     border-radius: 14px;
-    width: 100%; max-width: 460px;
+    width: 100%; max-width: 540px;
     padding: 18px 18px 16px;
     color: #e5e2e1;
   }
@@ -203,12 +256,36 @@
     color: #f2ca50; text-transform: uppercase; margin-bottom: 14px;
   }
   .modal-card label { font-size: 11px; color: #c8c6c5; display: block; margin-bottom: 4px; font-weight: 600; }
-  .modal-card input {
+  .modal-card input, .modal-card select, .modal-card textarea {
     width: 100%; background: #131313; border: 1px solid #4d4635; border-radius: 8px;
     padding: 8px 10px; color: #e5e2e1; font-size: 14px;
     transition: border-color 0.15s;
+    font-family: inherit;
   }
-  .modal-card input:focus { outline: none; border-color: #f2ca50; }
+  .modal-card input:focus, .modal-card select:focus, .modal-card textarea:focus {
+    outline: none; border-color: #f2ca50;
+  }
+  .modal-card textarea { resize: vertical; min-height: 60px; }
+  /* Sponsor input modal row */
+  .sponsor-input-row {
+    background: #1c1b1b;
+    border: 1px solid #4d4635;
+    border-radius: 10px;
+    padding: 12px;
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .sponsor-input-row .full { grid-column: span 2; }
+  .sponsor-input-row .remove-row {
+    position: absolute; top: 6px; right: 6px;
+    background: none; border: none; cursor: pointer;
+    color: rgba(200, 198, 197, 0.5);
+    font-size: 18px; line-height: 1;
+    padding: 4px 8px; border-radius: 6px;
+  }
+  .sponsor-input-row .remove-row:hover { color: #ffb4ab; background: rgba(147, 0, 10, 0.15); }
 </style>
 </head>
 <body class="bg-surface text-on-surface flex flex-col min-h-screen">
@@ -245,7 +322,11 @@
   var SUPABASE_URL = "https://umtckshrjeyueyzgkuwm.supabase.co";
   var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtdGNrc2hyamV5dWV5emdrdXdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4MTIyODksImV4cCI6MjA5NTM4ODI4OX0.AGAixV91hWFSmUTclna1e7lwaA3CAVk8bGbHi5Zrrj4";
 
+  // Role-group order (top to bottom on the per-episode view).
+  // Transcript and Sponsorship come first so they surface on every new episode.
   var ROLE_GROUPS = [
+    "Transcript",
+    "Sponsorship",
     "Editorial",
     "Metadata & Upload",
     "Ads & Marketing",
@@ -254,6 +335,8 @@
     "Post-Launch"
   ];
   var ROLE_ICONS = {
+    "Transcript": "subject",
+    "Sponsorship": "handshake",
     "Editorial": "edit_note",
     "Metadata & Upload": "cloud_upload",
     "Ads & Marketing": "campaign",
@@ -264,8 +347,10 @@
   // Team owners per role group. Fixed across episodes — hardcoded
   // because it is the team's role structure, not per-episode data.
   var OWNERS = {
+    "Transcript": "Jerry",
     "Editorial": "Jerry",
     "Metadata & Upload": "Jerry",
+    "Sponsorship": "Josh",
     "Ads & Marketing": "Jeremy",
     "Social & Clips": "Juniper",
     "Launch Day": "Everyone",
@@ -285,8 +370,77 @@
     { key: "ad_ctr_pct",            label: "Ad CTR",           fmt: "pct" },
     { key: "ad_cpv",                label: "Ad CPV",           fmt: "usd2" }
   ];
-  // Headline subset used in the per-episode home cards + past-episodes strip.
   var HEADLINE_KEYS = ["views", "ctr_pct", "avg_view_pct"];
+
+  // Sponsor slot vocabulary (datalist suggestions; free text is also fine).
+  var SPONSOR_SLOTS = ["mid-roll", "organic", "pre-roll", "post-roll", "host-read", "programmatic"];
+
+  // Default checklist skeleton seeded into every NEW episode created from the home page.
+  // Transcript + Sponsorship come first; the rest are standard launch tasks with
+  // generic instructions (the verbatim per-episode content gets filled in once
+  // Jeremy generates that episode's production sheet from the transcript).
+  var DEFAULT_TEMPLATE = [
+    { role_group: "Transcript", title: "Send transcript to Jeremy", sort_order: 1,
+      instructions_md: "Once the episode is shot, send Jeremy the raw transcript file so he can run it through the PRS SOP and generate the production sheet (titles, description, chapters, ad copy, clips, comment seeds).\n\nChecking this box flips transcript_received on the episode and unblocks the metadata + ads + clips work below." },
+    { role_group: "Sponsorship", title: "Input Sponsors", sort_order: 2,
+      instructions_md: "Enter every sponsor placement in this episode. Each sponsor becomes a separate \"Cut into show\" row below for Jerry to verify the read survived the edit.\n\nClick the task to open the input form. Fields per sponsor: name, slot (mid-roll / organic / pre-roll), timestamp (optional), notes (optional).\n\nThis task auto-completes once one or more sponsors are entered." },
+
+    { role_group: "Editorial", title: "Apply compliance trims", sort_order: 10,
+      instructions_md: "Fill in from this episode's production sheet — any 🔴 compliance trims (suicide-method language, banned-word triggers, child-safety adjacency)." },
+    { role_group: "Editorial", title: "Confirm sponsor reads intact", sort_order: 20,
+      instructions_md: "Verify every sponsor placement in the line cut. Pull the list from the Sponsorship section above. Hard rule: no host-read ad within 60 sec of any 🔴 / 🟡 flagged content." },
+    { role_group: "Editorial", title: "Editorial calls (flagged segments)", sort_order: 30,
+      instructions_md: "Review any 🟡 flagged segments from the production sheet (reputational risk, controversial moments). Decide: keep / trim / soften / cut." },
+    { role_group: "Editorial", title: "Lock the edit", sort_order: 40,
+      instructions_md: "Pass the locked cut to post-edit cleanup (intro audit + chapter timestamp verification + ad-spot 60-sec buffer re-check)." },
+
+    { role_group: "Metadata & Upload", title: "Set YouTube title", sort_order: 50,
+      instructions_md: "Fill in from this episode's production sheet — recommended title + variants with char counts. The §8 banned-word filter applies to paid ad copy and thumbnail text only, NOT the YouTube title." },
+    { role_group: "Metadata & Upload", title: "Set description + hashtags + tags", sort_order: 60,
+      instructions_md: "Fill in from this episode's production sheet — full description with \"In This Episode\" bullets, 10 hashtags, ~28 comma-separated tags." },
+    { role_group: "Metadata & Upload", title: "Add chapter markers", sort_order: 70,
+      instructions_md: "Fill in from this episode's production sheet — paste-ready chapter timestamps (≥ 3, first at 0:00, each ≥ 10 sec apart)." },
+    { role_group: "Metadata & Upload", title: "Upload thumbnail", sort_order: 80,
+      instructions_md: "Fill in from this episode's production sheet — Concept A/B/C with banned-word check. Two-face podcast layout (guest LEFT, Tyler RIGHT, equal size)." },
+    { role_group: "Metadata & Upload", title: "Upload video as scheduled YouTube Premiere", sort_order: 90,
+      instructions_md: "Confirm date + time. Note: a YouTube Premiere cannot be advertised on Google Ads until after it airs — build the ad campaign now and leave PAUSED; launch within ~15 min of premiere ending." },
+
+    { role_group: "Ads & Marketing", title: "Build Custom Segment (keywords)", sort_order: 100,
+      instructions_md: "Fill in from this episode's production sheet — Campaign 1 Custom Segment keyword list (typically ~20 keywords)." },
+    { role_group: "Ads & Marketing", title: "Set audience + geo + budget", sort_order: 110,
+      instructions_md: "United States only (sponsor optics, Strategy v1.2.1). Exclude All Channel Viewers. $80/day × 5 days = $400. End date = activation + 5 days." },
+    { role_group: "Ads & Marketing", title: "Build ad copy (banned-word verified)", sort_order: 120,
+      instructions_md: "Fill in from this episode's production sheet — typically 8 long headlines, 7 short headlines, 3 descriptions. Every line verified clean against the §8 banned-word list." },
+    { role_group: "Ads & Marketing", title: "Set display URL (two-box field)", sort_order: 130,
+      instructions_md: "Path 1 = Painful-Lessons. Path 2 = guest name (kebab-case). One channel; \"Painful Lessons\" is a display-label convention on ad creative only, not a separate channel." },
+    { role_group: "Ads & Marketing", title: "Build campaign and leave PAUSED", sort_order: 140,
+      instructions_md: "Have everything ready (custom segment, audience, ad copy, display URL, two ads) but pause the campaign until the premiere finishes airing." },
+    { role_group: "Ads & Marketing", title: "⭐ Launch the Google Ads campaign right after premiere ends", sort_order: 150,
+      instructions_md: "Within ~15 min of the premiere finishing, build the ad group on the now-public video and launch." },
+
+    { role_group: "Social & Clips", title: "Produce the social clips", sort_order: 160,
+      instructions_md: "Fill in from this episode's production sheet — typically 6 clip candidates (timestamps, hooks, captions, overlay text, platform fit)." },
+    { role_group: "Social & Clips", title: "Produce the collab clips with @tags", sort_order: 170,
+      instructions_md: "Fill in from this episode's production sheet — typically 3 collab clips with guest tags." },
+    { role_group: "Social & Clips", title: "Send collab clips to collab partners", sort_order: 180,
+      instructions_md: "Send to guest team + any tagged collab partners for boost potential." },
+
+    { role_group: "Launch Day", title: "Confirm premiere goes live", sort_order: 190,
+      instructions_md: "Watch the premiere start. Confirm the watch page is live and the video is playing." },
+    { role_group: "Launch Day", title: "Post + pin the seeded comments (within ~30 min)", sort_order: 200,
+      instructions_md: "Fill in from this episode's production sheet — typically 3 verbatim comments. Channel-owner pins seed 1; seeds 2-3 go to two different friends/team posting staggered 60-90 min apart." },
+    { role_group: "Launch Day", title: "Launch Google Ads (paired with Ads & Marketing item above)", sort_order: 210,
+      instructions_md: "15-min ad-group build immediately after premiere ends. Pause if any 🔴 flag surfaces in the first minutes." },
+    { role_group: "Launch Day", title: "Spot-check first 30 min", sort_order: 220,
+      instructions_md: "Watch the comment stream, the playback, and any policy flags or unusual notices." },
+
+    { role_group: "Post-Launch", title: "Day-1 monitor", sort_order: 230,
+      instructions_md: "Comments, retention curve, any YouTube policy flags. Respond / address as needed." },
+    { role_group: "Post-Launch", title: "Day-3 ad spend pacing check", sort_order: 240,
+      instructions_md: "Confirm the campaign is pacing as expected. Adjust if the $80/day is over/underspending." },
+    { role_group: "Post-Launch", title: "Mark episode shipped", sort_order: 250,
+      instructions_md: "Update episode status to shipped." }
+  ];
 
   // ============================================================
   // State + helpers
@@ -294,6 +448,7 @@
   var sb = null;
   var ep = null;
   var items = [];
+  var sponsors = [];
   var pastEps = [];
 
   function el(tag, cls, text) {
@@ -361,12 +516,26 @@
     });
   }
 
-  function isInProgress(e) {
+  function statusOf(e) {
     var s = e && e.status ? String(e.status).toLowerCase() : "";
-    return s === "in-progress" || s === "in_progress" || s === "active";
+    if (s === "planned" || s === "upcoming") return "planned";
+    if (s === "in-progress" || s === "in_progress" || s === "active") return "in-progress";
+    return "shipped";
   }
+  function isInProgress(e) { return statusOf(e) === "in-progress"; }
   function statusLabel(e) {
-    return isInProgress(e) ? "In progress" : "Shipped";
+    switch (statusOf(e)) {
+      case "planned": return "Planned";
+      case "in-progress": return "In progress";
+      default: return "Shipped";
+    }
+  }
+
+  function slugify(s) {
+    return String(s || "").toLowerCase().trim()
+      .replace(/['"`’]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
   }
 
   function showMessage(title, body) {
@@ -401,7 +570,13 @@
     }
   }
   function setProgress() {
-    var total = items.length, done = items.filter(function (it) { return it.done; }).length;
+    // Count both checklist items and sponsor "cut into show" rows.
+    var totalItems = items.length;
+    var doneItems = items.filter(function (it) { return it.done; }).length;
+    var totalSp = sponsors.length;
+    var doneSp = sponsors.filter(function (s) { return !!s.cut_into_show; }).length;
+    var total = totalItems + totalSp;
+    var done = doneItems + doneSp;
     var pct = total > 0 ? Math.round(done * 100 / total) : 0;
     var p = document.getElementById("progress");
     p.innerHTML = "";
@@ -414,11 +589,24 @@
   }
 
   // ============================================================
-  // Home view: aggregate strip + episode grid
+  // Home view
   // ============================================================
   function renderHome(allEps) {
     var c = document.getElementById("content");
     c.innerHTML = "";
+
+    // Top action bar with the "+ New episode" button.
+    var topBar = el("div", "flex items-center justify-between");
+    var topLeft = el("div", "flex items-center gap-2");
+    topLeft.appendChild(icon("home", "text-primary text-[22px]"));
+    html(topLeft, "h2", "text-[13px] font-bold tracking-widest text-primary uppercase", "Dashboard");
+    topBar.appendChild(topLeft);
+    var newBtn = el("button", "new-ep-btn");
+    newBtn.appendChild(icon("add", "text-[16px]"));
+    html(newBtn, "span", null, "New episode");
+    newBtn.addEventListener("click", openNewEpisodeModal);
+    topBar.appendChild(newBtn);
+    c.appendChild(topBar);
 
     // Aggregate strip
     var total = allEps.length;
@@ -448,7 +636,7 @@
     });
     c.appendChild(agg);
 
-    // Episodes section
+    // Episodes section header
     var section = el("section", "space-y-3");
     var head = el("div", "flex items-center justify-between px-1");
     var headLeft = el("div", "flex items-center gap-2");
@@ -459,20 +647,32 @@
     section.appendChild(head);
 
     if (!allEps.length) {
-      var empty = el("div", "bg-surface-container rounded-xl border border-outline-variant p-6 text-center");
+      var empty = el("div", "bg-surface-container rounded-xl border border-outline-variant p-6 text-center space-y-3");
       html(empty, "p", "text-[13px] text-on-surface-variant", "No episodes yet.");
+      var emptyBtn = el("button", "new-ep-btn");
+      emptyBtn.appendChild(icon("add", "text-[16px]"));
+      html(emptyBtn, "span", null, "Create your first episode");
+      emptyBtn.addEventListener("click", openNewEpisodeModal);
+      empty.appendChild(emptyBtn);
       section.appendChild(empty);
       c.appendChild(section);
       return;
     }
 
-    // Sort: in-progress first, then by premiere_at desc (fallback created_at)
+    // Sort: in-progress first, then by airing_date asc (nulls last), then created_at desc.
     var sorted = allEps.slice().sort(function (a, b) {
       var aIp = isInProgress(a), bIp = isInProgress(b);
       if (aIp !== bIp) return aIp ? -1 : 1;
-      var ad = new Date(a.premiere_at || a.created_at || 0).getTime();
-      var bd = new Date(b.premiere_at || b.created_at || 0).getTime();
-      return bd - ad;
+      var aAir = a.airing_date ? new Date(a.airing_date).getTime() : null;
+      var bAir = b.airing_date ? new Date(b.airing_date).getTime() : null;
+      if (aAir !== bAir) {
+        if (aAir == null) return 1;
+        if (bAir == null) return -1;
+        return aAir - bAir;
+      }
+      var aCr = new Date(a.created_at || 0).getTime();
+      var bCr = new Date(b.created_at || 0).getTime();
+      return bCr - aCr;
     });
 
     var grid = el("div", "ep-grid");
@@ -482,13 +682,32 @@
       card.href = "?episode=" + encodeURIComponent(e.slug);
 
       var headRow = el("div", "head");
-      var nameWrap = el("div", "min-w-0");
+      var nameWrap = el("div", "min-w-0 flex-1");
       html(nameWrap, "div", "name truncate", e.guest_name || "Untitled");
-      var d = e.premiere_at || e.created_at;
-      if (d) html(nameWrap, "div", "date", shortDate(d));
+
+      // Meta line: dates + transcript chip
+      var meta = el("div", "meta");
+      var hasShoot = !!e.shooting_date;
+      var hasAir = !!e.airing_date;
+      var hasCreated = !hasShoot && !hasAir && e.created_at;
+      if (hasShoot) {
+        var s = el("span"); s.textContent = "Shoot " + shortDate(e.shooting_date); meta.appendChild(s);
+      }
+      if (hasShoot && hasAir) html(meta, "span", "sep", "·");
+      if (hasAir) {
+        var ad = el("span"); ad.textContent = "Air " + shortDate(e.airing_date); meta.appendChild(ad);
+      }
+      if (hasCreated) {
+        var cd = el("span"); cd.textContent = shortDate(e.created_at); meta.appendChild(cd);
+      }
+      if (hasShoot || hasAir || hasCreated) html(meta, "span", "sep", "·");
+      var trChip = el("span", "pill " + (e.transcript_received ? "tr-ok" : "tr-pending"));
+      trChip.textContent = e.transcript_received ? "Transcript ✓" : "Transcript pending";
+      meta.appendChild(trChip);
+      nameWrap.appendChild(meta);
       headRow.appendChild(nameWrap);
 
-      var pill = el("span", "pill " + (isInProgress(e) ? "in-progress" : "shipped"));
+      var pill = el("span", "pill " + statusOf(e));
       pill.textContent = statusLabel(e);
       headRow.appendChild(pill);
       card.appendChild(headRow);
@@ -514,7 +733,124 @@
   }
 
   // ============================================================
-  // Per-episode metrics card
+  // New-episode modal (home view)
+  // ============================================================
+  function openNewEpisodeModal() {
+    var root = document.getElementById("modal-root");
+    root.innerHTML = "";
+    var bd = el("div", "modal-bd");
+    bd.addEventListener("click", function (e) { if (e.target === bd) closeModal(); });
+    var card = el("div", "modal-card");
+    html(card, "h3", null, "New episode");
+
+    var form = document.createElement("form");
+    form.className = "space-y-3";
+
+    function field(labelText, name, type, required) {
+      var wrap = document.createElement("div");
+      var lbl = el("label", null, labelText + (required ? " *" : ""));
+      lbl.setAttribute("for", "ne-" + name);
+      wrap.appendChild(lbl);
+      var inp = document.createElement("input");
+      inp.id = "ne-" + name; inp.name = name; inp.type = type;
+      if (required) inp.required = true;
+      wrap.appendChild(inp);
+      return wrap;
+    }
+    form.appendChild(field("Guest name", "guest", "text", true));
+    var dates = el("div", "grid grid-cols-2 gap-3");
+    dates.appendChild(field("Shooting date", "shoot", "date", false));
+    dates.appendChild(field("Airing date", "air", "date", false));
+    form.appendChild(dates);
+
+    var err = el("p", "text-[12px] text-error", "");
+    err.style.display = "none";
+    form.appendChild(err);
+
+    var actions = el("div", "flex justify-end gap-2 mt-4");
+    var cancel = el("button", "px-4 py-2 text-[12px] font-semibold text-secondary hover:text-on-surface transition-colors");
+    cancel.type = "button"; cancel.textContent = "Cancel";
+    cancel.addEventListener("click", closeModal);
+    actions.appendChild(cancel);
+    var save = el("button", "px-4 py-2 text-[12px] font-bold bg-primary text-on-primary rounded-lg hover:opacity-90 transition-opacity");
+    save.type = "submit"; save.textContent = "Create episode";
+    actions.appendChild(save);
+    form.appendChild(actions);
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      err.style.display = "none";
+      var guest = form.querySelector('input[name="guest"]').value.trim();
+      var shoot = form.querySelector('input[name="shoot"]').value || null;
+      var air = form.querySelector('input[name="air"]').value || null;
+      if (!guest) {
+        err.textContent = "Guest name is required.";
+        err.style.display = "block";
+        return;
+      }
+      save.disabled = true; save.textContent = "Creating…";
+      createEpisode({ guest: guest, shooting_date: shoot, airing_date: air })
+        .then(function (slug) {
+          window.location.href = "?episode=" + encodeURIComponent(slug);
+        })
+        .catch(function (e) {
+          err.textContent = "Could not create: " + (e && e.message ? e.message : String(e));
+          err.style.display = "block";
+          save.disabled = false; save.textContent = "Create episode";
+        });
+    });
+
+    card.appendChild(form);
+    bd.appendChild(card);
+    root.appendChild(bd);
+  }
+
+  function createEpisode(payload) {
+    var baseSlug = slugify(payload.guest);
+    if (!baseSlug) return Promise.reject(new Error("Could not derive a slug from that guest name."));
+    return ensureUniqueSlug(baseSlug).then(function (slug) {
+      var row = {
+        slug: slug,
+        guest_name: payload.guest,
+        status: "planned",
+        shooting_date: payload.shooting_date || null,
+        airing_date: payload.airing_date || null,
+        transcript_received: false
+      };
+      return sb.from("prs_episodes").insert(row).select().single().then(function (r) {
+        if (r.error) throw r.error;
+        return seedDefaultChecklist(r.data.id).then(function () { return slug; });
+      });
+    });
+  }
+  function ensureUniqueSlug(base) {
+    return sb.from("prs_episodes").select("slug").like("slug", base + "%").then(function (r) {
+      if (r.error) throw r.error;
+      var existing = (r.data || []).map(function (x) { return x.slug; });
+      if (existing.indexOf(base) === -1) return base;
+      var i = 2;
+      while (existing.indexOf(base + "-" + i) !== -1) i++;
+      return base + "-" + i;
+    });
+  }
+  function seedDefaultChecklist(episodeId) {
+    var rows = DEFAULT_TEMPLATE.map(function (t) {
+      return {
+        episode_id: episodeId,
+        role_group: t.role_group,
+        title: t.title,
+        instructions_md: t.instructions_md,
+        sort_order: t.sort_order,
+        done: false
+      };
+    });
+    return sb.from("prs_checklist_items").insert(rows).then(function (r) {
+      if (r.error) throw r.error;
+    });
+  }
+
+  // ============================================================
+  // Per-episode: metrics card
   // ============================================================
   function renderMetricsCard(content) {
     var section = el("section", "bg-surface-container rounded-xl border border-outline-variant overflow-hidden");
@@ -566,7 +902,7 @@
   }
 
   // ============================================================
-  // Past episodes strip (per-episode view)
+  // Per-episode: past episodes strip
   // ============================================================
   function renderPastEpisodesStrip(content) {
     var prior = (pastEps || []).filter(function (e) { return ep && e.slug !== ep.slug; });
@@ -584,7 +920,7 @@
       card.href = "?episode=" + encodeURIComponent(e.slug);
       var top = el("div", "flex items-center justify-between mb-2");
       html(top, "div", "text-[13px] font-bold text-on-surface truncate flex-1 min-w-0", e.guest_name);
-      var d = e.premiere_at || e.created_at;
+      var d = e.premiere_at || e.airing_date || e.created_at;
       if (d) html(top, "span", "text-[10.5px] text-secondary/70 ml-2 whitespace-nowrap", shortDate(d));
       card.appendChild(top);
 
@@ -687,7 +1023,150 @@
   }
 
   // ============================================================
-  // Checklist
+  // Sponsor input modal
+  // ============================================================
+  function openSponsorsModal() {
+    var root = document.getElementById("modal-root");
+    root.innerHTML = "";
+    var bd = el("div", "modal-bd");
+    bd.addEventListener("click", function (e) { if (e.target === bd) closeModal(); });
+    var card = el("div", "modal-card");
+    html(card, "h3", null, "Add sponsors");
+
+    html(card, "p", "text-[12px] text-secondary mb-3",
+      "One row per sponsor placement. Each one becomes a \"Cut into show\" task for Jerry below.");
+
+    var rowsWrap = el("div", "space-y-3");
+    card.appendChild(rowsWrap);
+
+    function addRow(prefill) {
+      var row = el("div", "sponsor-input-row");
+      var rm = el("button", "remove-row", "×");
+      rm.type = "button";
+      rm.title = "Remove this sponsor";
+      rm.addEventListener("click", function () { row.remove(); });
+      row.appendChild(rm);
+
+      var nameWrap = el("div", "full");
+      var nameLbl = el("label", null, "Sponsor name *"); nameWrap.appendChild(nameLbl);
+      var nameInp = document.createElement("input");
+      nameInp.type = "text"; nameInp.name = "name";
+      nameInp.placeholder = "e.g., BetterHelp";
+      if (prefill && prefill.name) nameInp.value = prefill.name;
+      nameWrap.appendChild(nameInp);
+      row.appendChild(nameWrap);
+
+      var slotWrap = document.createElement("div");
+      var slotLbl = el("label", null, "Slot"); slotWrap.appendChild(slotLbl);
+      var slotInp = document.createElement("input");
+      slotInp.type = "text"; slotInp.name = "slot";
+      slotInp.setAttribute("list", "sponsor-slots");
+      slotInp.placeholder = "mid-roll / organic / pre-roll";
+      slotWrap.appendChild(slotInp);
+      row.appendChild(slotWrap);
+
+      var tsWrap = document.createElement("div");
+      var tsLbl = el("label", null, "Timestamp"); tsWrap.appendChild(tsLbl);
+      var tsInp = document.createElement("input");
+      tsInp.type = "text"; tsInp.name = "ts";
+      tsInp.placeholder = "e.g., ~29:03";
+      tsWrap.appendChild(tsInp);
+      row.appendChild(tsWrap);
+
+      var notesWrap = el("div", "full");
+      var notesLbl = el("label", null, "Notes"); notesWrap.appendChild(notesLbl);
+      var notesTa = document.createElement("textarea");
+      notesTa.name = "notes"; notesTa.rows = 2;
+      notesTa.placeholder = "Optional — script anchor, discount code, etc.";
+      notesWrap.appendChild(notesTa);
+      row.appendChild(notesWrap);
+
+      rowsWrap.appendChild(row);
+    }
+
+    // Datalist for slot suggestions (shared across rows)
+    var dl = document.createElement("datalist");
+    dl.id = "sponsor-slots";
+    SPONSOR_SLOTS.forEach(function (s) {
+      var o = document.createElement("option"); o.value = s; dl.appendChild(o);
+    });
+    card.appendChild(dl);
+
+    // Always start with at least one empty row
+    addRow();
+
+    var addBtn = el("button", "text-[12px] font-semibold text-primary hover:underline mt-2");
+    addBtn.type = "button"; addBtn.textContent = "+ Add another sponsor";
+    addBtn.addEventListener("click", function () { addRow(); });
+    card.appendChild(addBtn);
+
+    var err = el("p", "text-[12px] text-error mt-3"); err.style.display = "none";
+    card.appendChild(err);
+
+    var actions = el("div", "flex justify-end gap-2 mt-4");
+    var cancel = el("button", "px-4 py-2 text-[12px] font-semibold text-secondary hover:text-on-surface transition-colors");
+    cancel.type = "button"; cancel.textContent = "Cancel";
+    cancel.addEventListener("click", closeModal);
+    actions.appendChild(cancel);
+    var save = el("button", "px-4 py-2 text-[12px] font-bold bg-primary text-on-primary rounded-lg hover:opacity-90 transition-opacity");
+    save.type = "button"; save.textContent = "Save sponsors";
+    save.addEventListener("click", function () {
+      err.style.display = "none";
+      var rows = Array.from(rowsWrap.querySelectorAll(".sponsor-input-row"));
+      var payload = [];
+      rows.forEach(function (r) {
+        var name = r.querySelector('input[name="name"]').value.trim();
+        if (!name) return;
+        payload.push({
+          episode_id: ep.id,
+          name: name,
+          slot: r.querySelector('input[name="slot"]').value.trim() || null,
+          timestamp: r.querySelector('input[name="ts"]').value.trim() || null,
+          notes: r.querySelector('textarea[name="notes"]').value.trim() || null,
+          entered_by: "Josh",
+          cut_into_show: false
+        });
+      });
+      if (!payload.length) {
+        err.textContent = "Enter at least one sponsor name.";
+        err.style.display = "block";
+        return;
+      }
+      save.disabled = true; save.textContent = "Saving…";
+      sb.from("prs_sponsors").insert(payload).then(function (r) {
+        if (r.error) {
+          err.textContent = "Save failed: " + r.error.message;
+          err.style.display = "block";
+          save.disabled = false; save.textContent = "Save sponsors";
+          return;
+        }
+        closeModal();
+        loadSponsors().then(function () { autoCompleteInputSponsors(); render(); });
+      });
+    });
+    actions.appendChild(save);
+    card.appendChild(actions);
+
+    bd.appendChild(card);
+    root.appendChild(bd);
+  }
+
+  // Auto-complete the "Input Sponsors" task once ≥1 sponsor is entered.
+  function autoCompleteInputSponsors() {
+    if (!sponsors.length) return;
+    var inp = items.find(function (it) {
+      return it.role_group === "Sponsorship" && it.title === "Input Sponsors";
+    });
+    if (!inp || inp.done) return;
+    var nowIso = new Date().toISOString();
+    inp.done = true; inp.done_at = nowIso;
+    sb.from("prs_checklist_items").update({ done: true, done_at: nowIso }).eq("id", inp.id).then(function (r) {
+      if (r.error) console.error(r.error);
+    });
+  }
+
+  // ============================================================
+  // Checklist render
   // ============================================================
   function renderItem(item) {
     var row = document.createElement("details");
@@ -719,6 +1198,16 @@
       detail.textContent = item.instructions_md;
       row.appendChild(detail);
     }
+    // Special CTA: "Input Sponsors" item gets a button to open the modal.
+    if (item.role_group === "Sponsorship" && item.title === "Input Sponsors") {
+      var cta = el("div", "px-4 pb-3 pl-12");
+      var btn = el("button", "cta-btn");
+      btn.appendChild(icon("add", "text-[16px]"));
+      html(btn, "span", null, sponsors.length ? "Add more sponsors" : "Open input form");
+      btn.addEventListener("click", function (e) { e.stopPropagation(); openSponsorsModal(); });
+      cta.appendChild(btn);
+      row.appendChild(cta);
+    }
     var actions = el("div", "px-4 pb-3 pl-12 flex gap-3 items-center");
     var del = el("button", "text-[11px] text-secondary hover:text-error transition-colors", "Delete");
     del.addEventListener("click", function (e) { e.stopPropagation(); deleteItem(item); });
@@ -732,6 +1221,55 @@
 
     return row;
   }
+  function renderSponsorRow(s) {
+    var row = document.createElement("details");
+    row.className = "sponsor-row";
+
+    var cbWrap = el("label", "flex-shrink-0 cursor-pointer flex items-center pt-0.5");
+    cbWrap.addEventListener("click", function (e) { e.stopPropagation(); });
+    var cb = document.createElement("input");
+    cb.type = "checkbox"; cb.className = "cb"; cb.checked = !!s.cut_into_show;
+    cb.addEventListener("change", function () { toggleSponsorCut(s); });
+    cbWrap.appendChild(cb);
+    row.appendChild(cbWrap);
+
+    var body = el("div", "body");
+    var nameRow = el("div", "flex items-center gap-2 flex-wrap");
+    var nameSpan = el("span", "name" + (s.cut_into_show ? " cut" : ""), s.name);
+    nameRow.appendChild(nameSpan);
+    var jerry = el("span", "row-owner-chip", "Jerry");
+    nameRow.appendChild(jerry);
+    body.appendChild(nameRow);
+
+    // Subtitle: slot · timestamp · cut-into-show meta
+    var sub = el("div", "sub");
+    if (s.slot) {
+      var sl = el("span"); sl.textContent = s.slot; sub.appendChild(sl);
+    }
+    if (s.timestamp) {
+      if (s.slot) html(sub, "span", "sep", "·");
+      var ts = el("span"); ts.textContent = s.timestamp; sub.appendChild(ts);
+    }
+    if (!s.cut_into_show) {
+      if (s.slot || s.timestamp) html(sub, "span", "sep", "·");
+      var status = el("span"); status.textContent = "Cut into show — not yet verified"; sub.appendChild(status);
+    } else if (s.cut_at) {
+      if (s.slot || s.timestamp) html(sub, "span", "sep", "·");
+      var ok = el("span"); ok.textContent = "Verified in cut · " + shortDate(s.cut_at); sub.appendChild(ok);
+    }
+    body.appendChild(sub);
+
+    if (s.notes) html(body, "div", "notes", s.notes);
+
+    var act = el("div", "mt-2 flex items-center gap-3");
+    var del = el("button", "del-btn", "Delete");
+    del.addEventListener("click", function (e) { e.stopPropagation(); deleteSponsor(s); });
+    act.appendChild(del);
+    body.appendChild(act);
+
+    row.appendChild(body);
+    return row;
+  }
   function renderGroup(group, groupItems) {
     var section = el("section", "bg-surface-container rounded-xl border border-outline-variant overflow-hidden");
     var head = el("div", "flex items-center justify-between px-4 py-3 border-b border-outline-variant/30");
@@ -741,11 +1279,23 @@
     var owner = OWNERS[group];
     if (owner) html(left, "span", "owner-chip", owner);
     head.appendChild(left);
-    var gdone = groupItems.filter(function (it) { return it.done; }).length;
-    html(head, "span", "text-[11px] text-secondary font-medium flex-shrink-0", gdone + " / " + groupItems.length);
+
+    // Count items + sponsor rows (for Sponsorship) for the section progress.
+    var doneCount = groupItems.filter(function (it) { return it.done; }).length;
+    var totalCount = groupItems.length;
+    if (group === "Sponsorship") {
+      doneCount += sponsors.filter(function (s) { return !!s.cut_into_show; }).length;
+      totalCount += sponsors.length;
+    }
+    html(head, "span", "text-[11px] text-secondary font-medium flex-shrink-0", doneCount + " / " + totalCount);
     section.appendChild(head);
 
     groupItems.forEach(function (it) { section.appendChild(renderItem(it)); });
+
+    // Sponsor rows live inside the Sponsorship section, below the "Input Sponsors" task.
+    if (group === "Sponsorship" && sponsors.length) {
+      sponsors.forEach(function (s) { section.appendChild(renderSponsorRow(s)); });
+    }
 
     var addBtn = el("button", "w-full px-4 py-3 text-left text-[12px] text-secondary hover:bg-surface-container-high hover:text-primary transition-colors flex items-center gap-2 border-t border-outline-variant/30");
     addBtn.appendChild(icon("add", "text-[18px]"));
@@ -775,6 +1325,9 @@
       if (!byGroup[g]) byGroup[g] = [];
       byGroup[g].push(it);
     });
+    // Ensure Sponsorship section renders even if no checklist item exists (so sponsor rows show).
+    if (sponsors.length && !byGroup["Sponsorship"]) byGroup["Sponsorship"] = [];
+
     var rendered = {};
     ROLE_GROUPS.forEach(function (g) {
       if (byGroup[g]) { c.appendChild(renderGroup(g, byGroup[g])); rendered[g] = true; }
@@ -783,7 +1336,7 @@
       if (!rendered[g]) c.appendChild(renderGroup(g, byGroup[g]));
     });
 
-    if (!items.length) {
+    if (!items.length && !sponsors.length) {
       var card = el("div", "bg-surface-container rounded-xl border border-outline-variant p-6 space-y-3");
       html(card, "h2", "text-[14px] font-bold text-primary uppercase tracking-widest", "No items yet");
       html(card, "p", "text-[13px] text-on-surface-variant", "This episode's checklist is empty.");
@@ -796,14 +1349,46 @@
   // ============================================================
   function toggleItem(item) {
     var newDone = !item.done;
+    var nowIso = new Date().toISOString();
     item.done = newDone;
-    item.done_at = newDone ? new Date().toISOString() : null;
+    item.done_at = newDone ? nowIso : null;
     render();
     sb.from("prs_checklist_items").update({
       done: newDone,
-      done_at: newDone ? new Date().toISOString() : null
+      done_at: newDone ? nowIso : null
     }).eq("id", item.id).then(function (r) {
       if (r.error) { console.error(r.error); alert("Toggle failed: " + r.error.message); load(); }
+    });
+    // Special side effect: the "Send transcript to Jeremy" task drives the episode's transcript_received flag.
+    if (item.role_group === "Transcript" && item.title === "Send transcript to Jeremy") {
+      var patch = {
+        transcript_received: newDone,
+        transcript_received_at: newDone ? nowIso : null
+      };
+      sb.from("prs_episodes").update(patch).eq("id", ep.id).then(function (r) {
+        if (r.error) console.error(r.error);
+        else if (ep) { ep.transcript_received = newDone; ep.transcript_received_at = patch.transcript_received_at; }
+      });
+    }
+  }
+  function toggleSponsorCut(s) {
+    var newCut = !s.cut_into_show;
+    var nowIso = new Date().toISOString();
+    s.cut_into_show = newCut;
+    s.cut_at = newCut ? nowIso : null;
+    render();
+    sb.from("prs_sponsors").update({
+      cut_into_show: newCut,
+      cut_at: newCut ? nowIso : null
+    }).eq("id", s.id).then(function (r) {
+      if (r.error) { console.error(r.error); alert("Toggle failed: " + r.error.message); loadSponsors().then(render); }
+    });
+  }
+  function deleteSponsor(s) {
+    if (!confirm("Delete this sponsor?\n\n" + s.name)) return;
+    sb.from("prs_sponsors").delete().eq("id", s.id).then(function (r) {
+      if (r.error) alert("Delete failed: " + r.error.message);
+      else loadSponsors().then(render);
     });
   }
   function addItem(group) {
@@ -834,9 +1419,17 @@
         items = r.data || [];
       });
   }
+  function loadSponsors() {
+    return sb.from("prs_sponsors")
+      .select("*").eq("episode_id", ep.id).order("entered_at", { ascending: true })
+      .then(function (r) {
+        if (r.error) { console.error(r.error); sponsors = []; return; }
+        sponsors = r.data || [];
+      });
+  }
   function loadPastEpisodes() {
     return sb.from("prs_episodes")
-      .select("id,slug,guest_name,status,premiere_at,created_at,metrics,metrics_updated_at")
+      .select("id,slug,guest_name,status,premiere_at,airing_date,shooting_date,transcript_received,created_at,metrics,metrics_updated_at")
       .order("premiere_at", { ascending: false, nullsFirst: false })
       .limit(8)
       .then(function (r) {
@@ -846,7 +1439,7 @@
   }
   function loadAllEpisodes() {
     return sb.from("prs_episodes")
-      .select("id,slug,guest_name,status,premiere_at,created_at,metrics,metrics_updated_at")
+      .select("id,slug,guest_name,status,premiere_at,airing_date,shooting_date,transcript_received,created_at,metrics,metrics_updated_at")
       .order("created_at", { ascending: false, nullsFirst: false })
       .then(function (r) {
         if (r.error) { console.error(r.error); return []; }
@@ -864,6 +1457,11 @@
           { event: "UPDATE", schema: "public", table: "prs_episodes", filter: "id=eq." + ep.id },
           function (payload) { if (payload && payload.new) { ep = payload.new; render(); } })
       .subscribe();
+    sb.channel("prs-sp-" + ep.id)
+      .on("postgres_changes",
+          { event: "*", schema: "public", table: "prs_sponsors", filter: "episode_id=eq." + ep.id },
+          function () { loadSponsors().then(render); })
+      .subscribe();
   }
 
   // ============================================================
@@ -880,8 +1478,7 @@
       setHeaderForHome();
       var c = document.getElementById("content");
       c.innerHTML = "";
-      var skel = el("div", "text-[13px] text-secondary/70 px-1", "Loading episodes…");
-      c.appendChild(skel);
+      html(c, "div", "text-[13px] text-secondary/70 px-1", "Loading episodes…");
       loadAllEpisodes().then(function (all) { renderHome(all); });
       return;
     }
@@ -896,7 +1493,9 @@
         return;
       }
       ep = r.data;
-      Promise.all([loadItems(), loadPastEpisodes()]).then(function () {
+      Promise.all([loadItems(), loadSponsors(), loadPastEpisodes()]).then(function () {
+        // If there are sponsors but the Input Sponsors task is still pending, fix it.
+        autoCompleteInputSponsors();
         render();
         subscribeRealtime();
       });

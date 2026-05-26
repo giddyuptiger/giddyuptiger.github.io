@@ -8,8 +8,14 @@ create table if not exists prs_episodes (
   premiere_at timestamptz,
   status text not null default 'in-progress',
   sheet_url text,
+  metrics jsonb not null default '{}'::jsonb,
+  metrics_updated_at timestamptz,
   created_at timestamptz not null default now()
 );
+
+-- If the table already existed before metrics columns, add them idempotently:
+alter table prs_episodes add column if not exists metrics jsonb not null default '{}'::jsonb;
+alter table prs_episodes add column if not exists metrics_updated_at timestamptz;
 
 create table if not exists prs_checklist_items (
   id uuid primary key default gen_random_uuid(),

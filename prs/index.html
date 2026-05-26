@@ -64,7 +64,6 @@
   details > summary::-webkit-details-marker { display: none; }
   details[open] > summary .chev { transform: rotate(90deg); }
   .chev { transition: transform 0.18s ease; display: inline-block; }
-  /* Custom checkbox */
   .cb {
     appearance: none; -webkit-appearance: none;
     width: 20px; height: 20px;
@@ -75,14 +74,70 @@
     transition: background 0.15s, border-color 0.15s;
     display: inline-flex; align-items: center; justify-content: center;
   }
-  .cb:checked {
-    background: #f2ca50; border-color: #f2ca50;
-  }
+  .cb:checked { background: #f2ca50; border-color: #f2ca50; }
   .cb:checked::after {
     content: ""; width: 6px; height: 10px;
     border: solid #131313; border-width: 0 2px 2px 0;
     transform: rotate(45deg) translate(-1px,-1px);
   }
+  /* Metrics tile grid */
+  .metric-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  @media (min-width: 640px) { .metric-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+  .metric-tile {
+    background: #0e0e0e;
+    border: 1px solid rgba(77,70,53,0.6);
+    border-radius: 10px;
+    padding: 10px 11px;
+    display: flex; flex-direction: column; gap: 2px;
+    min-width: 0;
+  }
+  .metric-tile .lbl {
+    font-size: 9.5px; font-weight: 700; letter-spacing: 0.08em;
+    color: #c8c6c5; text-transform: uppercase;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .metric-tile .val { font-size: 17px; font-weight: 700; color: #e5e2e1; line-height: 1.15; }
+  .metric-tile .val.empty { color: #6f675a; font-weight: 500; }
+  /* Past episode card */
+  .past-strip { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
+  .past-strip::-webkit-scrollbar { height: 6px; }
+  .past-strip::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 3px; }
+  .past-card {
+    flex: 0 0 220px;
+    background: #1c1b1b;
+    border: 1px solid #4d4635;
+    border-radius: 10px;
+    padding: 11px 12px;
+    text-decoration: none; color: inherit;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .past-card:hover { border-color: #d4af37; background: #201f1f; }
+  /* Modal */
+  .modal-bd {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    display: flex; align-items: flex-start; justify-content: center;
+    z-index: 100; padding: 24px 16px; overflow-y: auto;
+    backdrop-filter: blur(4px);
+  }
+  .modal-card {
+    background: #201f1f;
+    border: 1px solid #4d4635;
+    border-radius: 14px;
+    width: 100%; max-width: 460px;
+    padding: 18px 18px 16px;
+    color: #e5e2e1;
+  }
+  .modal-card h3 {
+    font-size: 12px; font-weight: 700; letter-spacing: 0.08em;
+    color: #f2ca50; text-transform: uppercase; margin-bottom: 14px;
+  }
+  .modal-card label { font-size: 11px; color: #c8c6c5; display: block; margin-bottom: 4px; font-weight: 600; }
+  .modal-card input {
+    width: 100%; background: #131313; border: 1px solid #4d4635; border-radius: 8px;
+    padding: 8px 10px; color: #e5e2e1; font-size: 14px;
+    transition: border-color 0.15s;
+  }
+  .modal-card input:focus { outline: none; border-color: #f2ca50; }
 </style>
 </head>
 <body class="bg-surface text-on-surface flex flex-col min-h-screen">
@@ -99,18 +154,20 @@
   <div id="content" class="space-y-5"></div>
 </main>
 
+<div id="modal-root"></div>
+
 <footer class="border-t border-outline-variant/30 flex flex-col items-center gap-1.5 py-6 text-secondary/70">
   <span class="text-[11px] font-semibold tracking-widest text-primary/70">PRS COMMAND CENTER</span>
-  <p class="text-[11px]">Live checklist. Anyone with the link can toggle and add items.</p>
+  <p class="text-[11px]">Live checklist + metrics. Anyone with the link can toggle, add items, and edit metrics.</p>
 </footer>
 
 <script>
 (function () {
   // ============================================================
-  // CONFIG. Fill in after creating the PRS Supabase project.
+  // CONFIG
   // ============================================================
-  var SUPABASE_URL = "PLACEHOLDER_URL";
-  var SUPABASE_ANON_KEY = "PLACEHOLDER_KEY";
+  var SUPABASE_URL = "https://umtckshrjeyueyzgkuwm.supabase.co";
+  var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtdGNrc2hyamV5dWV5emdrdXdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4MTIyODksImV4cCI6MjA5NTM4ODI4OX0.AGAixV91hWFSmUTclna1e7lwaA3CAVk8bGbHi5Zrrj4";
 
   var ROLE_GROUPS = [
     "Editorial",
@@ -129,12 +186,29 @@
     "Post-Launch": "visibility"
   };
 
+  // The 10 KPIs that get tracked per episode.
+  var METRIC_DEFS = [
+    { key: "views",                 label: "Views",            fmt: "n" },
+    { key: "ctr_pct",               label: "CTR",              fmt: "pct" },
+    { key: "avg_view_pct",          label: "Avg % viewed",     fmt: "pct" },
+    { key: "avg_view_duration_sec", label: "Avg view time",    fmt: "dur" },
+    { key: "watch_time_hours",      label: "Watch hrs",        fmt: "hrs" },
+    { key: "subscribers_gained",    label: "Subs gained",      fmt: "n" },
+    { key: "impressions",           label: "Impressions",      fmt: "n" },
+    { key: "ad_spend",              label: "Ad spend",         fmt: "usd" },
+    { key: "ad_ctr_pct",            label: "Ad CTR",           fmt: "pct" },
+    { key: "ad_cpv",                label: "Ad CPV",           fmt: "usd2" }
+  ];
+  // Headline subset used in the past-episodes comparison cards.
+  var HEADLINE_KEYS = ["views", "ctr_pct", "avg_view_pct"];
+
   // ============================================================
   // State + helpers
   // ============================================================
   var sb = null;
   var ep = null;
   var items = [];
+  var pastEps = [];
 
   function el(tag, cls, text) {
     var e = document.createElement(tag);
@@ -150,29 +224,57 @@
     s.className = "material-symbols-outlined " + (cls || "");
     s.textContent = name; return s;
   }
-  function isConfigured() {
-    return SUPABASE_URL && SUPABASE_URL.indexOf("PLACEHOLDER") !== 0 &&
-           SUPABASE_ANON_KEY && SUPABASE_ANON_KEY.indexOf("PLACEHOLDER") !== 0;
+
+  function fmtN(n) {
+    if (n == null || isNaN(n)) return null;
+    if (n >= 1000000) return (n / 1000000).toFixed(n >= 10000000 ? 0 : 1) + "M";
+    if (n >= 10000)   return Math.round(n / 1000) + "k";
+    return Number(n).toLocaleString();
+  }
+  function fmtPct(n) { return (n == null || isNaN(n)) ? null : Number(n).toFixed(1) + "%"; }
+  function fmtDur(s) {
+    if (s == null || isNaN(s)) return null;
+    var m = Math.floor(s / 60), r = Math.floor(s % 60);
+    return m + ":" + (r < 10 ? "0" + r : r);
+  }
+  function fmtHrs(h) { return (h == null || isNaN(h)) ? null : Math.round(Number(h)) + "h"; }
+  function fmtUsd(n) { return (n == null || isNaN(n)) ? null : "$" + Math.round(Number(n)).toLocaleString(); }
+  function fmtUsd2(n) { return (n == null || isNaN(n)) ? null : "$" + Number(n).toFixed(2); }
+  function fmtMetric(def, value) {
+    switch (def.fmt) {
+      case "n":    return fmtN(value);
+      case "pct":  return fmtPct(value);
+      case "dur":  return fmtDur(value);
+      case "hrs":  return fmtHrs(value);
+      case "usd":  return fmtUsd(value);
+      case "usd2": return fmtUsd2(value);
+      default:     return value == null ? null : String(value);
+    }
   }
 
-  // ============================================================
-  // Setup / error states
-  // ============================================================
-  function showSetup() {
-    var c = document.getElementById("content");
-    c.innerHTML = "";
-    document.getElementById("ep-line").textContent = "Needs Supabase config";
-    var card = el("div", "bg-surface-container rounded-xl border border-outline-variant p-6 space-y-3");
-    html(card, "h2", "text-[14px] font-bold text-primary uppercase tracking-widest", "Setup required");
-    html(card, "p", "text-[13px] text-on-surface-variant leading-relaxed",
-      "This page is wired up but not yet pointed at a Supabase project. To finish setup: " +
-      "create a Supabase project named PRS, run schema.sql and seed_rob_morrow.sql in the SQL editor, " +
-      "then send Jeremy the project URL and anon key so they can be pasted into this page's CONFIG block.");
-    var p = el("p", "text-[12px] text-secondary mt-2");
-    p.innerHTML = "SQL files are in this repo at <code class=\"bg-surface-container-high px-1.5 py-0.5 rounded text-primary/80\">prs/sql/</code>.";
-    card.appendChild(p);
-    c.appendChild(card);
+  function formatUpdated(raw) {
+    if (!raw) return "unknown";
+    var d = new Date(raw);
+    if (isNaN(d.getTime())) return raw;
+    return d.toLocaleString(undefined, {
+      month: "short", day: "numeric", hour: "numeric", minute: "2-digit"
+    });
   }
+  function shortDate(s) {
+    if (!s) return "";
+    var d = new Date(s);
+    if (isNaN(d.getTime())) return s;
+    return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  }
+
+  function metricsHasAnyValue(m) {
+    if (!m || typeof m !== "object") return false;
+    return METRIC_DEFS.some(function (def) {
+      var v = m[def.key];
+      return v != null && v !== "" && !(typeof v === "number" && isNaN(v));
+    });
+  }
+
   function showMessage(title, body) {
     var c = document.getElementById("content");
     c.innerHTML = "";
@@ -183,15 +285,14 @@
   }
 
   // ============================================================
-  // Render
+  // Progress + episode header
   // ============================================================
   function setProgress() {
     var total = items.length, done = items.filter(function (it) { return it.done; }).length;
     var pct = total > 0 ? Math.round(done * 100 / total) : 0;
     var p = document.getElementById("progress");
     p.innerHTML = "";
-    var label = el("span", "text-[12px] text-secondary", done + " / " + total);
-    p.appendChild(label);
+    p.appendChild(el("span", "text-[12px] text-secondary", done + " / " + total));
     var bar = el("div", "w-32 h-1.5 bg-surface-container-high rounded-full overflow-hidden");
     var fill = el("div", "h-full bg-primary transition-all duration-300");
     fill.style.width = pct + "%";
@@ -199,6 +300,182 @@
     p.appendChild(bar);
   }
 
+  // ============================================================
+  // Metrics card (this episode)
+  // ============================================================
+  function renderMetricsCard(content) {
+    var section = el("section", "bg-surface-container rounded-xl border border-outline-variant overflow-hidden");
+    var head = el("div", "flex items-center justify-between px-4 py-3 border-b border-outline-variant/30");
+    var left = el("div", "flex items-center gap-2.5");
+    left.appendChild(icon("insights", "text-primary text-[20px]"));
+    html(left, "h2", "text-[12px] font-bold tracking-widest text-primary uppercase", "This Episode");
+    head.appendChild(left);
+    var editBtn = el("button", "text-[11px] text-secondary hover:text-primary transition-colors flex items-center gap-1");
+    editBtn.appendChild(icon("edit", "text-[14px]"));
+    html(editBtn, "span", null, "Edit");
+    editBtn.addEventListener("click", openEditMetrics);
+    head.appendChild(editBtn);
+    section.appendChild(head);
+
+    var body = el("div", "px-4 py-3");
+    var m = ep && ep.metrics ? ep.metrics : {};
+
+    if (!metricsHasAnyValue(m)) {
+      var empty = el("div", "flex items-center justify-between gap-3 py-1");
+      var msg = el("div", "flex items-center gap-2 text-[13px] text-secondary");
+      msg.appendChild(icon("auto_graph", "text-secondary/70 text-[18px]"));
+      html(msg, "span", null, "No metrics yet for this episode.");
+      empty.appendChild(msg);
+      var add = el("button", "text-[12px] font-semibold text-primary hover:underline");
+      add.textContent = "Add metrics";
+      add.addEventListener("click", openEditMetrics);
+      empty.appendChild(add);
+      body.appendChild(empty);
+    } else {
+      var grid = el("div", "metric-grid");
+      METRIC_DEFS.forEach(function (def) {
+        var tile = el("div", "metric-tile");
+        html(tile, "span", "lbl", def.label);
+        var val = fmtMetric(def, m[def.key]);
+        var valEl = el("span", "val" + (val == null ? " empty" : ""));
+        valEl.textContent = val == null ? "—" : val;
+        tile.appendChild(valEl);
+        grid.appendChild(tile);
+      });
+      body.appendChild(grid);
+      if (ep.metrics_updated_at) {
+        html(body, "p", "text-[10.5px] text-secondary/60 mt-2",
+          "Updated " + formatUpdated(ep.metrics_updated_at));
+      }
+    }
+    section.appendChild(body);
+    content.appendChild(section);
+  }
+
+  // ============================================================
+  // Past episodes strip
+  // ============================================================
+  function renderPastEpisodesStrip(content) {
+    var prior = (pastEps || []).filter(function (e) { return ep && e.slug !== ep.slug; });
+    if (!prior.length) return;
+    var section = el("section", "space-y-2");
+    var head = el("div", "flex items-center gap-2 px-1");
+    head.appendChild(icon("history", "text-secondary text-[18px]"));
+    html(head, "h2", "text-[11px] font-bold tracking-widest text-secondary uppercase", "Past Episodes");
+    section.appendChild(head);
+
+    var strip = el("div", "past-strip");
+    prior.forEach(function (e) {
+      var card = document.createElement("a");
+      card.className = "past-card";
+      card.href = "?episode=" + encodeURIComponent(e.slug);
+      var top = el("div", "flex items-center justify-between mb-2");
+      html(top, "div", "text-[13px] font-bold text-on-surface truncate flex-1 min-w-0", e.guest_name);
+      var d = e.premiere_at || e.created_at;
+      if (d) html(top, "span", "text-[10.5px] text-secondary/70 ml-2 whitespace-nowrap", shortDate(d));
+      card.appendChild(top);
+
+      var m = e.metrics || {};
+      var hasAny = metricsHasAnyValue(m);
+      if (hasAny) {
+        var row = el("div", "flex justify-between gap-2");
+        HEADLINE_KEYS.forEach(function (key) {
+          var def = METRIC_DEFS.find(function (x) { return x.key === key; });
+          var cell = el("div", "flex flex-col min-w-0");
+          html(cell, "span", "text-[9.5px] font-bold tracking-wider text-secondary uppercase truncate", def.label);
+          var v = fmtMetric(def, m[key]);
+          html(cell, "span", "text-[13px] font-semibold text-on-surface", v == null ? "—" : v);
+          row.appendChild(cell);
+        });
+        card.appendChild(row);
+      } else {
+        html(card, "p", "text-[11.5px] text-secondary/70", "No metrics yet");
+      }
+      strip.appendChild(card);
+    });
+    section.appendChild(strip);
+    content.appendChild(section);
+  }
+
+  // ============================================================
+  // Edit metrics modal
+  // ============================================================
+  function openEditMetrics() {
+    var root = document.getElementById("modal-root");
+    root.innerHTML = "";
+    var bd = el("div", "modal-bd");
+    bd.addEventListener("click", function (e) { if (e.target === bd) closeModal(); });
+    var card = el("div", "modal-card");
+    html(card, "h3", null, "Edit Episode Metrics");
+
+    var form = document.createElement("form");
+    form.className = "space-y-3";
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var payload = {};
+      METRIC_DEFS.forEach(function (def) {
+        var inp = form.querySelector('input[name="' + def.key + '"]');
+        var raw = inp.value.trim();
+        if (raw === "") return;
+        var n = Number(raw);
+        if (!isNaN(n)) payload[def.key] = n;
+      });
+      saveMetrics(payload);
+    });
+
+    var grid = el("div", "grid grid-cols-2 gap-3");
+    var m = ep && ep.metrics ? ep.metrics : {};
+    METRIC_DEFS.forEach(function (def) {
+      var field = document.createElement("div");
+      var lbl = el("label", null, def.label);
+      lbl.setAttribute("for", "mf-" + def.key);
+      field.appendChild(lbl);
+      var inp = document.createElement("input");
+      inp.id = "mf-" + def.key;
+      inp.name = def.key;
+      inp.type = "number";
+      inp.step = (def.fmt === "pct" || def.fmt === "usd2") ? "0.01" : "any";
+      inp.placeholder = "—";
+      if (m[def.key] != null) inp.value = m[def.key];
+      field.appendChild(inp);
+      grid.appendChild(field);
+    });
+    form.appendChild(grid);
+
+    var actions = el("div", "flex justify-end gap-2 mt-4");
+    var cancel = el("button", "px-4 py-2 text-[12px] font-semibold text-secondary hover:text-on-surface transition-colors");
+    cancel.type = "button"; cancel.textContent = "Cancel";
+    cancel.addEventListener("click", closeModal);
+    actions.appendChild(cancel);
+    var save = el("button", "px-4 py-2 text-[12px] font-bold bg-primary text-on-primary rounded-lg hover:opacity-90 transition-opacity");
+    save.type = "submit"; save.textContent = "Save";
+    actions.appendChild(save);
+    form.appendChild(actions);
+
+    card.appendChild(form);
+    bd.appendChild(card);
+    root.appendChild(bd);
+  }
+  function closeModal() {
+    var root = document.getElementById("modal-root");
+    root.innerHTML = "";
+  }
+  function saveMetrics(payload) {
+    sb.from("prs_episodes").update({
+      metrics: payload,
+      metrics_updated_at: new Date().toISOString()
+    }).eq("id", ep.id).select().single().then(function (r) {
+      if (r.error) { alert("Save failed: " + r.error.message); return; }
+      ep = r.data;
+      closeModal();
+      render();
+      loadPastEpisodes();
+    });
+  }
+
+  // ============================================================
+  // Checklist (existing)
+  // ============================================================
   function renderItem(item) {
     var row = document.createElement("details");
     row.className = "border-t border-outline-variant/30";
@@ -242,7 +519,6 @@
 
     return row;
   }
-
   function renderGroup(group, groupItems) {
     var section = el("section", "bg-surface-container rounded-xl border border-outline-variant overflow-hidden");
     var head = el("div", "flex items-center justify-between px-4 py-3 border-b border-outline-variant/30");
@@ -265,16 +541,17 @@
     return section;
   }
 
+  // ============================================================
+  // Render
+  // ============================================================
   function render() {
     var line = "";
-    if (ep) {
-      line = ep.guest_name;
-      if (ep.sheet_url) line += " · ";
-    }
+    if (ep) line = ep.guest_name;
     var epLine = document.getElementById("ep-line");
     epLine.textContent = "";
     epLine.appendChild(document.createTextNode(line));
     if (ep && ep.sheet_url) {
+      epLine.appendChild(document.createTextNode(" · "));
       var a = el("a", "text-primary/80 hover:text-primary underline-offset-2 hover:underline", "Production sheet");
       a.href = ep.sheet_url; a.target = "_blank"; a.rel = "noopener";
       epLine.appendChild(a);
@@ -285,21 +562,19 @@
     var c = document.getElementById("content");
     c.innerHTML = "";
 
+    if (ep) renderMetricsCard(c);
+    renderPastEpisodesStrip(c);
+
     var byGroup = {};
     items.forEach(function (it) {
       var g = it.role_group || "Other";
       if (!byGroup[g]) byGroup[g] = [];
       byGroup[g].push(it);
     });
-
     var rendered = {};
     ROLE_GROUPS.forEach(function (g) {
-      if (byGroup[g]) {
-        c.appendChild(renderGroup(g, byGroup[g]));
-        rendered[g] = true;
-      }
+      if (byGroup[g]) { c.appendChild(renderGroup(g, byGroup[g])); rendered[g] = true; }
     });
-    // Any custom groups added later
     Object.keys(byGroup).forEach(function (g) {
       if (!rendered[g]) c.appendChild(renderGroup(g, byGroup[g]));
     });
@@ -333,40 +608,48 @@
     var groupItems = items.filter(function (it) { return it.role_group === group; });
     var maxSort = groupItems.reduce(function (m, it) { return Math.max(m, it.sort_order || 0); }, 0);
     sb.from("prs_checklist_items").insert({
-      episode_id: ep.id,
-      role_group: group,
-      title: title.trim(),
-      sort_order: maxSort + 10,
-      done: false
-    }).then(function (r) {
-      if (r.error) { alert("Add failed: " + r.error.message); }
-      // realtime will refresh
-    });
+      episode_id: ep.id, role_group: group, title: title.trim(),
+      sort_order: maxSort + 10, done: false
+    }).then(function (r) { if (r.error) alert("Add failed: " + r.error.message); });
   }
   function deleteItem(item) {
     if (!confirm("Delete this item?\n\n" + item.title)) return;
     sb.from("prs_checklist_items").delete().eq("id", item.id).then(function (r) {
-      if (r.error) { alert("Delete failed: " + r.error.message); }
+      if (r.error) alert("Delete failed: " + r.error.message);
     });
   }
 
   // ============================================================
   // Load + realtime
   // ============================================================
-  function load() {
+  function loadItems() {
     return sb.from("prs_checklist_items")
       .select("*").eq("episode_id", ep.id).order("sort_order", { ascending: true })
       .then(function (r) {
         if (r.error) { console.error(r.error); showMessage("Error", r.error.message); return; }
         items = r.data || [];
-        render();
       });
   }
-  function subscribe() {
+  function loadPastEpisodes() {
+    return sb.from("prs_episodes")
+      .select("id,slug,guest_name,premiere_at,created_at,metrics,metrics_updated_at")
+      .order("premiere_at", { ascending: false, nullsFirst: false })
+      .limit(8)
+      .then(function (r) {
+        if (r.error) { console.error(r.error); pastEps = []; return; }
+        pastEps = r.data || [];
+      });
+  }
+  function subscribeRealtime() {
     sb.channel("prs-items-" + ep.id)
       .on("postgres_changes",
           { event: "*", schema: "public", table: "prs_checklist_items", filter: "episode_id=eq." + ep.id },
-          function () { load(); })
+          function () { loadItems().then(render); })
+      .subscribe();
+    sb.channel("prs-ep-" + ep.id)
+      .on("postgres_changes",
+          { event: "UPDATE", schema: "public", table: "prs_episodes", filter: "id=eq." + ep.id },
+          function (payload) { if (payload && payload.new) { ep = payload.new; render(); } })
       .subscribe();
   }
 
@@ -374,16 +657,29 @@
   // Init
   // ============================================================
   function init() {
-    if (!isConfigured()) { showSetup(); return; }
-
     sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     var params = new URLSearchParams(window.location.search);
     var slug = params.get("episode");
     if (!slug) {
-      document.getElementById("ep-line").textContent = "No episode in URL";
-      showMessage("Pick an episode",
-        "Append ?episode=<slug> to the URL. Example: ?episode=rob-morrow");
+      document.getElementById("ep-line").textContent = "Pick an episode";
+      // Load past episodes anyway so we can show a list
+      loadPastEpisodes().then(function () {
+        var c = document.getElementById("content");
+        c.innerHTML = "";
+        var card = el("div", "bg-surface-container rounded-xl border border-outline-variant p-6 space-y-3");
+        html(card, "h2", "text-[14px] font-bold text-primary uppercase tracking-widest", "Pick an episode");
+        html(card, "p", "text-[13px] text-on-surface-variant", "Append ?episode=<slug> to the URL. Recent episodes:");
+        var list = el("div", "space-y-2");
+        (pastEps || []).forEach(function (e) {
+          var a = el("a", "block px-3 py-2 rounded-lg bg-surface-container-low border border-outline-variant hover:border-primary text-[13px] text-on-surface");
+          a.href = "?episode=" + encodeURIComponent(e.slug);
+          a.textContent = e.guest_name + "  ·  " + e.slug;
+          list.appendChild(a);
+        });
+        card.appendChild(list);
+        c.appendChild(card);
+      });
       return;
     }
 
@@ -395,7 +691,10 @@
         return;
       }
       ep = r.data;
-      load().then(subscribe);
+      Promise.all([loadItems(), loadPastEpisodes()]).then(function () {
+        render();
+        subscribeRealtime();
+      });
     });
   }
 

@@ -136,14 +136,18 @@ async function fetchVideoAnalytics(
     if (typeof v === "number") (result as Record<string, number>)[name] = v;
   });
 
-  // 2) Impressions + CTR — second call with dimensions=video. If this
-  //    errors (some channels/regions don't expose these), swallow the
-  //    error and continue without them.
+  // 2) Impressions + CTR — second call with dimensions=video.
+  //    YouTube Analytics only allows these metrics in combination with
+  //    dimensions=video; sneak them in via a separate report request.
   try {
     const impParams = new URLSearchParams({
-      ...baseParams,
+      ids: `channel==${YT_CHANNEL_ID}`,
+      startDate: YOUTUBE_BIRTHDAY,
+      endDate: today,
       metrics: IMPRESSIONS_METRICS_LIST,
       dimensions: "video",
+      filters: `video==${videoId}`,
+      "max-results": "1",
     });
     const impUrl = `https://youtubeanalytics.googleapis.com/v2/reports?${impParams}`;
     const r2 = await fetch(impUrl, {
@@ -159,9 +163,14 @@ async function fetchVideoAnalytics(
         const v = row2[i];
         if (typeof v === "number") (result as Record<string, number>)[name] = v;
       });
+      // Mark that the impressions query at least ran (for debugging)
+      (result as Record<string, unknown>)._imp_status = "ok";
+      (result as Record<string, unknown>)._imp_rows = (data2.rows || []).length;
+    } else {
+      (result as Record<string, unknown>)._imp_status = `HTTP ${r2.status}: ${JSON.stringify(data2).slice(0,300)}`;
     }
-  } catch (_e) {
-    // Impressions are nice-to-have; ignore failures.
+  } catch (e) {
+    (result as Record<string, unknown>)._imp_status = `exception: ${e instanceof Error ? e.message : String(e)}`;
   }
 
   return result;

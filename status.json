@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-26T21:06:31Z",
+  "lastUpdated": "2026-05-27T22:05:22Z",
   "curious": [
     {
       "title": "Sacrena — competitive analysis",
@@ -35,11 +35,11 @@
     },
     {
       "name": "HD-LOVE",
-      "state": "waiting-on-jeremy",
-      "shortStatus": "Live end-to-end; finish App Store submission from build 20+",
-      "todo": "Finish the App Store submission",
-      "note": "App live end-to-end. Recent: friend system, chat/discover fixes, gender/age matching filter, duplicate-message and discover-photo fixes, and full Profile + Definition descriptions on the Me screen (build 20). A task is still completing every channel and gate interpretation so nothing shows a 'not written yet' placeholder. A context-aware compatibility-scoring spec was delivered to Jeremy to review.",
-      "nextStep": "Both Supabase migrations applied. Review the compatibility-scoring spec. Then finish the App Store submission: blockers, iPhone + iPad screenshots, fresh build (build 20+ carries all the recent work)."
+      "state": "in-progress",
+      "shortStatus": "Submitted to App Store, awaiting review",
+      "todo": "Wait for App Store review",
+      "note": "App submitted to the App Store and awaiting Apple's review result. Build 20+ carries the full friend system, gender/age matching filter, chat fixes, full Profile + Definition copy, and the compatibility scoring infrastructure.",
+      "nextStep": "Apple's reviewing. Watch App Store Connect for the result. While waiting, optional: keep iterating on internal builds for the next release."
     },
     {
       "name": "irons-design",
@@ -147,6 +147,11 @@
     }
   ],
   "recentlyShipped": [
+    {
+      "project": "HD-LOVE",
+      "what": "Submitted to App Store — awaiting Apple's review",
+      "date": "2026-05-27"
+    },
     {
       "project": "GRDN",
       "what": "10-min Gate Pause Live Activity dismissal fix: deadline handed to iOS via native bridge (build 1.11.5+5)",

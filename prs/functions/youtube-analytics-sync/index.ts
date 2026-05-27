@@ -50,12 +50,19 @@ const YT_CLIENT_ID = Deno.env.get("YT_CLIENT_ID");
 const YT_CLIENT_SECRET = Deno.env.get("YT_CLIENT_SECRET");
 const YT_CHANNEL_ID = Deno.env.get("YT_CHANNEL_ID") || "MINE";
 
+// Note: `impressions` and `impressionsClickThroughRate` are NOT supported
+// in video-level Analytics API queries (you get HTTP 400 "Unknown identifier").
+// They are available via a separate channel-level query with dimensions=video,
+// which we run as a second pass below.
 const METRICS_LIST = [
   "views",
   "estimatedMinutesWatched",
   "averageViewDuration",
   "averageViewPercentage",
   "subscribersGained",
+].join(",");
+
+const IMPRESSIONS_METRICS_LIST = [
   "impressions",
   "impressionsClickThroughRate",
 ].join(",");
@@ -97,32 +104,66 @@ async function fetchVideoAnalytics(
   videoId: string,
 ): Promise<AnalyticsRow> {
   const today = new Date().toISOString().slice(0, 10);
-  const params = new URLSearchParams({
+  const baseParams = {
     ids: `channel==${YT_CHANNEL_ID}`,
     startDate: YOUTUBE_BIRTHDAY,
     endDate: today,
-    metrics: METRICS_LIST,
     filters: `video==${videoId}`,
+  };
+  const result: AnalyticsRow = {};
+
+  // 1) Primary metrics (work with filters=video).
+  const primaryParams = new URLSearchParams({
+    ...baseParams,
+    metrics: METRICS_LIST,
   });
-  const url = `https://youtubeanalytics.googleapis.com/v2/reports?${params}`;
-  const r = await fetch(url, {
+  const primaryUrl = `https://youtubeanalytics.googleapis.com/v2/reports?${primaryParams}`;
+  const r1 = await fetch(primaryUrl, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
-  const data = await r.json();
-  if (!r.ok) {
+  const data1 = await r1.json();
+  if (!r1.ok) {
     throw new Error(
-      `Analytics API ${r.status} for video ${videoId}: ${JSON.stringify(data)}`,
+      `Analytics API ${r1.status} for video ${videoId}: ${JSON.stringify(data1)}`,
     );
   }
-  const headers: string[] = (data.columnHeaders ?? []).map(
+  const headers1: string[] = (data1.columnHeaders ?? []).map(
     (h: { name: string }) => h.name,
   );
-  const row: unknown[] = (data.rows && data.rows[0]) || [];
-  const result: AnalyticsRow = {};
-  headers.forEach((name, i) => {
-    const v = row[i];
+  const row1: unknown[] = (data1.rows && data1.rows[0]) || [];
+  headers1.forEach((name, i) => {
+    const v = row1[i];
     if (typeof v === "number") (result as Record<string, number>)[name] = v;
   });
+
+  // 2) Impressions + CTR — second call with dimensions=video. If this
+  //    errors (some channels/regions don't expose these), swallow the
+  //    error and continue without them.
+  try {
+    const impParams = new URLSearchParams({
+      ...baseParams,
+      metrics: IMPRESSIONS_METRICS_LIST,
+      dimensions: "video",
+    });
+    const impUrl = `https://youtubeanalytics.googleapis.com/v2/reports?${impParams}`;
+    const r2 = await fetch(impUrl, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    const data2 = await r2.json();
+    if (r2.ok) {
+      const headers2: string[] = (data2.columnHeaders ?? []).map(
+        (h: { name: string }) => h.name,
+      );
+      const row2: unknown[] = (data2.rows && data2.rows[0]) || [];
+      headers2.forEach((name, i) => {
+        const v = row2[i];
+        if (typeof v === "number") (result as Record<string, number>)[name] = v;
+      });
+    }
+  } catch (_e) {
+    // Impressions are nice-to-have; ignore failures.
+  }
+
   return result;
 }
 

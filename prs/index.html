@@ -376,6 +376,12 @@
   .ep-card .metrics > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
   .ep-card .metrics .ml { font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em; color: #c8c6c5; text-transform: uppercase; }
   .ep-card .metrics .mv { font-size: 14px; font-weight: 700; color: #e5e2e1; }
+  /* Color-code metrics relative to all-episode averages.
+     Green = above avg (+10%), red = below avg (-10%), gray = within ±10%. */
+  .ep-card .metrics .mv.cmp-above { color: #5dd39e; }
+  .ep-card .metrics .mv.cmp-below { color: #ff8b8b; }
+  .ep-card .metrics .mv.cmp-equal { color: #c8c6c5; }
+
   .ep-card .metrics .mv.empty { color: #6f675a; font-weight: 500; }
   /* Status pill (also reused for transcript pill style) */
   .pill {
@@ -890,22 +896,29 @@
     topBar.appendChild(newBtn);
     c.appendChild(topBar);
 
-    // Aggregate strip
+    // Aggregate strip + per-metric averages (used for color-coding episode cards).
     var total = allEps.length;
     var inProg = allEps.filter(isInProgress).length;
-    var totalViews = 0, ctrSum = 0, ctrN = 0, avgVwSum = 0, avgVwN = 0;
+    var avgs = {}; // { metric_key: average }
+    var sums = {}, ns = {};
+    METRIC_DEFS.forEach(function (def) { sums[def.key] = 0; ns[def.key] = 0; });
     allEps.forEach(function (e) {
       var m = e.metrics || {};
-      if (typeof m.views === "number" && !isNaN(m.views)) totalViews += m.views;
-      if (typeof m.ctr_pct === "number" && !isNaN(m.ctr_pct)) { ctrSum += m.ctr_pct; ctrN++; }
-      if (typeof m.avg_view_pct === "number" && !isNaN(m.avg_view_pct)) { avgVwSum += m.avg_view_pct; avgVwN++; }
+      METRIC_DEFS.forEach(function (def) {
+        var v = m[def.key];
+        if (typeof v === "number" && !isNaN(v) && v !== 0) { sums[def.key] += v; ns[def.key] += 1; }
+      });
     });
+    METRIC_DEFS.forEach(function (def) {
+      if (ns[def.key] > 0) avgs[def.key] = sums[def.key] / ns[def.key];
+    });
+    var totalViews = sums.views;
     var aggDefs = [
       { lbl: "Episodes",    val: total > 0 ? String(total) : null },
       { lbl: "In progress", val: inProg > 0 ? String(inProg) : null },
       { lbl: "Total views", val: totalViews > 0 ? fmtN(totalViews) : null },
-      { lbl: "Avg CTR",     val: ctrN > 0 ? fmtPct(ctrSum / ctrN) : null },
-      { lbl: "Avg view %",  val: avgVwN > 0 ? fmtPct(avgVwSum / avgVwN) : null }
+      { lbl: "Avg CTR",     val: avgs.ctr_pct      != null ? fmtPct(avgs.ctr_pct)      : null },
+      { lbl: "Avg view %",  val: avgs.avg_view_pct != null ? fmtPct(avgs.avg_view_pct) : null }
     ];
     var agg = el("section", "agg-strip");
     aggDefs.forEach(function (a) {
@@ -1013,8 +1026,17 @@
         var def = METRIC_DEFS.find(function (x) { return x.key === key; });
         var cell = el("div");
         html(cell, "span", "ml truncate", def.label);
-        var v = fmtMetric(def, m[key]);
-        var mv = el("span", "mv" + (v == null ? " empty" : ""));
+        var rawV = m[key];
+        var v = fmtMetric(def, rawV);
+        // Color vs. average: ±10% band = equal (gray), above = green, below = red.
+        var cmpClass = "";
+        if (typeof rawV === "number" && !isNaN(rawV) && avgs[key] != null && avgs[key] > 0) {
+          var ratio = rawV / avgs[key];
+          if (ratio > 1.10) cmpClass = " cmp-above";
+          else if (ratio < 0.90) cmpClass = " cmp-below";
+          else cmpClass = " cmp-equal";
+        }
+        var mv = el("span", "mv" + (v == null ? " empty" : "") + cmpClass);
         mv.textContent = v == null ? "—" : v;
         cell.appendChild(mv);
         mGrid.appendChild(cell);

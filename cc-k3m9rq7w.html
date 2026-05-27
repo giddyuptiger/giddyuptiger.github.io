@@ -263,45 +263,87 @@
     return d.toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
   }
 
+  // Bottom-sheet modal with snooze choices. Centered overlay, tap outside to close.
+  function openSnoozeSheet(itemName, onSnoozed) {
+    // Remove any prior sheet first
+    var prior = document.getElementById("snooze-sheet-bd");
+    if (prior) prior.remove();
+
+    var bd = el("div", "fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-end sm:items-center justify-center px-4");
+    bd.id = "snooze-sheet-bd";
+    var card = el("div", "bg-surface-container border border-outline-variant rounded-2xl p-4 w-full max-w-sm space-y-2 shadow-2xl");
+    var head = el("div", "flex items-center justify-between mb-2");
+    var title = el("div", "");
+    html(title, "p", "text-[11px] font-bold tracking-widest text-primary uppercase", "Snooze");
+    html(title, "p", "text-[15px] font-semibold text-on-surface", itemName);
+    head.appendChild(title);
+    var close = el("button", "text-secondary hover:text-on-surface text-[20px] px-2");
+    close.textContent = "✕";
+    close.addEventListener("click", function () { bd.remove(); });
+    head.appendChild(close);
+    card.appendChild(head);
+
+    snoozeOptions().forEach(function (opt) {
+      var b = el("button", "w-full text-left bg-surface-container-lowest hover:bg-surface-container-high border border-outline-variant/30 rounded-lg px-4 py-3 flex items-center justify-between transition-colors");
+      var lbl = el("span", "text-[14px] font-semibold text-on-surface");
+      lbl.textContent = opt.label;
+      b.appendChild(lbl);
+      var arrow = el("span", "text-secondary text-[16px]");
+      arrow.textContent = "›";
+      b.appendChild(arrow);
+      b.addEventListener("click", function (e) {
+        e.stopPropagation();
+        if (opt.ts) snoozeUntil(itemName, opt.ts);
+        else snoozeSet(itemName, opt.ms);
+        bd.remove();
+        if (onSnoozed) onSnoozed();
+      });
+      card.appendChild(b);
+    });
+
+    bd.appendChild(card);
+    bd.addEventListener("click", function (e) {
+      if (e.target === bd) bd.remove();
+    });
+    document.body.appendChild(bd);
+  }
+
   function attachSnoozeSwipe(rowEl, itemName, onSnoozed) {
     var startX = 0, currentX = 0, dragging = false, opened = false;
-    var actions = null;
+    var snoozeBtn = null;
 
-    function ensureActions() {
-      if (actions) return actions;
-      actions = el("div", "absolute inset-y-0 right-0 flex items-center pr-2 gap-1 opacity-0 transition-opacity pointer-events-none");
-      snoozeOptions().forEach(function (opt) {
-        var b = el("button", "bg-primary/15 text-primary text-[11px] font-bold px-2 py-1 rounded-full whitespace-nowrap hover:bg-primary/25");
-        b.textContent = opt.label;
-        b.addEventListener("click", function (e) {
-          e.stopPropagation();
-          if (opt.ts) snoozeUntil(itemName, opt.ts);
-          else snoozeSet(itemName, opt.ms);
-          if (onSnoozed) onSnoozed();
-        });
-        actions.appendChild(b);
+    function ensureBtn() {
+      if (snoozeBtn) return snoozeBtn;
+      snoozeBtn = el("button",
+        "absolute inset-y-0 right-0 flex items-center justify-center bg-primary/90 text-on-primary font-bold text-[13px] px-5 opacity-0 pointer-events-none rounded-r-lg");
+      snoozeBtn.style.minWidth = "100px";
+      snoozeBtn.textContent = "💤 Snooze";
+      snoozeBtn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        openSnoozeSheet(itemName, function () { if (onSnoozed) onSnoozed(); });
+        close();
       });
-      rowEl.appendChild(actions);
-      return actions;
+      rowEl.appendChild(snoozeBtn);
+      return snoozeBtn;
     }
 
     rowEl.style.position = "relative";
     rowEl.style.touchAction = "pan-y";
 
     function open() {
-      ensureActions();
+      ensureBtn();
       rowEl.style.transition = "transform 0.2s ease";
-      rowEl.style.transform = "translateX(-72%)";
-      actions.style.opacity = "1";
-      actions.style.pointerEvents = "auto";
+      rowEl.style.transform = "translateX(-100px)";
+      snoozeBtn.style.opacity = "1";
+      snoozeBtn.style.pointerEvents = "auto";
       opened = true;
     }
     function close() {
       rowEl.style.transition = "transform 0.2s ease";
       rowEl.style.transform = "translateX(0)";
-      if (actions) {
-        actions.style.opacity = "0";
-        actions.style.pointerEvents = "none";
+      if (snoozeBtn) {
+        snoozeBtn.style.opacity = "0";
+        snoozeBtn.style.pointerEvents = "none";
       }
       opened = false;
     }
@@ -317,12 +359,13 @@
       currentX = e.touches[0].clientX;
       var dx = currentX - startX;
       if (dx < 0) {
-        ensureActions();
-        actions.style.opacity = Math.min(1, Math.abs(dx)/80);
-        actions.style.pointerEvents = Math.abs(dx) > 30 ? "auto" : "none";
-        rowEl.style.transform = "translateX(" + Math.max(dx, -300) + "px)";
+        ensureBtn();
+        var pull = Math.max(dx, -120);
+        snoozeBtn.style.opacity = Math.min(1, Math.abs(dx)/80).toString();
+        snoozeBtn.style.pointerEvents = Math.abs(dx) > 30 ? "auto" : "none";
+        rowEl.style.transform = "translateX(" + pull + "px)";
       } else if (opened && dx > 0) {
-        rowEl.style.transform = "translateX(" + Math.min(dx - rowEl.offsetWidth*0.72, 0) + "px)";
+        rowEl.style.transform = "translateX(" + Math.min(dx - 100, 0) + "px)";
       }
     }, { passive: true });
     rowEl.addEventListener("touchend", function () {

@@ -248,7 +248,7 @@ Deno.serve(async (req) => {
     const accessToken = await getAccessToken(token.refresh_token);
     const episodes = await loadEpisodesWithVideo(sb);
 
-    const results: Array<{ slug: string; ok: boolean; error?: string; views?: number }> = [];
+    const results: Array<{ slug: string; ok: boolean; error?: string; views?: number; ctr_pct?: number; impressions?: number; imp_status?: string }> = [];
     const updatedAt = new Date().toISOString();
 
     for (const ep of episodes) {
@@ -264,6 +264,11 @@ Deno.serve(async (req) => {
           slug: ep.slug,
           ok: true,
           views: analytics.views,
+          impressions: analytics.impressions,
+          ctr_pct: analytics.impressionsClickThroughRate != null
+            ? analytics.impressionsClickThroughRate * 100
+            : undefined,
+          imp_status: (analytics as Record<string, unknown>)._imp_status as string | undefined,
         });
       } catch (e) {
         results.push({

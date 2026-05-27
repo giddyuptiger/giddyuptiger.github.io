@@ -1935,6 +1935,7 @@
   function loadAllEpisodes() {
     return sb.from("prs_episodes")
       .select("*")
+      .order("premiere_at", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false, nullsFirst: false })
       .then(function (r) {
         if (r.error) {

@@ -56,10 +56,43 @@ create table if not exists prs_sponsors (
 
 create index if not exists prs_sponsors_episode_idx on prs_sponsors(episode_id);
 
+-- Strategy: Johnny's growth playbook surfaced on the home dashboard.
+-- prs_strategy_items is the checklist of action items (grouped by category);
+-- prs_strategy_state is a single-row table holding operator-edited goal text.
+create table if not exists prs_strategy_items (
+  id uuid primary key default gen_random_uuid(),
+  seed_key text unique,
+  category text not null,
+  title text not null,
+  instructions_md text,
+  sort_order integer not null default 0,
+  done boolean not null default false,
+  done_at timestamptz,
+  notes text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists prs_strategy_items_category_idx on prs_strategy_items(category, sort_order);
+
+create table if not exists prs_strategy_state (
+  id integer primary key default 1,
+  weekly_progress text,
+  outlier_hit_rate text,
+  thirty_day_status text,
+  updated_at timestamptz not null default now(),
+  constraint prs_strategy_state_single_row check (id = 1)
+);
+
+insert into prs_strategy_state (id) values (1)
+on conflict (id) do nothing;
+
 -- Row Level Security. v1: open access (the page lives at an unlisted URL).
 alter table prs_episodes enable row level security;
 alter table prs_checklist_items enable row level security;
 alter table prs_sponsors enable row level security;
+alter table prs_strategy_items enable row level security;
+alter table prs_strategy_state enable row level security;
 
 drop policy if exists "prs_episodes select" on prs_episodes;
 drop policy if exists "prs_episodes insert" on prs_episodes;
@@ -73,6 +106,14 @@ drop policy if exists "prs_sponsors select" on prs_sponsors;
 drop policy if exists "prs_sponsors insert" on prs_sponsors;
 drop policy if exists "prs_sponsors update" on prs_sponsors;
 drop policy if exists "prs_sponsors delete" on prs_sponsors;
+drop policy if exists "prs_strategy_items select" on prs_strategy_items;
+drop policy if exists "prs_strategy_items insert" on prs_strategy_items;
+drop policy if exists "prs_strategy_items update" on prs_strategy_items;
+drop policy if exists "prs_strategy_items delete" on prs_strategy_items;
+drop policy if exists "prs_strategy_state select" on prs_strategy_state;
+drop policy if exists "prs_strategy_state insert" on prs_strategy_state;
+drop policy if exists "prs_strategy_state update" on prs_strategy_state;
+drop policy if exists "prs_strategy_state delete" on prs_strategy_state;
 
 create policy "prs_episodes select" on prs_episodes for select using (true);
 create policy "prs_episodes insert" on prs_episodes for insert with check (true);
@@ -89,6 +130,16 @@ create policy "prs_sponsors insert" on prs_sponsors for insert with check (true)
 create policy "prs_sponsors update" on prs_sponsors for update using (true) with check (true);
 create policy "prs_sponsors delete" on prs_sponsors for delete using (true);
 
+create policy "prs_strategy_items select" on prs_strategy_items for select using (true);
+create policy "prs_strategy_items insert" on prs_strategy_items for insert with check (true);
+create policy "prs_strategy_items update" on prs_strategy_items for update using (true) with check (true);
+create policy "prs_strategy_items delete" on prs_strategy_items for delete using (true);
+
+create policy "prs_strategy_state select" on prs_strategy_state for select using (true);
+create policy "prs_strategy_state insert" on prs_strategy_state for insert with check (true);
+create policy "prs_strategy_state update" on prs_strategy_state for update using (true) with check (true);
+create policy "prs_strategy_state delete" on prs_strategy_state for delete using (true);
+
 -- Realtime publication. Toggles propagate live across viewers.
 do $$
 begin
@@ -102,6 +153,12 @@ begin
     exception when duplicate_object then null; end;
     begin
       execute 'alter publication supabase_realtime add table prs_sponsors';
+    exception when duplicate_object then null; end;
+    begin
+      execute 'alter publication supabase_realtime add table prs_strategy_items';
+    exception when duplicate_object then null; end;
+    begin
+      execute 'alter publication supabase_realtime add table prs_strategy_state';
     exception when duplicate_object then null; end;
   end if;
 end $$;

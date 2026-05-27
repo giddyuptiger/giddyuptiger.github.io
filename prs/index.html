@@ -500,6 +500,165 @@
     padding: 4px 8px; border-radius: 6px;
   }
   .sponsor-input-row .remove-row:hover { color: #ffb4ab; background: rgba(147, 0, 10, 0.15); }
+
+  /* ============================================================
+     Strategy card (home view) — Johnny's growth playbook.
+     Collapsed by default so it doesn't dominate the dashboard;
+     expands to reveal principles, goals, action items, source docs.
+     ============================================================ */
+  .strategy-card {
+    background: linear-gradient(180deg, #201f1f 0%, #1c1b1b 100%);
+    border: 1px solid #4d4635;
+    border-radius: 14px;
+    overflow: hidden;
+    transition: border-color 0.15s;
+  }
+  .strategy-card[open] { border-color: rgba(212, 175, 55, 0.45); }
+  .strategy-card > summary {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    cursor: pointer;
+    list-style: none;
+    transition: background 0.15s;
+  }
+  .strategy-card > summary::-webkit-details-marker { display: none; }
+  .strategy-card > summary:hover { background: #262524; }
+  .strategy-card[open] > summary { border-bottom: 1px solid rgba(212, 175, 55, 0.2); }
+  .strategy-card .strat-head-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .strategy-card .strat-title {
+    font-size: 13px; font-weight: 800; letter-spacing: 0.1em;
+    color: #f2ca50; text-transform: uppercase;
+  }
+  .strategy-card .strat-sub {
+    font-size: 11px; color: rgba(200, 198, 197, 0.7);
+    margin-top: 2px; font-weight: 500; letter-spacing: 0;
+  }
+  .strategy-card .strat-prog {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: rgba(212, 175, 55, 0.08);
+    border: 1px solid rgba(212, 175, 55, 0.35);
+    color: #d4af37;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+  .strategy-card .strat-prog.done {
+    background: #f2ca50; color: #3c2f00; border-color: #f2ca50;
+  }
+  .strategy-card .strat-body { padding: 16px; display: flex; flex-direction: column; gap: 18px; }
+
+  /* Section sub-heading inside the strategy body */
+  .strat-section-head {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; font-weight: 800; letter-spacing: 0.08em;
+    color: #d4af37; text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  /* Principle block — gold left bar, italicized body. Read-only. */
+  .principles { display: flex; flex-direction: column; gap: 10px; }
+  .principle {
+    background: #131313;
+    border: 1px solid rgba(77, 70, 53, 0.5);
+    border-left: 3px solid #d4af37;
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .principle .pname {
+    font-size: 11.5px; font-weight: 800; color: #f2ca50;
+    letter-spacing: 0.04em; text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .principle .pbody { font-size: 13px; color: #d0c5af; line-height: 1.55; }
+  .principle .pbody strong { color: #e5e2e1; }
+
+  /* Goals strip — three operator-editable tiles. */
+  .goals-strip {
+    display: grid; grid-template-columns: 1fr; gap: 10px;
+  }
+  @media (min-width: 640px) { .goals-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .goal-tile {
+    background: #131313;
+    border: 1px solid #4d4635;
+    border-radius: 10px;
+    padding: 11px 13px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    display: flex; flex-direction: column; gap: 4px;
+    text-align: left;
+    min-width: 0;
+  }
+  .goal-tile:hover { border-color: #d4af37; background: #1a1918; }
+  .goal-tile .glbl {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
+    color: #c8c6c5; text-transform: uppercase;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .goal-tile .gtgt { font-size: 10px; color: #99907c; font-weight: 600; }
+  .goal-tile .gval { font-size: 13px; color: #e5e2e1; line-height: 1.45; word-break: break-word; }
+  .goal-tile .gval.empty { color: #6f675a; font-style: italic; font-weight: 500; }
+  .goal-tile .gval .md-body { font-size: 13px; }
+
+  /* Action-item categories — same look as per-episode role-group cards
+     but compact and embedded inside the strategy body. */
+  .strat-cats { display: flex; flex-direction: column; gap: 10px; }
+  details.strat-cat {
+    background: #1c1b1b;
+    border: 1px solid #4d4635;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  details.strat-cat > summary {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px;
+    padding: 11px 14px;
+    cursor: pointer;
+    list-style: none;
+    transition: background 0.15s;
+  }
+  details.strat-cat > summary::-webkit-details-marker { display: none; }
+  details.strat-cat > summary:hover { background: #262524; }
+  details.strat-cat[open] > summary { border-bottom: 1px solid rgba(77, 70, 53, 0.4); }
+  details.strat-cat[open] .chev { transform: rotate(90deg); }
+  details.strat-cat .cat-head-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  details.strat-cat .cat-name {
+    font-size: 11.5px; font-weight: 800; letter-spacing: 0.08em;
+    color: #f2ca50; text-transform: uppercase;
+  }
+  details.strat-cat.complete { border-color: rgba(77, 70, 53, 0.5); }
+
+  /* Source documents footer */
+  .source-docs {
+    border-top: 1px solid rgba(77, 70, 53, 0.4);
+    padding-top: 14px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .source-docs .sd-head {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em;
+    color: #c8c6c5; text-transform: uppercase;
+  }
+  .source-docs .sd-row {
+    display: flex; flex-wrap: wrap; gap: 8px;
+  }
+  .source-docs a {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: rgba(212, 175, 55, 0.06);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    color: #d4af37;
+    font-size: 12px; font-weight: 600;
+    text-decoration: none;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .source-docs a:hover {
+    background: rgba(212, 175, 55, 0.14);
+    border-color: #f2ca50;
+    color: #f2ca50;
+  }
+  .source-docs a .material-symbols-outlined { font-size: 16px !important; }
 </style>
 </head>
 <body class="bg-surface text-on-surface flex flex-col min-h-screen">
@@ -589,6 +748,66 @@
   // Sponsor slot vocabulary (datalist suggestions; free text is also fine).
   var SPONSOR_SLOTS = ["mid-roll", "organic", "pre-roll", "post-roll", "host-read", "programmatic"];
 
+  // ============================================================
+  // Strategy config — Johnny's growth playbook (2026-05-27 session).
+  // Categories render top-to-bottom inside the Strategy card on the home
+  // dashboard. Icons keyed by category. Principles are read-only quote
+  // blocks rendered above the action items.
+  // ============================================================
+  var STRATEGY_CATEGORIES = [
+    "Routine",
+    "Content Format",
+    "Podcast",
+    "Validation",
+    "30-Day Test",
+    "Tooling"
+  ];
+  var STRATEGY_CAT_ICONS = {
+    "Routine": "event_repeat",
+    "Content Format": "view_kanban",
+    "Podcast": "graphic_eq",
+    "Validation": "fact_check",
+    "30-Day Test": "science",
+    "Tooling": "build"
+  };
+  var STRATEGY_PRINCIPLES = [
+    { name: "The Outlier Method",
+      body_md: "Video views ÷ channel average. **< 5×** is noise. **10×** is signal. **100×** is must-mimic." },
+    { name: "Two Control Points",
+      body_md: "Long-form YouTube = **thumbnail + title**. Short-form (Reels / Shorts / TikTok) = **first two sentences**. Everything else is downstream." },
+    { name: "The Portal Rule",
+      body_md: "Thumbnail + title is the portal. The first sentence of the video must speak the portal's words *almost verbatim*. **Plan the portal first, then write the hook.**" },
+    { name: "Cross-Pollination",
+      body_md: "Outlier patterns are **structural, not topical**. Find the pattern in any niche, swap the noun, deploy it in yours." },
+    { name: "The 30-Second Mention",
+      body_md: "Every talking-head video and every short mentions the podcast **twice** — once around 30 seconds in, once near the end." }
+  ];
+  // Goal-tile config: stable field key on prs_strategy_state, label, target hint.
+  var STRATEGY_GOALS = [
+    { key: "weekly_progress",
+      label: "This-week count",
+      target: "Target: 1 podcast · 1 talking-head · 7 shorts",
+      placeholder: "e.g. 1/1 podcast · 0/1 talking-head · 3/7 shorts" },
+    { key: "outlier_hit_rate",
+      label: "Outlier multiplier hit rate",
+      target: "% of published content matching a 5×+ outlier pattern",
+      placeholder: "e.g. 60% — 3 of 5 last week matched a 5×+ pattern" },
+    { key: "thirty_day_status",
+      label: "30-day test status",
+      target: "Which 3 outliers picked, formats produced, multipliers achieved",
+      placeholder: "Outliers chosen, format assignments, multipliers tracked at day 30…" }
+  ];
+  // Public path to the source documents copied into prs/docs/ (served by
+  // GitHub Pages at giddyuptiger.github.io/prs/docs/).
+  var STRATEGY_DOCS = [
+    { href: "docs/PRS_YouTube_Growth_Strategy.pdf",
+      label: "Strategy doc (clean)",
+      icon: "description" },
+    { href: "docs/PRS_Strategy_Session_Transcript.pdf",
+      label: "Session transcript (raw)",
+      icon: "subject" }
+  ];
+
   // Default checklist skeleton seeded into every NEW episode created from the home page.
   // Transcript + Sponsorship come first; the rest are standard launch tasks with
   // generic instructions (the verbatim per-episode content gets filled in once
@@ -668,6 +887,11 @@
   // Set when the user clicks a section summary; cleared when items inside
   // the section change (so the auto-rule re-applies on the next render).
   var sectionUserState = {};
+  // Strategy state (home view).
+  var strategyItems = [];
+  var strategyState = { weekly_progress: null, outlier_hit_rate: null, thirty_day_status: null };
+  var strategyCardOpen = false;          // outer Strategy card open/closed
+  var strategyCatState = {};              // per-category open state inside the card
 
   function el(tag, cls, text) {
     var e = document.createElement(tag);
@@ -874,9 +1098,425 @@
   }
 
   // ============================================================
+  // Strategy card (home view)
+  //   Outer <details> with: counts pill, sub-line, body that holds
+  //   principles → goals strip → action items by category → source docs.
+  // ============================================================
+  function renderStrategyCard() {
+    var card = document.createElement("details");
+    card.className = "strategy-card";
+    card.open = !!strategyCardOpen;
+
+    var total = strategyItems.length;
+    var done = strategyItems.filter(function (i) { return i.done; }).length;
+    var allDone = total > 0 && done === total;
+
+    // ---- Summary row (always visible)
+    var summary = document.createElement("summary");
+
+    var left = el("div", "strat-head-left");
+    left.appendChild(icon("rocket_launch", "text-primary text-[22px] flex-shrink-0"));
+    var titles = el("div", "min-w-0");
+    html(titles, "div", "strat-title", "Strategy");
+    var subText = total
+      ? "Growth playbook · " + done + " / " + total + " action items done"
+      : "Growth playbook · run the migration + seed to populate";
+    html(titles, "div", "strat-sub", subText);
+    left.appendChild(titles);
+    summary.appendChild(left);
+
+    var right = el("div", "flex items-center gap-2 flex-shrink-0");
+    if (total > 0) {
+      var prog = el("span", "strat-prog" + (allDone ? " done" : ""));
+      if (allDone) prog.appendChild(icon("check", "text-[14px]"));
+      html(prog, "span", null, done + " / " + total);
+      right.appendChild(prog);
+    }
+    right.appendChild(icon("chevron_right", "chev text-outline text-[20px]"));
+    summary.appendChild(right);
+
+    // Track outer expand intent so re-renders don't snap it shut.
+    summary.addEventListener("click", function () {
+      setTimeout(function () { strategyCardOpen = card.open; }, 0);
+    });
+
+    card.appendChild(summary);
+
+    // ---- Expanded body
+    var body = el("div", "strat-body");
+
+    // Principles (top, read-only)
+    var principlesWrap = el("div");
+    var pHead = el("div", "strat-section-head");
+    pHead.appendChild(icon("auto_awesome", "text-[16px]"));
+    html(pHead, "span", null, "Core principles");
+    principlesWrap.appendChild(pHead);
+    var principlesList = el("div", "principles");
+    STRATEGY_PRINCIPLES.forEach(function (p) {
+      var b = el("div", "principle");
+      html(b, "div", "pname", p.name);
+      var body = el("div", "pbody md-body");
+      setMarkdownInto(body, p.body_md);
+      b.appendChild(body);
+      principlesList.appendChild(b);
+    });
+    principlesWrap.appendChild(principlesList);
+    body.appendChild(principlesWrap);
+
+    // Goals (operator-editable)
+    var goalsWrap = el("div");
+    var gHead = el("div", "strat-section-head");
+    gHead.appendChild(icon("flag", "text-[16px]"));
+    html(gHead, "span", null, "Goals to track");
+    goalsWrap.appendChild(gHead);
+
+    var goalsStrip = el("div", "goals-strip");
+    STRATEGY_GOALS.forEach(function (g) {
+      var tile = document.createElement("button");
+      tile.type = "button";
+      tile.className = "goal-tile";
+      var lbl = el("div", "glbl");
+      lbl.appendChild(icon("edit", "text-[13px]"));
+      html(lbl, "span", null, g.label);
+      tile.appendChild(lbl);
+      html(tile, "div", "gtgt", g.target);
+      var val = strategyState ? strategyState[g.key] : null;
+      var valEl = el("div", "gval" + ((val == null || val === "") ? " empty" : ""));
+      if (val == null || val === "") {
+        valEl.textContent = "Tap to set";
+      } else {
+        setMarkdownInto(valEl, val);
+      }
+      tile.appendChild(valEl);
+      tile.addEventListener("click", function () { openEditGoalModal(g); });
+      goalsStrip.appendChild(tile);
+    });
+    goalsWrap.appendChild(goalsStrip);
+    body.appendChild(goalsWrap);
+
+    // Action items by category
+    var catsWrap = el("div");
+    var cHead = el("div", "strat-section-head");
+    cHead.appendChild(icon("checklist", "text-[16px]"));
+    html(cHead, "span", null, "Action items");
+    catsWrap.appendChild(cHead);
+
+    if (!strategyItems.length) {
+      var empty = el("div", "text-[12.5px] text-secondary/70 px-1 py-2");
+      empty.textContent = "No action items yet. Run the migration + seed_strategy.sql in Supabase to populate.";
+      catsWrap.appendChild(empty);
+    } else {
+      var byCat = {};
+      strategyItems.forEach(function (it) {
+        var c = it.category || "Other";
+        if (!byCat[c]) byCat[c] = [];
+        byCat[c].push(it);
+      });
+      var catsList = el("div", "strat-cats");
+      var renderedCats = {};
+      STRATEGY_CATEGORIES.forEach(function (cat) {
+        if (byCat[cat]) { catsList.appendChild(renderStrategyCategory(cat, byCat[cat])); renderedCats[cat] = true; }
+      });
+      Object.keys(byCat).forEach(function (cat) {
+        if (!renderedCats[cat]) catsList.appendChild(renderStrategyCategory(cat, byCat[cat]));
+      });
+      catsWrap.appendChild(catsList);
+    }
+    body.appendChild(catsWrap);
+
+    // Source documents footer
+    var docs = el("div", "source-docs");
+    html(docs, "div", "sd-head", "Source documents");
+    var docsRow = el("div", "sd-row");
+    STRATEGY_DOCS.forEach(function (d) {
+      var a = document.createElement("a");
+      a.href = d.href;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.appendChild(icon(d.icon, ""));
+      html(a, "span", null, d.label);
+      docsRow.appendChild(a);
+    });
+    docs.appendChild(docsRow);
+    body.appendChild(docs);
+
+    card.appendChild(body);
+    return card;
+  }
+
+  function renderStrategyCategory(category, catItems) {
+    var done = catItems.filter(function (i) { return i.done; }).length;
+    var total = catItems.length;
+    var allDone = total > 0 && done === total;
+
+    var d = document.createElement("details");
+    d.className = "strat-cat" + (allDone ? " complete" : "");
+    // Auto-rule: open unless 100% done. User override persists for the session.
+    if (strategyCatState.hasOwnProperty(category)) {
+      d.open = strategyCatState[category];
+    } else {
+      d.open = !allDone;
+    }
+
+    var s = document.createElement("summary");
+    var l = el("div", "cat-head-left");
+    l.appendChild(icon(STRATEGY_CAT_ICONS[category] || "task_alt", "text-primary text-[18px] flex-shrink-0"));
+    html(l, "span", "cat-name", category);
+    s.appendChild(l);
+
+    var r = el("div", "flex items-center gap-2 flex-shrink-0");
+    if (allDone) {
+      var b = el("span", "section-done-badge");
+      b.appendChild(icon("check", ""));
+      html(b, "span", null, done + " / " + total);
+      r.appendChild(b);
+    } else {
+      html(r, "span", "text-[11px] text-secondary font-medium", done + " / " + total);
+    }
+    r.appendChild(icon("chevron_right", "chev text-outline text-[18px]"));
+    s.appendChild(r);
+
+    s.addEventListener("click", function () {
+      setTimeout(function () { strategyCatState[category] = d.open; }, 0);
+    });
+
+    d.appendChild(s);
+    catItems.forEach(function (it) { d.appendChild(renderStrategyItem(it)); });
+    return d;
+  }
+
+  function renderStrategyItem(item) {
+    var row = document.createElement("details");
+    row.className = "border-t border-outline-variant/30";
+
+    var summary = document.createElement("summary");
+    summary.className = "flex items-center gap-3 px-4 py-3 hover:bg-surface-container-high transition-colors";
+
+    var cbWrap = el("label", "flex-shrink-0 cursor-pointer flex items-center");
+    cbWrap.addEventListener("click", function (e) { e.stopPropagation(); });
+    var cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.className = "cb";
+    cb.checked = !!item.done;
+    cb.addEventListener("change", function () { toggleStrategyItem(item); });
+    cbWrap.appendChild(cb);
+    summary.appendChild(cbWrap);
+
+    var titleEl = el("span",
+      "flex-1 min-w-0 text-[13.5px] " + (item.done ? "text-secondary line-through" : "text-on-surface"),
+      item.title);
+    summary.appendChild(titleEl);
+
+    summary.appendChild(icon("chevron_right", "chev text-outline text-[20px] flex-shrink-0"));
+    row.appendChild(summary);
+
+    if (item.instructions_md) {
+      var detail = el("div", "md-body px-4 pb-3 pl-12 text-[13px] text-on-surface-variant");
+      setMarkdownInto(detail, item.instructions_md);
+      row.appendChild(detail);
+    }
+    // Free-form operator notes (rendered as markdown, editable)
+    var noteWrap = el("div", "px-4 pb-3 pl-12");
+    var noteBtn = el("button", "text-[11px] text-secondary hover:text-primary transition-colors flex items-center gap-1");
+    noteBtn.appendChild(icon("sticky_note_2", "text-[14px]"));
+    html(noteBtn, "span", null, item.notes ? "Edit notes" : "Add notes");
+    noteBtn.addEventListener("click", function (e) { e.stopPropagation(); openEditStrategyNotes(item); });
+    if (item.notes) {
+      var noteBody = el("div", "md-body text-[12.5px] text-on-surface-variant border-l-2 border-outline-variant/50 pl-3 mb-2");
+      setMarkdownInto(noteBody, item.notes);
+      noteWrap.appendChild(noteBody);
+    }
+    noteWrap.appendChild(noteBtn);
+    row.appendChild(noteWrap);
+
+    return row;
+  }
+
+  // ============================================================
+  // Strategy mutations
+  // ============================================================
+  function toggleStrategyItem(item) {
+    var newDone = !item.done;
+    var nowIso = new Date().toISOString();
+    item.done = newDone;
+    item.done_at = newDone ? nowIso : null;
+    if (item.category) delete strategyCatState[item.category];
+    renderHome(window.__lastEpsForHome || []);
+    sb.from("prs_strategy_items").update({
+      done: newDone,
+      done_at: newDone ? nowIso : null,
+      updated_at: nowIso
+    }).eq("id", item.id).then(function (r) {
+      if (r.error) { console.error(r.error); alert("Toggle failed: " + r.error.message); loadStrategy().then(function () { renderHome(window.__lastEpsForHome || []); }); }
+    });
+  }
+
+  function openEditGoalModal(goalDef) {
+    var root = document.getElementById("modal-root");
+    root.innerHTML = "";
+    var bd = el("div", "modal-bd");
+    bd.addEventListener("click", function (e) { if (e.target === bd) closeModal(); });
+    var card = el("div", "modal-card");
+    html(card, "h3", null, "Edit goal · " + goalDef.label);
+
+    html(card, "p", "text-[12px] text-secondary mb-3", goalDef.target);
+
+    var form = document.createElement("form");
+    form.className = "ne-form";
+
+    var wrap = document.createElement("div");
+    var lbl = el("label", null, goalDef.label);
+    lbl.setAttribute("for", "goal-ta");
+    wrap.appendChild(lbl);
+    var ta = document.createElement("textarea");
+    ta.id = "goal-ta"; ta.rows = 5;
+    ta.placeholder = goalDef.placeholder || "";
+    ta.value = (strategyState && strategyState[goalDef.key]) || "";
+    wrap.appendChild(ta);
+    html(wrap, "p", "text-[11px] text-secondary/70 mt-1", "Markdown supported — bold, lists, links.");
+    form.appendChild(wrap);
+
+    var err = el("p", "text-[12px] text-error"); err.style.display = "none";
+    form.appendChild(err);
+
+    var actions = el("div", "flex justify-end gap-2 mt-4");
+    var cancel = el("button", "px-4 py-2 text-[12px] font-semibold text-secondary hover:text-on-surface transition-colors");
+    cancel.type = "button"; cancel.textContent = "Cancel";
+    cancel.addEventListener("click", closeModal);
+    actions.appendChild(cancel);
+    var save = el("button", "px-4 py-2 text-[12px] font-bold bg-primary text-on-primary rounded-lg hover:opacity-90 transition-opacity");
+    save.type = "submit"; save.textContent = "Save";
+    actions.appendChild(save);
+    form.appendChild(actions);
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var val = ta.value.trim();
+      var patch = {};
+      patch[goalDef.key] = val === "" ? null : val;
+      patch.updated_at = new Date().toISOString();
+      save.disabled = true; save.textContent = "Saving…";
+      sb.from("prs_strategy_state")
+        .update(patch).eq("id", 1).select().single()
+        .then(function (r) {
+          if (r.error) {
+            err.textContent = "Save failed: " + r.error.message;
+            err.style.display = "block";
+            save.disabled = false; save.textContent = "Save";
+            return;
+          }
+          strategyState = r.data || strategyState;
+          closeModal();
+          renderHome(window.__lastEpsForHome || []);
+        });
+    });
+
+    card.appendChild(form);
+    bd.appendChild(card);
+    root.appendChild(bd);
+    setTimeout(function () { ta.focus(); }, 50);
+  }
+
+  function openEditStrategyNotes(item) {
+    var root = document.getElementById("modal-root");
+    root.innerHTML = "";
+    var bd = el("div", "modal-bd");
+    bd.addEventListener("click", function (e) { if (e.target === bd) closeModal(); });
+    var card = el("div", "modal-card");
+    html(card, "h3", null, "Notes · " + item.title);
+
+    var form = document.createElement("form");
+    form.className = "ne-form";
+
+    var wrap = document.createElement("div");
+    var lbl = el("label", null, "Operator notes (markdown)");
+    lbl.setAttribute("for", "snote-ta");
+    wrap.appendChild(lbl);
+    var ta = document.createElement("textarea");
+    ta.id = "snote-ta"; ta.rows = 6;
+    ta.placeholder = "Free-form notes for this action item…";
+    ta.value = item.notes || "";
+    wrap.appendChild(ta);
+    form.appendChild(wrap);
+
+    var err = el("p", "text-[12px] text-error"); err.style.display = "none";
+    form.appendChild(err);
+
+    var actions = el("div", "flex justify-end gap-2 mt-4");
+    var cancel = el("button", "px-4 py-2 text-[12px] font-semibold text-secondary hover:text-on-surface transition-colors");
+    cancel.type = "button"; cancel.textContent = "Cancel";
+    cancel.addEventListener("click", closeModal);
+    actions.appendChild(cancel);
+    var save = el("button", "px-4 py-2 text-[12px] font-bold bg-primary text-on-primary rounded-lg hover:opacity-90 transition-opacity");
+    save.type = "submit"; save.textContent = "Save";
+    actions.appendChild(save);
+    form.appendChild(actions);
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var val = ta.value.trim();
+      save.disabled = true; save.textContent = "Saving…";
+      sb.from("prs_strategy_items")
+        .update({ notes: val === "" ? null : val, updated_at: new Date().toISOString() })
+        .eq("id", item.id).select().single()
+        .then(function (r) {
+          if (r.error) {
+            err.textContent = "Save failed: " + r.error.message;
+            err.style.display = "block";
+            save.disabled = false; save.textContent = "Save";
+            return;
+          }
+          // Update local copy and re-render.
+          for (var i = 0; i < strategyItems.length; i++) {
+            if (strategyItems[i].id === item.id) { strategyItems[i] = r.data; break; }
+          }
+          closeModal();
+          renderHome(window.__lastEpsForHome || []);
+        });
+    });
+
+    card.appendChild(form);
+    bd.appendChild(card);
+    root.appendChild(bd);
+    setTimeout(function () { ta.focus(); }, 50);
+  }
+
+  function loadStrategy() {
+    var p1 = sb.from("prs_strategy_items")
+      .select("*").order("sort_order", { ascending: true })
+      .then(function (r) {
+        if (r.error) { console.error("loadStrategy items:", r.error); strategyItems = []; return; }
+        strategyItems = r.data || [];
+      });
+    var p2 = sb.from("prs_strategy_state")
+      .select("*").eq("id", 1).maybeSingle()
+      .then(function (r) {
+        if (r.error) { console.error("loadStrategy state:", r.error); return; }
+        if (r.data) strategyState = r.data;
+      });
+    return Promise.all([p1, p2]);
+  }
+
+  function subscribeStrategyRealtime() {
+    sb.channel("prs-strategy-items")
+      .on("postgres_changes",
+          { event: "*", schema: "public", table: "prs_strategy_items" },
+          function () { loadStrategy().then(function () { renderHome(window.__lastEpsForHome || []); }); })
+      .subscribe();
+    sb.channel("prs-strategy-state")
+      .on("postgres_changes",
+          { event: "*", schema: "public", table: "prs_strategy_state" },
+          function () { loadStrategy().then(function () { renderHome(window.__lastEpsForHome || []); }); })
+      .subscribe();
+  }
+
+  // ============================================================
   // Home view
   // ============================================================
   function renderHome(allEps) {
+    // Cache the episode list so strategy mutations can re-render the home
+    // view without re-fetching episodes.
+    window.__lastEpsForHome = allEps;
     var c = document.getElementById("content");
     c.innerHTML = "";
     // Flag the main element so the home view gets safe-area top padding.
@@ -930,6 +1570,10 @@
       agg.appendChild(tile);
     });
     c.appendChild(agg);
+
+    // Strategy card — Johnny's growth playbook. Sits between the aggregate
+    // metrics and the Episodes list, collapsed by default.
+    c.appendChild(renderStrategyCard());
 
     // Episodes section header
     var section = el("section", "space-y-3");
@@ -2000,12 +2644,17 @@
       var c = document.getElementById("content");
       c.innerHTML = "";
       html(c, "div", "text-[13px] text-secondary/70 px-1", "Loading episodes…");
-      loadAllEpisodes().then(function (result) {
-        if (result.error) {
-          showMessage("Could not load episodes", result.error.message + " — if you just added new schema columns, run the migration in Supabase first.");
+      // Load episodes + strategy in parallel. Strategy is non-fatal:
+      // if its tables don't exist yet (migration not run), we still render
+      // the home view and the Strategy card will show a "run migration" hint.
+      Promise.all([loadAllEpisodes(), loadStrategy()]).then(function (results) {
+        var epsResult = results[0];
+        if (epsResult.error) {
+          showMessage("Could not load episodes", epsResult.error.message + " — if you just added new schema columns, run the migration in Supabase first.");
           return;
         }
-        renderHome(result.data);
+        renderHome(epsResult.data);
+        subscribeStrategyRealtime();
       });
       return;
     }

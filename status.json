@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-27T22:05:22Z",
+  "lastUpdated": "2026-05-28T00:00:00Z",
   "curious": [
     {
       "title": "Sacrena — competitive analysis",
@@ -17,6 +17,15 @@
       "todo": "Finish the Amazon listing",
       "note": "A physical product Jeremy is launching on Amazon. Currently setting up the Amazon product listing. Flagged top priority, finish ASAP.",
       "nextStep": "Finish setting up the Amazon product listing. Top priority right now."
+    },
+    {
+      "name": "Primal Ops",
+      "state": "in-progress",
+      "priority": 2,
+      "shortStatus": "Repo scaffolded; kickoff email drafted; waiting on Primal access",
+      "todo": "Send the Week 1 kickoff email to Primal",
+      "note": "New engagement: operations + data platform for Primal Moves Venice. Distinct from PRIMAL (member-facing Flutter app, parked) and primal-agent (AI voice agent, mock-mode). Repo `primal-ops` scaffolded today at giddyuptiger/primal-ops with the MVP cut: MVP-1 Mindbody → Klaviyo email flows, MVP-2 Toast + Mindbody joined member profile, MVP-3 cafe-credit triggers. Source docs (MVP plan, meeting notes, ops proposal, engagement terms Option C, AI agent build spec) archived in docs/. With AI-assisted build the original 3-week Phase 1 compresses to ~1 week once access lands.",
+      "nextStep": "Send `primal-ops/docs/06_Week1_Kickoff_Email.md` to Primal. Asking for Mindbody admin, Toast admin + tier, Klaviyo access, front-desk number provider, and the top refund/freeze/cancel policies — items 1-3 unblock Week 1 build."
     },
     {
       "name": "GRDN",

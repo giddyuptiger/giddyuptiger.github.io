@@ -50,7 +50,7 @@
   };
 </script>
 <style>
-  html, body { background-color: #131313; }
+  html, body { background-color: #131313; touch-action: manipulation; }
   body {
     font-family: 'Inter', sans-serif;
     color: #e5e2e1;
@@ -284,13 +284,10 @@
     card.appendChild(head);
 
     snoozeOptions().forEach(function (opt) {
-      var b = el("button", "w-full text-left bg-surface-container-lowest hover:bg-surface-container-high border border-outline-variant/30 rounded-lg px-4 py-3 flex items-center justify-between transition-colors");
+      var b = el("button", "w-full text-left bg-surface-container-lowest hover:bg-surface-container-high border border-outline-variant/30 rounded-lg px-4 py-3 transition-colors");
       var lbl = el("span", "text-[14px] font-semibold text-on-surface");
       lbl.textContent = opt.label;
       b.appendChild(lbl);
-      var arrow = el("span", "text-secondary text-[16px]");
-      arrow.textContent = "›";
-      b.appendChild(arrow);
       b.addEventListener("click", function (e) {
         e.stopPropagation();
         if (opt.ts) snoozeUntil(itemName, opt.ts);

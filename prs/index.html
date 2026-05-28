@@ -391,7 +391,7 @@
     text-transform: uppercase; white-space: nowrap;
   }
   .pill.in-progress { background: rgba(242, 202, 80, 0.12); color: #f2ca50; border: 1px solid rgba(242, 202, 80, 0.4); }
-  .pill.planned { background: rgba(212, 175, 55, 0.06); color: #d4af37; border: 1px solid rgba(212, 175, 55, 0.3); }
+  .pill.planned { background: rgba(116, 192, 252, 0.12); color: #8fc8ff; border: 1px solid rgba(116, 192, 252, 0.4); }
   .pill.shipped { background: rgba(200, 198, 197, 0.08); color: #c8c6c5; border: 1px solid rgba(200, 198, 197, 0.25); }
   .pill.tr-ok { background: rgba(141, 219, 162, 0.1); color: #8ddba2; border: 1px solid rgba(141, 219, 162, 0.3); font-weight: 600; letter-spacing: 0.02em; text-transform: none; }
   .pill.tr-pending { background: rgba(200, 198, 197, 0.06); color: rgba(200, 198, 197, 0.7); border: 1px solid rgba(200, 198, 197, 0.18); font-weight: 600; letter-spacing: 0.02em; text-transform: none; }
@@ -1598,20 +1598,38 @@
       return;
     }
 
-    // Sort: in-progress first, then by airing_date asc (nulls last), then created_at desc.
+    // Sort by bucket then date:
+    //   1. in-progress  (active work, no clear secondary order)
+    //   2. planned      (upcoming, sort by soonest airing date)
+    //   3. shipped      (released, sort by air date most-recent first)
+    function bucket(e) {
+      var st = statusOf(e);
+      if (st === "in-progress") return 0;
+      if (st === "planned") return 1;
+      return 2;
+    }
+    function airTs(e) {
+      // Best-effort air timestamp: premiere_at first (real-world ground truth
+      // for shipped eps), then airing_date (planned), then nothing.
+      var d = e.premiere_at || e.airing_date;
+      return d ? new Date(d).getTime() : null;
+    }
     var sorted = allEps.slice().sort(function (a, b) {
-      var aIp = isInProgress(a), bIp = isInProgress(b);
-      if (aIp !== bIp) return aIp ? -1 : 1;
-      var aAir = a.airing_date ? new Date(a.airing_date).getTime() : null;
-      var bAir = b.airing_date ? new Date(b.airing_date).getTime() : null;
-      if (aAir !== bAir) {
-        if (aAir == null) return 1;
-        if (bAir == null) return -1;
-        return aAir - bAir;
+      var ba = bucket(a), bb = bucket(b);
+      if (ba !== bb) return ba - bb;
+      var aT = airTs(a), bT = airTs(b);
+      if (ba === 2) {
+        // Shipped: most recent first. Missing dates sink to the bottom of the bucket.
+        if (aT == null && bT == null) return 0;
+        if (aT == null) return 1;
+        if (bT == null) return -1;
+        return bT - aT;
       }
-      var aCr = new Date(a.created_at || 0).getTime();
-      var bCr = new Date(b.created_at || 0).getTime();
-      return bCr - aCr;
+      // Planned: soonest first.
+      if (aT == null && bT == null) return 0;
+      if (aT == null) return 1;
+      if (bT == null) return -1;
+      return aT - bT;
     });
 
     var grid = el("div", "ep-grid");
@@ -1624,22 +1642,48 @@
       var nameWrap = el("div", "min-w-0 flex-1");
       html(nameWrap, "div", "name truncate", e.guest_name || "Untitled");
 
-      // Meta line: dates + transcript chip
+      // Meta line: dates + transcript chip.
+      // Date priority:
+      //   - shipped:    "Aired May 5" (premiere_at)
+      //   - planned:    "Shoot Apr 27 · Air May 5" (shoot + airing dates)
+      //   - other:      created_at fallback
       var meta = el("div", "meta");
-      var hasShoot = !!e.shooting_date;
-      var hasAir = !!e.airing_date;
-      var hasCreated = !hasShoot && !hasAir && e.created_at;
-      if (hasShoot) {
-        var s = el("span"); s.textContent = "Shoot " + shortDate(e.shooting_date); meta.appendChild(s);
+      var ep_status = statusOf(e);
+      var anyDate = false;
+      if (ep_status === "shipped" && e.premiere_at) {
+        var pd = el("span"); pd.textContent = "Aired " + shortDate(e.premiere_at); meta.appendChild(pd);
+        anyDate = true;
+      } else if (ep_status === "planned") {
+        if (e.shooting_date) {
+          var s2 = el("span"); s2.textContent = "Shoot " + shortDate(e.shooting_date); meta.appendChild(s2);
+          anyDate = true;
+        }
+        if (e.shooting_date && e.airing_date) html(meta, "span", "sep", "·");
+        if (e.airing_date) {
+          var ad = el("span"); ad.textContent = "Air " + shortDate(e.airing_date); meta.appendChild(ad);
+          anyDate = true;
+        }
+      } else {
+        // in-progress or other: show whichever dates exist
+        if (e.shooting_date) {
+          var s3 = el("span"); s3.textContent = "Shoot " + shortDate(e.shooting_date); meta.appendChild(s3);
+          anyDate = true;
+        }
+        if (e.shooting_date && e.airing_date) html(meta, "span", "sep", "·");
+        if (e.airing_date) {
+          var ad2 = el("span"); ad2.textContent = "Air " + shortDate(e.airing_date); meta.appendChild(ad2);
+          anyDate = true;
+        }
+        if (!anyDate && e.premiere_at) {
+          var pd2 = el("span"); pd2.textContent = shortDate(e.premiere_at); meta.appendChild(pd2);
+          anyDate = true;
+        }
+        if (!anyDate && e.created_at) {
+          var cd2 = el("span"); cd2.textContent = "Added " + shortDate(e.created_at); meta.appendChild(cd2);
+          anyDate = true;
+        }
       }
-      if (hasShoot && hasAir) html(meta, "span", "sep", "·");
-      if (hasAir) {
-        var ad = el("span"); ad.textContent = "Air " + shortDate(e.airing_date); meta.appendChild(ad);
-      }
-      if (hasCreated) {
-        var cd = el("span"); cd.textContent = shortDate(e.created_at); meta.appendChild(cd);
-      }
-      if (hasShoot || hasAir || hasCreated) html(meta, "span", "sep", "·");
+      if (anyDate) html(meta, "span", "sep", "·");
       var trChip = el("span", "pill " + (e.transcript_received ? "tr-ok" : "tr-pending"));
       trChip.textContent = e.transcript_received ? "Transcript ✓" : "Transcript pending";
       meta.appendChild(trChip);
@@ -1665,6 +1709,11 @@
       card.appendChild(headRow);
 
       var m = e.metrics || {};
+      // Skip metric tiles for planned episodes (no data yet — empty cells are noise).
+      if (ep_status === "planned") {
+        grid.appendChild(card);
+        return;
+      }
       var mGrid = el("div", "metrics");
       HEADLINE_KEYS.forEach(function (key) {
         var def = METRIC_DEFS.find(function (x) { return x.key === key; });

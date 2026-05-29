@@ -13,6 +13,8 @@
 <meta http-equiv="Expires" content="0">
 <title>Project Command Center</title>
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.0/dist/purify.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -72,6 +74,20 @@
     0%, 100% { opacity: 1; }
     50% { opacity: .45; }
   }
+
+  /* Playbook (expanded board row → step-by-step coaching) */
+  .playbook-body { color: #d0c5af; }
+  .playbook-body h1, .playbook-body h2, .playbook-body h3 { color: #f2ca50; font-weight: 700; margin: 12px 0 6px 0; }
+  .playbook-body h1 { font-size: 14px; }
+  .playbook-body h2 { font-size: 13.5px; }
+  .playbook-body h3 { font-size: 13px; }
+  .playbook-body p { margin: 6px 0; }
+  .playbook-body ul, .playbook-body ol { padding-left: 20px; margin: 6px 0; }
+  .playbook-body li { margin: 3px 0; }
+  .playbook-body strong { color: #f2ca50; }
+  .playbook-body code { background: #2a2a2a; padding: 1px 5px; border-radius: 3px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11.5px; color: #f2ca50; }
+  .playbook-body blockquote { border-left: 2px solid #f2ca50; padding-left: 10px; margin: 6px 0; color: #d0c5af; font-style: italic; }
+  .playbook-body hr { border: 0; border-top: 1px solid #4d4635; margin: 10px 0; }
 </style>
 </head>
 <body class="bg-surface text-on-surface flex flex-col min-h-screen">
@@ -488,6 +504,23 @@
       ns.appendChild(lbl);
       ns.appendChild(document.createTextNode(p.nextStep));
       detail.appendChild(ns);
+    }
+    if (p.playbook) {
+      var pbWrap = el("div", "mt-3 pt-3 border-t border-outline-variant/30");
+      var pbHead = el("p", "text-[11px] font-bold tracking-widest text-primary uppercase mb-2", "PLAYBOOK");
+      pbWrap.appendChild(pbHead);
+      var pbBody = el("div", "playbook-body text-[12.5px] leading-relaxed");
+      try {
+        if (window.marked && window.DOMPurify) {
+          pbBody.innerHTML = window.DOMPurify.sanitize(window.marked.parse(p.playbook));
+        } else {
+          pbBody.textContent = p.playbook;
+        }
+      } catch (e) {
+        pbBody.textContent = p.playbook;
+      }
+      pbWrap.appendChild(pbBody);
+      detail.appendChild(pbWrap);
     }
     row.appendChild(detail);
     return row;

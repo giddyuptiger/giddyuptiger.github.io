@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-28T00:00:00Z",
+  "lastUpdated": "2026-05-29T01:04:26Z",
   "curious": [
     {
       "title": "Sacrena — competitive analysis",
@@ -36,6 +36,15 @@
       "nextStep": "Re-run the GRDN Xcode Cloud build (now also picks up the Live Activity fix). Home-screen: run the Stitch prompt, pick a design, then Claude can build the redesigned home screen."
     },
     {
+      "name": "PRS Command Center",
+      "state": "in-progress",
+      "priority": 3,
+      "shortStatus": "Bulk import of 107 episodes running; CTR + guest names landing",
+      "todo": "Wait for 107-episode bulk import to finish",
+      "note": "Live at giddyuptiger.github.io/prs/. YouTube Analytics auto-sync running daily (4am/noon/8pm PT) — pulls views, watch hours, avg view %, subs gained, avg view time. CTR + impressions stay manual (YouTube API doesn't expose them per-video). Strategy section live with Johnny's growth playbook (28 action items). Bulk import of all 107 episodes from CSV is running now — proper guest names + complete metrics including CTR landing.",
+      "nextStep": "Bulk import completes shortly. After that: dashboard shows 107 episodes with clean guest names + every metric including CTR."
+    },
+    {
       "name": "SCANDALS",
       "state": "in-progress",
       "shortStatus": "v1.10.0 shipped; consolidated 13-point + width markers task running",
@@ -45,10 +54,10 @@
     {
       "name": "HD-LOVE",
       "state": "in-progress",
-      "shortStatus": "Submitted to App Store, awaiting review",
+      "shortStatus": "Submitted to App Store; incarnation cross + variables + pastel UI shipped",
       "todo": "Wait for App Store review",
-      "note": "App submitted to the App Store and awaiting Apple's review result. Build 20+ carries the full friend system, gender/age matching filter, chat fixes, full Profile + Definition copy, and the compatibility scoring infrastructure.",
-      "nextStep": "Apple's reviewing. Watch App Store Connect for the result. While waiting, optional: keep iterating on internal builds for the next release."
+      "note": "App submitted to App Store and awaiting Apple's review. Latest build adds: gate.line on daily transit (e.g. 26.1), Incarnation Cross + Variables + named-line Profile (4/6 Opportunist/Role Model), pastel blue+pink logo, app-wide gradient background.",
+      "nextStep": "Apple's review pending. Watch App Store Connect. Next iteration can start any time."
     },
     {
       "name": "irons-design",
@@ -75,11 +84,11 @@
     },
     {
       "name": "Futon",
-      "state": "waiting-on-jeremy",
-      "shortStatus": "Vocab dupes + 3 new grammar modules shipped (build 0.7.1+2); migrations need applying",
-      "todo": "Apply FUTON migrations 00013 + 00014",
-      "note": "Launch-polish all shipped. Content audit landed (commit a00dff7, build 0.7.1+2). Root cause of the パン bug: 4 separate DB rows for primary_form='パン' (different JMdict sense IDs); same pattern across ~100 N5 primary forms. Migration 00014 has 777 DELETEs that remove non-canonical duplicates. Also: the empty 'Basic Grammar' module got populated, and 3 new N5 grammar modules added (Particles, Polite Verbs, Adjectives) since only 1 of 93 grammar nodes had been assigned to a module. Curriculum recommendation: N4-N1 have full vocab/grammar but zero modules; staged N4-N1 kanji backfill from May 22 is the obvious next batch.",
-      "nextStep": "Apply FUTON migrations 00013 + 00014 (combined copy-paste block sent). Decide on the Achievements card (real system or remove for v1). Then build out the next batches of modules per the audit's recommendation."
+      "state": "in-progress",
+      "shortStatus": "Grammar quiz rework live; N5 audit + mock test in flight",
+      "todo": "Wait for N5 audit + N5 mock test to land",
+      "note": "Translation-pick + typing grammar quiz formats shipped (migration 00015 applied, 111 grammar examples seeded). AI chat confirmed working (system prompt being updated to translate English words instead of rejecting them). Currently building: real N5 module coverage (only 20 mostly-kana modules today — far below N5 curriculum) + a mock JLPT N5 test feature with optional 'skip mastered items' toggle.",
+      "nextStep": "Task in flight — N5 audit, N5 module buildout, N5 mock test. When it lands you can take the test to see if you'd pass."
     },
     {
       "name": "PAPPY",
@@ -158,6 +167,51 @@
   "recentlyShipped": [
     {
       "project": "HD-LOVE",
+      "what": "Submitted to App Store — awaiting Apple review",
+      "date": "2026-05-28"
+    },
+    {
+      "project": "HD-LOVE",
+      "what": "Incarnation Cross + Variables + named-line Profile + gate.line transit + pastel logo + app-wide gradient",
+      "date": "2026-05-28"
+    },
+    {
+      "project": "PRS",
+      "what": "Strategy section live with Johnny's growth playbook (28 action items)",
+      "date": "2026-05-28"
+    },
+    {
+      "project": "PRS",
+      "what": "YouTube Analytics auto-sync wired; 15+ episodes pulling daily",
+      "date": "2026-05-28"
+    },
+    {
+      "project": "PRS",
+      "what": "Home page: sort by air date, color-coded metrics vs average, 3-tile dashboard",
+      "date": "2026-05-28"
+    },
+    {
+      "project": "FUTON",
+      "what": "Grammar quiz rework: translation_pick + typing mode (migration 00015 + 111 grammar examples)",
+      "date": "2026-05-28"
+    },
+    {
+      "project": "Command Center",
+      "what": "Swipe-to-snooze on Do Next items (bottom-sheet modal)",
+      "date": "2026-05-28"
+    },
+    {
+      "project": "Command Center",
+      "what": "Double-tap zoom disabled on both command centers",
+      "date": "2026-05-28"
+    },
+    {
+      "project": "Primal Ops",
+      "what": "Project repo scaffolded, MVP plan + Week 1 kickoff email drafted; influencer affiliate added as MVP-4",
+      "date": "2026-05-28"
+    },
+    {
+      "project": "HD-LOVE",
       "what": "Submitted to App Store — awaiting Apple's review",
       "date": "2026-05-27"
     },
@@ -204,11 +258,6 @@
     {
       "project": "PRS",
       "what": "First agentic Rob Morrow production sheet, plus the PDF rendering and the SOP updated for the PDF output convention",
-      "date": "2026-05-25"
-    },
-    {
-      "project": "Command Center",
-      "what": "linkinbio page live at giddyuptiger.github.io/linkinbio/; this command center rebuilt and themed dark with gold accents",
       "date": "2026-05-25"
     }
   ]

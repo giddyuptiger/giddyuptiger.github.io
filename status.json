@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-29T15:51:07Z",
+  "lastUpdated": "2026-05-29T19:00:21Z",
   "curious": [
     {
       "title": "Sacrena — competitive analysis",
@@ -126,7 +126,8 @@
       "shortStatus": "Three check-ins per day: 6am / 2pm / 6pm PT",
       "todo": "Review starter goals.json + assertiveness",
       "note": "Personal AI manager system. Calendar wired, goals seeded, three scheduled cadences set. Phase 2 will add pattern recognition + cross-project tradeoff surfacing + tunable nudge frequency.",
-      "nextStep": "Review CLAUDE/maestro/goals.json — replace starter goals with your real ones. Confirm assertiveness setting (default: coach)."
+      "nextStep": "Review CLAUDE/maestro/goals.json — replace starter goals with your real ones. Confirm assertiveness setting (default: coach).",
+      "playbook": "**Maestro starter goals — review and edit these.**\n\nThese are the four starter goals I seeded so the daily brief has something to weigh against. Replace or refine them as your real goals. Just tell me \"change goal X to Y\" and I'll update both this view and the underlying goals.json.\n\n### G1 — Ship 5 apps to App Store\n- **Weight:** 10/10\n- **Horizon:** 2026-Q3\n- **Linked projects:** HD-LOVE, WEATHER, GRDN, FUTON, SCANDALS\n\n### G2 — Land Primal Moves engagement\n- **Weight:** 9/10\n- **Horizon:** 2026-06-30\n- **Linked projects:** Primal Ops\n\n### G3 — Launch iPhone Dock on Amazon\n- **Weight:** 10/10\n- **Horizon:** ASAP\n- **Linked projects:** iPhone Dock\n\n### G4 — Build sustainable revenue stream\n- **Weight:** 8/10\n- **Horizon:** Ongoing\n- **Linked projects:** (none yet — to be assigned)\n\n### How weights work\nEach project's \"next action\" gets weighted by its linked goal's weight at brief time. iPhone Dock + apps shipping both at weight 10 means they win Do Next slots over Primal Moves (weight 9) when there's a conflict. Drift detection compares the actual time you spend per project against the goal weights — if you spend a week on weight-8 work while weight-10 work sits, the next brief surfaces it.\n\n### Assertiveness setting\nDefault is **coach** mode. Other options: gentle_assistant (softer), drill_sergeant (more direct). Set in `CLAUDE/maestro/assertiveness.json`.\n\n### Edit any of these\nTell me what to change. I'll update both this view AND the file under `CLAUDE/maestro/goals.json` in the same step."
     },
     {
       "name": "AI Voice Agent",

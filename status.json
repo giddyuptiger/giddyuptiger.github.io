@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-29T01:04:26Z",
+  "lastUpdated": "2026-05-29T18:00:00Z",
   "curious": [
     {
       "title": "Sacrena — competitive analysis",
@@ -117,6 +117,15 @@
       "shortStatus": "Paused for AI Voice Agent focus",
       "note": "On hold by your decision. This is the customer-facing 'Primal Moves' fitness-studio app (front-end built; Firebase + Stripe backend built and pushed). Paused to focus on the separate AI Voice Agent — the sales-agent MVP in the primal-agent repo. Distinct project from this one.",
       "nextStep": "Parked, no action planned."
+    },
+    {
+      "name": "Maestro",
+      "state": "in-progress",
+      "priority": 2,
+      "shortStatus": "Phase 1 live — daily brief at 7am, check-in 9pm, weekly review Sundays",
+      "todo": "Review starter goals.json + assertiveness",
+      "note": "Personal AI manager system. Calendar wired, goals seeded, three scheduled cadences set. Phase 2 will add pattern recognition + cross-project tradeoff surfacing + tunable nudge frequency.",
+      "nextStep": "Review CLAUDE/maestro/goals.json — replace starter goals with your real ones. Confirm assertiveness setting (default: coach)."
     },
     {
       "name": "AI Voice Agent",

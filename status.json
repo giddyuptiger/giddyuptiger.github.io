@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-29T18:00:00Z",
+  "lastUpdated": "2026-05-29T19:00:00Z",
   "curious": [
     {
       "title": "Sacrena — competitive analysis",
@@ -122,7 +122,7 @@
       "name": "Maestro",
       "state": "in-progress",
       "priority": 2,
-      "shortStatus": "Phase 1 live — daily brief at 7am, check-in 9pm, weekly review Sundays",
+      "shortStatus": "Three check-ins per day: 6am / 2pm / 6pm PT",
       "todo": "Review starter goals.json + assertiveness",
       "note": "Personal AI manager system. Calendar wired, goals seeded, three scheduled cadences set. Phase 2 will add pattern recognition + cross-project tradeoff surfacing + tunable nudge frequency.",
       "nextStep": "Review CLAUDE/maestro/goals.json — replace starter goals with your real ones. Confirm assertiveness setting (default: coach)."

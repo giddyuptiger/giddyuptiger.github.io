@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-29T19:12:16Z",
+  "lastUpdated": "2026-05-29T21:30:00Z",
   "curious": [
     {
       "title": "Sacrena — competitive analysis",
@@ -31,10 +31,10 @@
     {
       "name": "GRDN",
       "state": "waiting-on-jeremy",
-      "shortStatus": "iOS exit-65 fix + Live Activity fix pushed (build 1.11.5+5); web live",
-      "todo": "Re-run the Xcode Cloud build",
-      "note": "iOS: exit-65 archive fix shipped (build 1.11.3+4) and the 10-min Gate Pause Live Activity dismissal bug fixed (build 1.11.5+5, commit b392cd6). Root cause of the Live Activity bug: dismissal timers ran in the Dart isolate, but iOS suspends Flutter during the 10-min unlock window so the timers never fired. Fix hands the dismissal deadline to iOS itself via `.after(endDate)` policy through a small native Swift bridge, so iOS dismisses the activity on time regardless of Flutter's state. Web live at grdnapp.com. Home-screen redesign spec is delivered.",
-      "nextStep": "Re-run the GRDN Xcode Cloud build (now also picks up the Live Activity fix). Home-screen: run the Stitch prompt, pick a design, then Claude can build the redesigned home screen."
+      "shortStatus": "Extension version mismatch (ITMS-90473) fixed; waiting on Xcode Cloud rebuild",
+      "todo": "Wait for Xcode Cloud rebuild + resubmit",
+      "note": "iOS App Store rejection ITMS-90473 (CFBundleShortVersionString mismatch) fixed: the four extensions (UsageReport, FamilyControlDeviceActivity, Session, Shield) shipped at 1.11.3 while Runner.app was at 1.11.5+5. Root cause: extension versions come from MARKETING_VERSION/CURRENT_PROJECT_VERSION in project.pbxproj (their Info.plists carry no version keys), and those were left at 1.11.3/4 while Runner pulls 1.11.5+5 from FLUTTER_BUILD_NAME/NUMBER. Bumped all 18 build configs to 1.11.5/5 (commit a9050ca). Earlier: exit-65 archive fix (1.11.3+4) and the 10-min Gate Pause Live Activity dismissal fix (1.11.5+5, commit b392cd6) shipped. Web live at grdnapp.com. Home-screen redesign spec delivered.",
+      "nextStep": "Push auto-triggers a new Xcode Cloud build that now carries matching extension versions. Confirm it builds clean, then resubmit to App Store review. Home-screen: run the Stitch prompt, pick a design, then build the redesigned home screen."
     },
     {
       "name": "PRS Command Center",

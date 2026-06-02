@@ -144,6 +144,17 @@
     s.textContent = name;
     return s;
   }
+  function linkLabel(u) { return String(u).replace(/^https?:\/\//, "").replace(/\/$/, ""); }
+  function projectLinkIcon(u) {
+    var a = document.createElement("a");
+    a.href = u; a.target = "_blank"; a.rel = "noopener";
+    a.className = "text-outline hover:text-primary transition-colors flex items-center";
+    a.title = linkLabel(u);
+    a.setAttribute("aria-label", "Open " + linkLabel(u));
+    a.addEventListener("click", function (e) { e.stopPropagation(); });
+    a.appendChild(icon("open_in_new", "text-[18px]"));
+    return a;
+  }
 
   function formatUpdated(raw) {
     if (!raw) return "unknown";
@@ -492,6 +503,7 @@
     var right = el("div", "flex items-center gap-2 flex-shrink-0");
     var pill = el("span", "px-2.5 py-1 rounded-full font-bold text-[10px] uppercase tracking-wider whitespace-nowrap border " + pillClasses(p.state), st.label);
     right.appendChild(pill);
+    if (p.url) right.appendChild(projectLinkIcon(p.url));
     right.appendChild(icon("chevron_right", "text-outline text-[20px] chev"));
     summary.appendChild(right);
     row.appendChild(summary);
@@ -521,6 +533,14 @@
       }
       pbWrap.appendChild(pbBody);
       detail.appendChild(pbWrap);
+    }
+    if (p.url) {
+      var la = document.createElement("a");
+      la.href = p.url; la.target = "_blank"; la.rel = "noopener";
+      la.className = "inline-flex items-center gap-1.5 text-primary font-semibold hover:underline pt-1 break-all";
+      la.appendChild(icon("open_in_new", "text-[16px]"));
+      la.appendChild(document.createTextNode(linkLabel(p.url)));
+      detail.appendChild(la);
     }
     row.appendChild(detail);
     return row;

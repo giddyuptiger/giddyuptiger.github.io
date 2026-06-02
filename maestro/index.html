@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0b0b">
+<title>Maestro</title>
+<meta name="description" content="Maestro — your private operating layer.">
+<meta name="robots" content="noindex, nofollow">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = { darkMode:"class", theme:{ extend:{
+    colors:{ "primary":"#f2ca50","primary-container":"#d4af37","on-primary":"#3c2f00","secondary":"#c8c6c5",
+      "on-surface":"#e5e2e1","on-surface-variant":"#d0c5af","surface":"#0e0e0e","background":"#0b0b0b",
+      "surface-container":"#1a1919","surface-container-low":"#151414","surface-container-lowest":"#0a0a0a",
+      "surface-container-high":"#262525","surface-variant":"#353534","outline":"#99907c","outline-variant":"#3a3527",
+      "blue":"#7aa2f7","green":"#9ece6a","error-container":"#93000a","on-error-container":"#ffdad6" },
+    fontFamily:{ "sans":["Inter","system-ui","sans-serif"],"mono":["JetBrains Mono","ui-monospace","monospace"] } } } };
+</script>
+<style>
+  html,body{ background-color:#0b0b0b; }
+  body{ font-family:'Inter',sans-serif; color:#e5e2e1; -webkit-font-smoothing:antialiased; min-height:100dvh;
+    background-image: radial-gradient(1200px 600px at 12% -8%, rgba(242,202,80,0.07), transparent 60%), radial-gradient(900px 500px at 100% 0%, rgba(122,162,247,0.05), transparent 55%);
+    background-attachment:fixed; }
+  body::after{ content:""; position:fixed; inset:0; pointer-events:none; z-index:1; opacity:.035;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+  .material-symbols-outlined{ font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; display:inline-block; vertical-align:middle; user-select:none; }
+  .ms-fill{ font-variation-settings:'FILL' 1; }
+  .pulse-dot{ animation:pulseFade 2.4s cubic-bezier(.4,0,.6,1) infinite; } @keyframes pulseFade{0%,100%{opacity:1}50%{opacity:.35}}
+  .rise{ opacity:0; transform:translateY(10px); animation:rise .5s cubic-bezier(.16,1,.3,1) forwards; } @keyframes rise{to{opacity:1;transform:none}}
+  .gold-edge{ box-shadow:inset 0 0 0 1px rgba(242,202,80,0.22), 0 24px 60px -30px rgba(0,0,0,0.9); }
+  .hairline{ border-color:rgba(154,144,124,0.16); }
+  .tab{ position:relative; transition:color .2s; } .tab[data-active="1"]{ color:#f2ca50; }
+  .tab[data-active="1"]::after{ content:""; position:absolute; left:8px; right:8px; bottom:-13px; height:2px; background:#f2ca50; border-radius:2px; }
+  .bnav[data-active="1"]{ color:#f2ca50; } .bnav[data-active="1"] .material-symbols-outlined{ font-variation-settings:'FILL' 1; }
+  .view{ display:none; } .view.active{ display:block; animation:viewIn .35s cubic-bezier(.16,1,.3,1); } @keyframes viewIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  #modal{ position:fixed; inset:0; z-index:80; display:flex; align-items:flex-end; justify-content:center; opacity:0; pointer-events:none; transition:opacity .25s; }
+  @media(min-width:640px){ #modal{ align-items:center; padding:24px; } }
+  #modal.open{ opacity:1; pointer-events:auto; }
+  #modal-backdrop{ position:absolute; inset:0; background:rgba(0,0,0,.66); backdrop-filter:blur(6px); }
+  #modal-panel{ position:relative; width:100%; max-width:560px; max-height:92dvh; overflow-y:auto; background:#141313; border:1px solid rgba(154,144,124,0.22); border-radius:22px 22px 0 0; transform:translateY(40px); transition:transform .3s cubic-bezier(.16,1,.3,1); }
+  @media(min-width:640px){ #modal-panel{ border-radius:22px; transform:translateY(16px) scale(.98); } }
+  #modal.open #modal-panel{ transform:none; }
+  .modal-grip{ width:38px; height:4px; border-radius:4px; background:#3a3527; margin:10px auto 0; } @media(min-width:640px){ .modal-grip{ display:none; } }
+  .pressable{ transition:transform .12s ease, background-color .2s, border-color .2s; } .pressable:active{ transform:scale(.985); }
+  ::-webkit-scrollbar{ height:8px; width:8px; } ::-webkit-scrollbar-thumb{ background:#2a2a2a; border-radius:8px; }
+  input:focus{ outline:none; }
+  @media (prefers-reduced-motion: reduce){ *{animation-duration:.001ms !important; transition-duration:.001ms !important;} }
+</style>
+</head>
+<body class="bg-background text-on-surface relative">
+
+<!-- ───────── LOGIN ───────── -->
+<div id="login" class="min-h-dvh flex items-center justify-center px-5 relative z-10">
+  <div class="w-full max-w-sm rise">
+    <div class="flex flex-col items-center mb-7">
+      <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary-container flex items-center justify-center text-on-primary font-black text-[32px] leading-none shadow-xl mb-4">M</div>
+      <h1 class="text-[22px] font-extrabold tracking-tight text-primary">MAESTRO</h1>
+      <p class="text-[12px] tracking-[0.2em] text-on-surface-variant/60 uppercase mt-1">Your private operating layer</p>
+    </div>
+    <form id="login-form" class="rounded-2xl gold-edge bg-surface-container/70 p-6 space-y-3.5">
+      <div>
+        <label class="block text-[11px] font-bold tracking-widest text-on-surface-variant/70 uppercase mb-1.5">Email</label>
+        <input id="email" type="email" autocomplete="username" inputmode="email" required
+          class="w-full bg-surface-container-lowest/80 border hairline rounded-xl px-3.5 py-2.5 text-[14px] text-on-surface focus:border-primary/50 transition-colors" placeholder="you@example.com">
+      </div>
+      <div>
+        <label class="block text-[11px] font-bold tracking-widest text-on-surface-variant/70 uppercase mb-1.5">Password</label>
+        <input id="password" type="password" autocomplete="current-password" required
+          class="w-full bg-surface-container-lowest/80 border hairline rounded-xl px-3.5 py-2.5 text-[14px] text-on-surface focus:border-primary/50 transition-colors" placeholder="••••••••">
+      </div>
+      <div id="login-error" class="hidden text-[12.5px] text-on-error-container bg-error-container/30 border border-on-error-container/20 rounded-lg px-3 py-2"></div>
+      <button id="login-btn" type="submit" class="pressable w-full bg-primary text-on-primary font-bold text-[14px] py-2.5 rounded-xl hover:brightness-110 flex items-center justify-center gap-2">
+        <span id="login-btn-text">Sign in</span>
+        <span id="login-spin" class="hidden material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
+      </button>
+    </form>
+    <p class="text-center text-[11.5px] text-on-surface-variant/50 mt-5 leading-relaxed flex items-center justify-center gap-1.5">
+      <span class="material-symbols-outlined text-[15px] text-green/70">lock</span>
+      Private. Your data is row-level-secured and visible only to you.
+    </p>
+  </div>
+</div>
+
+<!-- ───────── APP ───────── -->
+<div id="app" class="hidden">
+  <header class="sticky top-0 z-40 backdrop-blur-xl bg-surface/85 border-b hairline">
+    <div class="max-w-[1200px] mx-auto px-4 sm:px-8 h-16 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-primary-container flex items-center justify-center text-on-primary font-black text-[20px] leading-none shadow-lg">M</div>
+        <div class="leading-tight">
+          <div class="flex items-baseline gap-2"><span class="text-[17px] font-extrabold tracking-tight text-primary">MAESTRO</span><span class="hidden sm:inline text-[11px] font-semibold tracking-[0.2em] text-on-surface-variant/70 uppercase">Calendar</span></div>
+          <p class="text-[11.5px] text-secondary flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-green pulse-dot"></span><span id="synced">synced</span></p>
+        </div>
+      </div>
+      <nav class="hidden sm:flex items-center gap-6 text-[13.5px] font-semibold text-on-surface-variant/70" id="tabs">
+        <a href="#overview" data-act="nav" data-view="overview" class="tab pressable">Overview</a>
+        <a href="#week" data-act="nav" data-view="week" class="tab pressable">Week</a>
+        <a href="#travel" data-act="nav" data-view="travel" class="tab pressable">Travel</a>
+        <a href="#routines" data-act="nav" data-view="routines" class="tab pressable">Routines</a>
+      </nav>
+      <div class="flex items-center gap-2.5">
+        <div class="text-right leading-tight hidden sm:block"><div id="clock" class="font-mono text-[14px] text-on-surface font-medium tabular-nums">—:—</div><div id="loc" class="text-[11px] text-on-surface-variant/70">—</div></div>
+        <button data-act="logout" class="pressable w-9 h-9 rounded-full bg-surface-container-high ring-1 ring-primary/30 flex items-center justify-center text-on-surface-variant hover:text-primary" title="Sign out" aria-label="Sign out"><span class="material-symbols-outlined text-[19px]">logout</span></button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-[1200px] mx-auto px-4 sm:px-8 py-6 sm:py-7 relative z-10 pb-24 sm:pb-7">
+    <section id="view-overview" class="view"></section>
+    <section id="view-week" class="view"></section>
+    <section id="view-travel" class="view"></section>
+    <section id="view-routines" class="view"></section>
+  </main>
+
+  <nav class="sm:hidden fixed bottom-0 inset-x-0 z-40 bg-surface/90 backdrop-blur-xl border-t hairline flex justify-around items-stretch h-[68px] pb-[env(safe-area-inset-bottom)]" id="bnav">
+    <a href="#overview" data-act="nav" data-view="overview" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[10px] font-semibold"><span class="material-symbols-outlined text-[22px]">today</span>Overview</a>
+    <a href="#week" data-act="nav" data-view="week" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[10px] font-semibold"><span class="material-symbols-outlined text-[22px]">calendar_month</span>Week</a>
+    <a href="#travel" data-act="nav" data-view="travel" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[10px] font-semibold"><span class="material-symbols-outlined text-[22px]">flight</span>Travel</a>
+    <a href="#routines" data-act="nav" data-view="routines" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[10px] font-semibold"><span class="material-symbols-outlined text-[22px]">self_improvement</span>Routines</a>
+  </nav>
+</div>
+
+<div id="modal" aria-hidden="true" role="dialog" aria-modal="true">
+  <div id="modal-backdrop" data-act="close-modal"></div>
+  <div id="modal-panel"><div class="modal-grip"></div><div id="modal-content"></div></div>
+</div>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const SUPABASE_URL = "https://enwrcoiljmtcsteejdbw.supabase.co";
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVud3Jjb2lsam10Y3N0ZWVqZGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MTMxODQsImV4cCI6MjA5NTk4OTE4NH0.L-AmjufXvqYmW8AO9loWyDLz9ZJHDvKH0j4ghhwGsV8";
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON, { auth:{ persistSession:true, autoRefreshToken:true } });
+
+/* ───── helpers ───── */
+const $ = (s,r)=> (r||document).querySelector(s);
+const $$ = (s,r)=> Array.from((r||document).querySelectorAll(s));
+const esc = s => (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+let DATA=null, NOW=new Date(), STATE={ view:"overview" }, RENDERED={};
+
+const KIND = {
+  meeting:{icon:"groups",color:"text-blue",label:"Meeting"},
+  shoot:{icon:"photo_camera",color:"text-green",label:"Shoot"},
+  edit:{icon:"movie_edit",color:"text-blue",label:"Edit"},
+  focus:{icon:"center_focus_strong",color:"text-primary",label:"Focus"},
+  travel:{icon:"flight",color:"text-primary",label:"Travel"},
+  routine:{icon:"replay",color:"text-secondary",label:"Routine"},
+  meditation:{icon:"self_improvement",color:"text-green",label:"Meditation"},
+  deadline:{icon:"priority_high",color:"text-on-error-container",label:"Deadline"},
+  personal:{icon:"person",color:"text-secondary",label:"Personal"}
+};
+const kindOf = e => KIND[e.kind] || {icon:"event",color:"text-on-surface-variant",label:(e.kind||"Event")};
+const DATEONLY=/^\d{4}-\d{2}-\d{2}$/;
+function dateKey(iso){ if(DATEONLY.test(iso)) return iso; const d=new Date(iso); return isNaN(d)? String(iso).slice(0,10) : d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function fmtTime(iso){ const d=new Date(iso); return isNaN(d)?"":d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"}); }
+function fmtDayLabel(key){ const d=new Date(key+"T12:00:00"); return d.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"}); }
+function startMs(e){ const d=new Date(e.start); return isNaN(d)?0:d.getTime(); }
+const todayKey = ()=> dateKey(NOW.toISOString());
+function eventsByDay(){ const m={}; (DATA.events||[]).forEach(e=>{ const k=dateKey(e.start); (m[k]=m[k]||[]).push(e); }); Object.values(m).forEach(a=>a.sort((x,y)=>startMs(x)-startMs(y))); return m; }
+function upcoming(days){ const map=eventsByDay(), out=[], base=new Date(todayKey()+"T00:00:00");
+  for(let i=0;i<days;i++){ const d=new Date(base); d.setDate(d.getDate()+i); const k=dateKey(d.toISOString()); if(map[k]) out.push({key:k, events:map[k]}); } return out; }
+function detectConflicts(){ const map=eventsByDay(), out=[];
+  Object.keys(map).forEach(k=>{ const evs=map[k].filter(e=>!e.allDay && e.end);
+    for(let i=0;i<evs.length;i++) for(let j=i+1;j<evs.length;j++){ const a=evs[i],b=evs[j];
+      if(new Date(a.start)<new Date(b.end) && new Date(b.start)<new Date(a.end)) out.push({a,b,key:k}); } });
+  return out; }
+
+/* ───── modal ───── */
+let lastFocus=null;
+function openModal(html){ $("#modal-content").innerHTML=html; const m=$("#modal"); lastFocus=document.activeElement; m.classList.add("open"); m.setAttribute("aria-hidden","false"); document.body.style.overflow="hidden"; $("#modal-panel").scrollTop=0; const c=$(".mclose"); if(c) c.focus(); }
+function closeModal(){ const m=$("#modal"); m.classList.remove("open"); m.setAttribute("aria-hidden","true"); document.body.style.overflow=""; if(lastFocus&&lastFocus.focus) lastFocus.focus(); }
+function eventModal(e){
+  const kk=kindOf(e);
+  const when = e.allDay ? fmtDayLabel(dateKey(e.start)) + (e.end && dateKey(e.end)!==dateKey(e.start) ? " – "+fmtDayLabel(dateKey(e.end)) : "") + " · all day"
+                        : fmtDayLabel(dateKey(e.start)) + " · " + fmtTime(e.start) + (e.end?"–"+fmtTime(e.end):"");
+  let h = '<div class="sticky top-0 bg-[#141313]/95 backdrop-blur px-5 sm:px-6 pt-3 pb-3 flex items-start justify-between gap-3 border-b hairline z-10">'+
+    '<div class="min-w-0"><h2 class="text-[19px] font-extrabold tracking-tight text-on-surface">'+esc(e.title)+'</h2><p class="text-[12px] text-on-surface-variant/70">'+esc(when)+'</p></div>'+
+    '<button class="mclose pressable flex-shrink-0 w-9 h-9 rounded-full bg-surface-container-high hover:bg-surface-variant flex items-center justify-center text-on-surface-variant" data-act="close-modal" aria-label="Close"><span class="material-symbols-outlined text-[20px]">close</span></button></div>';
+  h += '<div class="px-5 sm:px-6 py-5 space-y-4">';
+  h += '<div class="flex items-center gap-3"><span class="w-10 h-10 rounded-xl bg-surface-container-high flex items-center justify-center '+kk.color+'"><span class="material-symbols-outlined">'+kk.icon+'</span></span><div><p class="text-[13px] text-on-surface font-semibold">'+esc(kk.label)+(e.location&&e.location!=="—"?' · '+esc(e.location):'')+'</p>'+(e.calendar?'<p class="text-[12px] text-on-surface-variant/55">'+esc(e.calendar)+' calendar</p>':'')+'</div></div>';
+  if(e.notes) h += '<p class="text-[14px] leading-relaxed text-on-surface/85">'+esc(e.notes)+'</p>';
+  if(e.attendees && e.attendees.length){ h += '<div><h3 class="text-[11px] font-bold tracking-widest text-on-surface-variant/70 uppercase mb-2">With</h3><div class="flex flex-wrap gap-2">'+e.attendees.map(a=>'<span class="text-[12px] bg-surface-container-high px-2.5 py-1 rounded-full text-on-surface/85">'+esc(a)+'</span>').join("")+'</div></div>'; }
+  h += '<p class="text-[11px] text-on-surface-variant/40 flex items-center gap-1.5 pt-1"><span class="material-symbols-outlined text-[15px]">visibility</span>Read-only — Maestro mirrors your calendar, it doesn\'t change it.</p>';
+  h += '</div>';
+  openModal(h);
+}
+
+/* ───── rows ───── */
+function eventRow(e, opts){ opts=opts||{};
+  const kk=kindOf(e);
+  const timeStr = e.allDay ? "all day" : fmtTime(e.start);
+  return '<button data-act="open-event" data-id="'+esc(e.id)+'" class="pressable w-full text-left flex items-center gap-3 rounded-xl px-2.5 py-2.5 hover:bg-surface-container/60 '+(opts.highlight?"bg-primary/8 border border-primary/20":"")+'">'+
+    '<span class="material-symbols-outlined text-[18px] '+kk.color+' flex-shrink-0">'+kk.icon+'</span>'+
+    '<div class="min-w-0 flex-1"><p class="text-[13.5px] font-semibold text-on-surface leading-tight truncate">'+esc(e.title)+'</p>'+(e.location&&e.location!=="—"?'<p class="text-[11px] text-on-surface-variant/55 truncate">'+esc(e.location)+'</p>':'')+'</div>'+
+    '<span class="text-[11px] font-mono text-on-surface-variant/60 flex-shrink-0">'+esc(timeStr)+'</span></button>';
+}
+function statTile(big,label,icon,accent){ return '<div class="rounded-2xl border hairline bg-surface-container-low/60 p-4"><span class="material-symbols-outlined '+(accent||"text-primary/80")+' text-[20px] mb-1">'+icon+'</span><p class="text-[26px] font-extrabold text-on-surface leading-none">'+big+'</p><p class="text-[11px] text-on-surface-variant/60 mt-1">'+label+'</p></div>'; }
+
+/* ───── views ───── */
+function renderOverview(){
+  const d=DATA, tkey=todayKey(), byDay=eventsByDay();
+  const today=(byDay[tkey]||[]);
+  const conflicts=detectConflicts();
+  const weekCount=(DATA.events||[]).filter(e=>{ const k=dateKey(e.start); const base=new Date(tkey+"T00:00:00"); const end=new Date(base); end.setDate(end.getDate()+7); const dk=new Date(k+"T00:00:00"); return dk>=base && dk<end; }).length;
+  const nextTravel=(DATA.events||[]).filter(e=>e.kind==="travel" && new Date(e.start)>=new Date(tkey+"T00:00:00")).sort((a,b)=>startMs(a)-startMs(b))[0];
+  // next/now event
+  const nowMs=NOW.getTime();
+  const todayTimed=today.filter(e=>!e.allDay);
+  const current=todayTimed.find(e=> new Date(e.start)<=NOW && (!e.end||new Date(e.end)>=NOW));
+  const next=todayTimed.find(e=> new Date(e.start)>NOW) || (current?null:todayTimed[0]);
+  const focusEvent=current||next;
+  let H="";
+  const sampleBadge = d.meta&&d.meta.sample ? '<span class="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded-full ml-2">Sample</span>' : '';
+  H += '<div class="grid lg:grid-cols-[1.5fr_1fr] gap-5 mb-7">';
+  H += '<div class="rise rounded-2xl gold-edge bg-surface-container/70 p-6 sm:p-7">'+
+    '<div class="flex items-center justify-between mb-3"><span class="text-[11px] font-bold tracking-[0.22em] text-primary uppercase">Maestro · Today'+sampleBadge+'</span><span class="text-[11px] font-mono text-on-surface-variant/60">'+fmtDayLabel(tkey).toUpperCase()+'</span></div>'+
+    '<h1 class="text-[26px] sm:text-[31px] font-extrabold tracking-tight leading-[1.1] mb-1">'+greeting()+', <span class="text-primary">'+esc((d.meta&&d.meta.name||"there").split(" ")[0])+'</span>.</h1>';
+  if(focusEvent){
+    H += '<div class="mt-4 rounded-xl bg-surface-container-lowest/70 border border-primary/20 p-4 flex items-center gap-3">'+
+      '<span class="w-10 h-10 rounded-xl bg-primary/12 flex items-center justify-center '+kindOf(focusEvent).color+'"><span class="material-symbols-outlined">'+kindOf(focusEvent).icon+'</span></span>'+
+      '<div class="min-w-0 flex-1"><p class="text-[10.5px] font-bold tracking-widest text-primary uppercase">'+(current?"Happening now":"Up next")+'</p><p class="text-[15px] font-bold text-on-surface truncate">'+esc(focusEvent.title)+'</p>'+(focusEvent.location&&focusEvent.location!=="—"?'<p class="text-[12px] text-on-surface-variant/60 truncate">'+esc(focusEvent.location)+'</p>':'')+'</div>'+
+      '<span class="text-[12px] font-mono text-on-surface-variant/70 flex-shrink-0">'+(focusEvent.allDay?"all day":fmtTime(focusEvent.start))+'</span></div>';
+  } else {
+    H += '<div class="mt-4 rounded-xl bg-surface-container-lowest/70 border hairline p-4 text-[13px] text-on-surface-variant/70 flex items-center gap-2"><span class="material-symbols-outlined text-green text-[19px]">check_circle</span>Nothing scheduled today — open space.</div>';
+  }
+  if(d.brief) H += '<p class="text-[13.5px] leading-relaxed text-on-surface/80 mt-4">'+esc(d.brief)+'</p>';
+  H += '</div>';
+  // pulse column
+  H += '<div class="rise grid grid-cols-2 gap-3 content-start" style="animation-delay:.08s">'+
+    statTile(today.length, "on today", "today")+
+    statTile(weekCount, "this week", "date_range")+
+    statTile(conflicts.length, conflicts.length===1?"conflict":"conflicts", "warning", conflicts.length?"text-on-error-container":"text-green")+
+    statTile(nextTravel?fmtShort(nextTravel.start):"—", "next travel", "flight")+
+    '</div>';
+  H += '</div>';
+  // conflict alert
+  if(conflicts.length){
+    H += '<div class="rise mb-7 rounded-2xl border border-on-error-container/25 bg-error-container/15 p-4" style="animation-delay:.1s"><div class="flex items-center gap-2 mb-2"><span class="material-symbols-outlined text-on-error-container text-[19px]">warning</span><span class="text-[12px] font-bold tracking-widest text-on-error-container uppercase">Overlap'+(conflicts.length>1?"s":"")+' to resolve</span></div><div class="space-y-1.5">'+
+      conflicts.map(c=>'<p class="text-[13px] text-on-surface/85"><span class="font-mono text-[11px] text-on-error-container/80">'+fmtTime(c.a.start)+'</span> <b>'+esc(c.a.title)+'</b> overlaps <b>'+esc(c.b.title)+'</b> <span class="text-on-surface-variant/55">('+fmtDayLabel(c.key)+')</span></p>').join("")+'</div></div>';
+  }
+  // today's agenda
+  H += '<div class="rise mb-7" style="animation-delay:.12s"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase mb-3 px-1">Today\'s agenda</h2><div class="rounded-2xl border hairline bg-surface-container-low/60 p-3 sm:p-4">';
+  H += today.length ? today.map(e=>eventRow(e,{highlight:e===focusEvent})).join("") : '<p class="text-[13px] text-on-surface-variant/50 px-2 py-4">No events today.</p>';
+  H += '</div></div>';
+  // week peek + travel/routine peek
+  H += '<div class="grid lg:grid-cols-2 gap-5">';
+  const wk=upcoming(7).filter(g=>g.key!==tkey).slice(0,3);
+  H += '<div class="rise rounded-2xl border hairline bg-surface-container-low/60 p-5" style="animation-delay:.16s"><div class="flex items-center justify-between mb-3"><h2 class="text-[12px] font-bold tracking-[0.22em] text-secondary uppercase">Coming up</h2><a href="#week" data-act="nav" data-view="week" class="text-[11px] text-primary font-semibold">Full week →</a></div><div class="space-y-3">';
+  H += wk.length ? wk.map(g=>'<div><p class="text-[10.5px] font-bold tracking-wider text-on-surface-variant/50 uppercase mb-1 px-1">'+fmtDayLabel(g.key)+'</p>'+g.events.slice(0,3).map(e=>eventRow(e)).join("")+'</div>').join("") : '<p class="text-[13px] text-on-surface-variant/50 px-1">Clear ahead.</p>';
+  H += '</div></div>';
+  const routines=(DATA.events||[]).filter(e=>e.kind==="routine"||e.kind==="meditation").slice(0,4);
+  H += '<div class="rise rounded-2xl border hairline bg-surface-container-low/60 p-5" style="animation-delay:.2s"><div class="flex items-center justify-between mb-3"><h2 class="text-[12px] font-bold tracking-[0.22em] text-secondary uppercase">Routines</h2><a href="#routines" data-act="nav" data-view="routines" class="text-[11px] text-primary font-semibold">All →</a></div><div class="space-y-1">';
+  H += routines.length? routines.map(e=>eventRow(e)).join("") : '<p class="text-[13px] text-on-surface-variant/50 px-1">No routine blocks on the calendar.</p>';
+  H += '</div></div></div>';
+  H += footerHTML();
+  $("#view-overview").innerHTML=H;
+}
+function renderWeek(){
+  const groups=upcoming(8);
+  let H='<div class="rise"><div class="mb-4 px-1"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">The week ahead</h2><p class="text-[12px] text-on-surface-variant/60 mt-0.5">Tap any event for detail. Read-only mirror of your calendar.</p></div><div class="max-w-3xl space-y-4">';
+  if(!groups.length) H += '<p class="text-[13px] text-on-surface-variant/50">Nothing on the calendar this week.</p>';
+  groups.forEach(g=>{
+    const isToday=g.key===todayKey();
+    H += '<div class="rounded-2xl border '+(isToday?"border-primary/30 bg-primary/5":"hairline bg-surface-container-low/50")+' p-4"><div class="flex items-center gap-2 mb-2 px-1"><span class="text-[12px] font-bold '+(isToday?"text-primary":"text-on-surface")+'">'+fmtDayLabel(g.key)+'</span>'+(isToday?'<span class="text-[10px] font-bold text-primary uppercase tracking-wider">Today</span>':'')+'<span class="ml-auto text-[10px] font-mono text-on-surface-variant/40">'+g.events.length+'</span></div>'+
+      g.events.map(e=>eventRow(e)).join("")+'</div>';
+  });
+  H += '</div>'+footerHTML()+'</div>';
+  $("#view-week").innerHTML=H;
+}
+function renderTravel(){
+  const travel=(DATA.events||[]).filter(e=>e.kind==="travel"||e.kind==="stay").sort((a,b)=>startMs(a)-startMs(b));
+  let H='<div class="rise"><div class="mb-4 px-1"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Travel</h2><p class="text-[12px] text-on-surface-variant/60 mt-0.5">Flights and stays Maestro found on your calendar.</p></div><div class="max-w-2xl space-y-3">';
+  if(!travel.length) H += '<p class="text-[13px] text-on-surface-variant/50">No travel on the calendar.</p>';
+  travel.forEach(e=>{
+    H += '<button data-act="open-event" data-id="'+esc(e.id)+'" class="pressable w-full text-left flex items-center gap-4 rounded-2xl border hairline bg-surface-container-low/50 hover:border-primary/30 p-4">'+
+      '<span class="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary flex-shrink-0"><span class="material-symbols-outlined">flight</span></span>'+
+      '<div class="min-w-0 flex-1"><p class="text-[14px] font-semibold text-on-surface">'+esc(e.title)+'</p>'+(e.location?'<p class="text-[12px] text-on-surface-variant/60">'+esc(e.location)+'</p>':'')+'</div>'+
+      '<span class="text-[12px] font-mono text-on-surface-variant/70 flex-shrink-0">'+fmtShort(e.start)+'</span></button>';
+  });
+  H += '</div>'+footerHTML()+'</div>';
+  $("#view-travel").innerHTML=H;
+}
+function renderRoutines(){
+  const med=(DATA.events||[]).filter(e=>e.kind==="meditation").sort((a,b)=>startMs(a)-startMs(b));
+  const rout=(DATA.events||[]).filter(e=>e.kind==="routine").sort((a,b)=>startMs(a)-startMs(b));
+  let H='<div class="rise"><div class="mb-4 px-1"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Routines &amp; practice</h2><p class="text-[12px] text-on-surface-variant/60 mt-0.5">Meditation and recurring blocks on your calendar.</p></div>';
+  H += '<div class="grid sm:grid-cols-3 gap-3 mb-6 max-w-2xl">'+statTile(med.length,"meditation blocks","self_improvement","text-green")+statTile(rout.length,"routine blocks","replay")+statTile(med.length+rout.length,"total","spa")+'</div>';
+  H += '<div class="max-w-2xl space-y-5">';
+  H += '<div><h3 class="text-[11px] font-bold tracking-widest text-secondary uppercase mb-2 px-1">Meditation</h3><div class="rounded-2xl border hairline bg-surface-container-low/50 p-3">'+(med.length?med.map(e=>eventRow(e)).join(""):'<p class="text-[13px] text-on-surface-variant/50 px-2 py-2">No meditation blocks scheduled.</p>')+'</div></div>';
+  H += '<div><h3 class="text-[11px] font-bold tracking-widest text-secondary uppercase mb-2 px-1">Routines</h3><div class="rounded-2xl border hairline bg-surface-container-low/50 p-3">'+(rout.length?rout.map(e=>eventRow(e)).join(""):'<p class="text-[13px] text-on-surface-variant/50 px-2 py-2">No routine blocks scheduled.</p>')+'</div></div>';
+  H += '</div>'+footerHTML()+'</div>';
+  $("#view-routines").innerHTML=H;
+}
+function footerHTML(){ return '<footer class="pt-8 pb-6 text-center space-y-2"><p class="text-[11px] tracking-[0.25em] text-primary/60 font-bold">MAESTRO</p><p class="text-[12px] text-on-surface-variant/50 max-w-xl mx-auto leading-relaxed">Private &amp; calendar-only. Read-only mirror of your Google Calendar, secured to your account.</p></footer>'; }
+function greeting(){ const h=NOW.getHours(); return h<12?"Good morning":h<18?"Good afternoon":"Good evening"; }
+function fmtShort(iso){ const d=DATEONLY.test(iso)?new Date(iso+"T12:00:00"):new Date(iso); return isNaN(d)?String(iso).slice(5):d.toLocaleDateString(undefined,{month:"short",day:"numeric"}); }
+
+/* ───── router ───── */
+function setView(name, force){
+  if(["overview","week","travel","routines"].indexOf(name)<0) name="overview";
+  STATE.view=name;
+  const fn={overview:renderOverview,week:renderWeek,travel:renderTravel,routines:renderRoutines}[name];
+  if(!RENDERED[name]||force){ fn(); RENDERED[name]=true; }
+  $$(".view").forEach(v=>v.classList.toggle("active", v.id==="view-"+name));
+  $$(".tab").forEach(t=>t.dataset.active = t.dataset.view===name?"1":"0");
+  $$(".bnav").forEach(t=>t.dataset.active = t.dataset.view===name?"1":"0");
+  window.scrollTo({top:0});
+}
+
+/* ───── events ───── */
+document.addEventListener("click", e=>{
+  const el=e.target.closest("[data-act]"); if(!el) return;
+  const act=el.dataset.act;
+  if(act==="nav"){ e.preventDefault(); location.hash="#"+el.dataset.view; return; }
+  if(act==="close-modal"){ closeModal(); return; }
+  if(act==="open-event"){ const ev=(DATA.events||[]).find(x=>String(x.id)===el.dataset.id); if(ev) eventModal(ev); return; }
+  if(act==="logout"){ signOut(); return; }
+});
+document.addEventListener("keydown", e=>{ if(e.key==="Escape" && $("#modal").classList.contains("open")) closeModal(); });
+window.addEventListener("hashchange", ()=> setView((location.hash||"#overview").slice(1)));
+function tick(){ const c=$("#clock"); if(c) c.textContent=new Date().toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"}); }
+
+/* ───── auth + data ───── */
+async function loadDashboard(){
+  const { data, error } = await sb.from("maestro_dashboard").select("data, updated_at").maybeSingle();
+  if(error){ console.error(error); showLogin("Couldn’t load your data: "+error.message); return; }
+  if(!data){ DATA={ meta:{name:"", sample:true}, brief:"No dashboard row yet — your calendar brain hasn’t synced. Once it upserts your row, this fills in.", events:[] }; }
+  else { DATA=data.data||{events:[]}; }
+  NOW = (DATA.meta && DATA.meta.sample && DATA.meta.generatedAt) ? new Date(DATA.meta.generatedAt) : new Date();
+  $("#login").classList.add("hidden"); $("#app").classList.remove("hidden");
+  if(DATA.meta && DATA.meta.location) $("#loc").textContent=DATA.meta.location;
+  const sess=(await sb.auth.getSession()).data.session;
+  $("#synced").textContent = DATA.meta&&DATA.meta.sample ? "sample data" : "synced "+(data&&data.updated_at?new Date(data.updated_at).toLocaleDateString(undefined,{month:"short",day:"numeric"}):"");
+  tick(); setInterval(tick,20000);
+  RENDERED={};
+  setView((location.hash||"#overview").slice(1), true);
+}
+function showLogin(msg){
+  $("#app").classList.add("hidden"); $("#login").classList.remove("hidden");
+  const er=$("#login-error"); if(msg){ er.textContent=msg; er.classList.remove("hidden"); } else { er.classList.add("hidden"); }
+}
+async function signOut(){ await sb.auth.signOut(); DATA=null; location.hash=""; showLogin(); }
+
+$("#login-form").addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  const btn=$("#login-btn"), txt=$("#login-btn-text"), spin=$("#login-spin");
+  $("#login-error").classList.add("hidden");
+  btn.disabled=true; txt.textContent="Signing in…"; spin.classList.remove("hidden");
+  const { error } = await sb.auth.signInWithPassword({ email:$("#email").value.trim(), password:$("#password").value });
+  btn.disabled=false; txt.textContent="Sign in"; spin.classList.add("hidden");
+  if(error){ showLogin(error.message || "Sign-in failed."); return; }
+  await loadDashboard();
+});
+
+/* boot: resume session if present */
+(async ()=>{
+  const { data:{ session } } = await sb.auth.getSession();
+  if(session){ await loadDashboard(); } else { showLogin(); }
+})();
+</script>
+</body>
+</html>

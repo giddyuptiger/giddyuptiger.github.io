@@ -47,6 +47,10 @@
   #modal.open #modal-panel{ transform:none; }
   .modal-grip{ width:38px; height:4px; border-radius:4px; background:#3a3527; margin:10px auto 0; } @media(min-width:640px){ .modal-grip{ display:none; } }
   .pressable{ transition:transform .12s ease, background-color .2s, border-color .2s; } .pressable:active{ transform:scale(.985); }
+  #toasts{ position:fixed; left:0; right:0; bottom:84px; z-index:90; display:flex; flex-direction:column; align-items:center; gap:8px; pointer-events:none; padding:0 16px; }
+  @media(min-width:640px){ #toasts{ bottom:24px; } }
+  .toast{ pointer-events:auto; max-width:460px; background:#1f1e1d; border:1px solid rgba(242,202,80,0.28); color:#e5e2e1; padding:11px 15px; border-radius:13px; font-size:13.5px; display:flex; align-items:center; gap:10px; box-shadow:0 14px 40px -14px rgba(0,0,0,.9); transform:translateY(16px); opacity:0; transition:all .3s cubic-bezier(.16,1,.3,1); }
+  .toast.show{ transform:none; opacity:1; }
   ::-webkit-scrollbar{ height:8px; width:8px; } ::-webkit-scrollbar-thumb{ background:#2a2a2a; border-radius:8px; }
   input:focus{ outline:none; }
   @media (prefers-reduced-motion: reduce){ *{animation-duration:.001ms !important; transition-duration:.001ms !important;} }
@@ -103,7 +107,8 @@
         <a href="#travel" data-act="nav" data-view="travel" class="tab pressable">Travel</a>
         <a href="#routines" data-act="nav" data-view="routines" class="tab pressable">Routines</a>
       </nav>
-      <div class="flex items-center gap-2.5">
+      <div class="flex items-center gap-2">
+        <button data-act="open-pending" id="pending-pill" class="hidden pressable items-center gap-1.5 bg-primary/12 text-primary border border-primary/25 rounded-full pl-2 pr-2.5 py-1 text-[12px] font-semibold"><span class="material-symbols-outlined text-[16px]">bolt</span><span id="pending-count">0</span></button>
         <div class="text-right leading-tight hidden sm:block"><div id="clock" class="font-mono text-[14px] text-on-surface font-medium tabular-nums">—:—</div><div id="loc" class="text-[11px] text-on-surface-variant/70">—</div></div>
         <button data-act="logout" class="pressable w-9 h-9 rounded-full bg-surface-container-high ring-1 ring-primary/30 flex items-center justify-center text-on-surface-variant hover:text-primary" title="Sign out" aria-label="Sign out"><span class="material-symbols-outlined text-[19px]">logout</span></button>
       </div>
@@ -129,6 +134,7 @@
   <div id="modal-backdrop" data-act="close-modal"></div>
   <div id="modal-panel"><div class="modal-grip"></div><div id="modal-content"></div></div>
 </div>
+<div id="toasts"></div>
 
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
@@ -137,79 +143,135 @@ const SUPABASE_URL = "https://enwrcoiljmtcsteejdbw.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVud3Jjb2lsam10Y3N0ZWVqZGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MTMxODQsImV4cCI6MjA5NTk4OTE4NH0.L-AmjufXvqYmW8AO9loWyDLz9ZJHDvKH0j4ghhwGsV8";
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON, { auth:{ persistSession:true, autoRefreshToken:true } });
 
-/* ───── helpers ───── */
 const $ = (s,r)=> (r||document).querySelector(s);
 const $$ = (s,r)=> Array.from((r||document).querySelectorAll(s));
 const esc = s => (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-let DATA=null, NOW=new Date(), STATE={ view:"overview" }, RENDERED={};
+let DATA=null, NOW=new Date(), STATE={ view:"overview", calFilter:"all" }, RENDERED={}, PENDING=[];
 
 const KIND = {
-  meeting:{icon:"groups",color:"text-blue",label:"Meeting"},
-  shoot:{icon:"photo_camera",color:"text-green",label:"Shoot"},
-  edit:{icon:"movie_edit",color:"text-blue",label:"Edit"},
-  focus:{icon:"center_focus_strong",color:"text-primary",label:"Focus"},
-  travel:{icon:"flight",color:"text-primary",label:"Travel"},
-  routine:{icon:"replay",color:"text-secondary",label:"Routine"},
-  meditation:{icon:"self_improvement",color:"text-green",label:"Meditation"},
-  deadline:{icon:"priority_high",color:"text-on-error-container",label:"Deadline"},
-  personal:{icon:"person",color:"text-secondary",label:"Personal"}
+  meeting:{icon:"groups",label:"Meeting"}, shoot:{icon:"photo_camera",label:"Shoot"}, edit:{icon:"movie_edit",label:"Edit"},
+  focus:{icon:"center_focus_strong",label:"Focus"}, travel:{icon:"flight",label:"Travel"}, routine:{icon:"replay",label:"Routine"},
+  meditation:{icon:"self_improvement",label:"Meditation"}, deadline:{icon:"priority_high",label:"Deadline"}, personal:{icon:"person",label:"Personal"}
 };
-const kindOf = e => KIND[e.kind] || {icon:"event",color:"text-on-surface-variant",label:(e.kind||"Event")};
+const kindOf = e => KIND[e.kind] || {icon:"event",label:(e.kind||"Event")};
+
+/* calendar colors */
+function calMap(){ const m={}; ((DATA.meta&&DATA.meta.calendars)||[]).forEach(c=>m[c.name]=c.color); return m; }
+function hashColor(s){ let h=0; for(let i=0;i<String(s).length;i++) h=(h*31+s.charCodeAt(i))%360; return "hsl("+h+",55%,62%)"; }
+function calColor(name){ const m=calMap(); return m[name] || hashColor(name||"?"); }
+
 const DATEONLY=/^\d{4}-\d{2}-\d{2}$/;
 function dateKey(iso){ if(DATEONLY.test(iso)) return iso; const d=new Date(iso); return isNaN(d)? String(iso).slice(0,10) : d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
 function fmtTime(iso){ const d=new Date(iso); return isNaN(d)?"":d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"}); }
 function fmtDayLabel(key){ const d=new Date(key+"T12:00:00"); return d.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"}); }
+function fmtShort(iso){ const d=DATEONLY.test(iso)?new Date(iso+"T12:00:00"):new Date(iso); return isNaN(d)?String(iso).slice(5):d.toLocaleDateString(undefined,{month:"short",day:"numeric"}); }
 function startMs(e){ const d=new Date(e.start); return isNaN(d)?0:d.getTime(); }
 const todayKey = ()=> dateKey(NOW.toISOString());
-function eventsByDay(){ const m={}; (DATA.events||[]).forEach(e=>{ const k=dateKey(e.start); (m[k]=m[k]||[]).push(e); }); Object.values(m).forEach(a=>a.sort((x,y)=>startMs(x)-startMs(y))); return m; }
-function upcoming(days){ const map=eventsByDay(), out=[], base=new Date(todayKey()+"T00:00:00");
-  for(let i=0;i<days;i++){ const d=new Date(base); d.setDate(d.getDate()+i); const k=dateKey(d.toISOString()); if(map[k]) out.push({key:k, events:map[k]}); } return out; }
+function eventsAll(){ return (DATA.events||[]); }
+function eventsByDay(){ const m={}; eventsAll().forEach(e=>{ const k=dateKey(e.start); (m[k]=m[k]||[]).push(e); }); Object.values(m).forEach(a=>a.sort((x,y)=>startMs(x)-startMs(y))); return m; }
+function upcoming(days,filter){ const map=eventsByDay(), out=[], base=new Date(todayKey()+"T00:00:00");
+  for(let i=0;i<days;i++){ const d=new Date(base); d.setDate(d.getDate()+i); const k=dateKey(d.toISOString());
+    if(map[k]){ let evs=map[k]; if(filter&&filter!=="all") evs=evs.filter(e=>e.calendar===filter); if(evs.length) out.push({key:k,events:evs}); } } return out; }
 function detectConflicts(){ const map=eventsByDay(), out=[];
   Object.keys(map).forEach(k=>{ const evs=map[k].filter(e=>!e.allDay && e.end);
     for(let i=0;i<evs.length;i++) for(let j=i+1;j<evs.length;j++){ const a=evs[i],b=evs[j];
-      if(new Date(a.start)<new Date(b.end) && new Date(b.start)<new Date(a.end)) out.push({a,b,key:k}); } });
-  return out; }
+      if(new Date(a.start)<new Date(b.end) && new Date(b.start)<new Date(a.end)) out.push({a,b,key:k}); } }); return out; }
 
-/* ───── modal ───── */
+/* ───── toast + modal ───── */
+function toast(msg, icon){ const t=document.createElement("div"); t.className="toast"; t.innerHTML='<span class="material-symbols-outlined text-primary text-[20px] ms-fill">'+(icon||"check_circle")+'</span><span>'+msg+'</span>'; $("#toasts").appendChild(t); requestAnimationFrame(()=>t.classList.add("show")); setTimeout(()=>{ t.classList.remove("show"); setTimeout(()=>t.remove(),300); },3400); }
 let lastFocus=null;
 function openModal(html){ $("#modal-content").innerHTML=html; const m=$("#modal"); lastFocus=document.activeElement; m.classList.add("open"); m.setAttribute("aria-hidden","false"); document.body.style.overflow="hidden"; $("#modal-panel").scrollTop=0; const c=$(".mclose"); if(c) c.focus(); }
 function closeModal(){ const m=$("#modal"); m.classList.remove("open"); m.setAttribute("aria-hidden","true"); document.body.style.overflow=""; if(lastFocus&&lastFocus.focus) lastFocus.focus(); }
+function mhead(title,sub){ return '<div class="sticky top-0 bg-[#141313]/95 backdrop-blur px-5 sm:px-6 pt-3 pb-3 flex items-start justify-between gap-3 border-b hairline z-10"><div class="min-w-0"><h2 class="text-[19px] font-extrabold tracking-tight text-on-surface">'+title+'</h2>'+(sub?'<p class="text-[12px] text-on-surface-variant/70">'+sub+'</p>':'')+'</div><button class="mclose pressable flex-shrink-0 w-9 h-9 rounded-full bg-surface-container-high hover:bg-surface-variant flex items-center justify-center text-on-surface-variant" data-act="close-modal" aria-label="Close"><span class="material-symbols-outlined text-[20px]">close</span></button></div>'; }
+
+/* ───── event modal (with write affordances) ───── */
 function eventModal(e){
-  const kk=kindOf(e);
+  const kk=kindOf(e), col=calColor(e.calendar);
   const when = e.allDay ? fmtDayLabel(dateKey(e.start)) + (e.end && dateKey(e.end)!==dateKey(e.start) ? " – "+fmtDayLabel(dateKey(e.end)) : "") + " · all day"
                         : fmtDayLabel(dateKey(e.start)) + " · " + fmtTime(e.start) + (e.end?"–"+fmtTime(e.end):"");
-  let h = '<div class="sticky top-0 bg-[#141313]/95 backdrop-blur px-5 sm:px-6 pt-3 pb-3 flex items-start justify-between gap-3 border-b hairline z-10">'+
-    '<div class="min-w-0"><h2 class="text-[19px] font-extrabold tracking-tight text-on-surface">'+esc(e.title)+'</h2><p class="text-[12px] text-on-surface-variant/70">'+esc(when)+'</p></div>'+
-    '<button class="mclose pressable flex-shrink-0 w-9 h-9 rounded-full bg-surface-container-high hover:bg-surface-variant flex items-center justify-center text-on-surface-variant" data-act="close-modal" aria-label="Close"><span class="material-symbols-outlined text-[20px]">close</span></button></div>';
+  let h = mhead(esc(e.title), esc(when));
   h += '<div class="px-5 sm:px-6 py-5 space-y-4">';
-  h += '<div class="flex items-center gap-3"><span class="w-10 h-10 rounded-xl bg-surface-container-high flex items-center justify-center '+kk.color+'"><span class="material-symbols-outlined">'+kk.icon+'</span></span><div><p class="text-[13px] text-on-surface font-semibold">'+esc(kk.label)+(e.location&&e.location!=="—"?' · '+esc(e.location):'')+'</p>'+(e.calendar?'<p class="text-[12px] text-on-surface-variant/55">'+esc(e.calendar)+' calendar</p>':'')+'</div></div>';
+  if(e.source==="maestro") h += '<div class="inline-flex items-center gap-1.5 text-[11px] font-bold text-on-primary bg-primary px-2.5 py-1 rounded-full"><span class="material-symbols-outlined text-[15px] ms-fill">auto_awesome</span>Maestro scheduled this</div>';
+  h += '<div class="flex items-center gap-3"><span class="w-10 h-10 rounded-xl bg-surface-container-high flex items-center justify-center" style="color:'+col+'"><span class="material-symbols-outlined">'+kk.icon+'</span></span><div class="min-w-0"><p class="text-[13px] text-on-surface font-semibold">'+esc(kk.label)+(e.location&&e.location!=="—"?' · '+esc(e.location):'')+'</p><p class="text-[12px] flex items-center gap-1.5"><span class="w-2 h-2 rounded-full" style="background:'+col+'"></span><span class="text-on-surface-variant/70">'+esc(e.calendar||"")+'</span></p></div></div>';
   if(e.notes) h += '<p class="text-[14px] leading-relaxed text-on-surface/85">'+esc(e.notes)+'</p>';
   if(e.attendees && e.attendees.length){ h += '<div><h3 class="text-[11px] font-bold tracking-widest text-on-surface-variant/70 uppercase mb-2">With</h3><div class="flex flex-wrap gap-2">'+e.attendees.map(a=>'<span class="text-[12px] bg-surface-container-high px-2.5 py-1 rounded-full text-on-surface/85">'+esc(a)+'</span>').join("")+'</div></div>'; }
-  h += '<p class="text-[11px] text-on-surface-variant/40 flex items-center gap-1.5 pt-1"><span class="material-symbols-outlined text-[15px]">visibility</span>Read-only — Maestro mirrors your calendar, it doesn\'t change it.</p>';
+  // write affordances
+  if(!e.allDay){
+    h += '<div class="rounded-xl border border-primary/25 bg-primary/5 p-4"><div class="flex items-center gap-2 mb-3"><span class="material-symbols-outlined text-primary text-[18px] ms-fill">auto_awesome</span><span class="text-[11px] font-bold tracking-widest text-primary uppercase">Ask Maestro to</span></div>'+
+      '<div class="flex flex-wrap gap-2">'+
+        affBtn("resched", e.id, {op:"shift",minutes:60}, "schedule", "Push 1 hour")+
+        affBtn("resched", e.id, {op:"shift",minutes:1440}, "event_repeat", "Move to tomorrow")+
+        affBtn("resched", e.id, {op:"move",target:"tomorrow_09:00"}, "wb_sunny", "Tomorrow AM")+
+        affBtn("prep", e.id, {minutes:30}, "add_circle", "Add 30-min prep")+
+        affBtn("cancel", e.id, {}, "event_busy", "Cancel event")+
+      '</div><p class="text-[11px] text-on-surface-variant/45 mt-3 flex items-center gap-1.5"><span class="material-symbols-outlined text-[15px]">bolt</span>Queues a change — Maestro writes it to your calendar on the next sync.</p></div>';
+  } else {
+    h += '<p class="text-[11px] text-on-surface-variant/40 flex items-center gap-1.5"><span class="material-symbols-outlined text-[15px]">event_available</span>All-day / travel event — mirrored from '+esc(e.calendar||"your calendar")+'.</p>';
+  }
   h += '</div>';
   openModal(h);
 }
+function affBtn(act, id, payload, icon, label){
+  return '<button data-act="aff-'+act+'" data-id="'+esc(id)+'" data-payload="'+esc(JSON.stringify(payload))+'" class="pressable flex items-center gap-1.5 text-[12.5px] font-semibold px-3 py-1.5 rounded-full border '+(act==="cancel"?"border-on-error-container/30 text-on-error-container/90 hover:bg-error-container/20":"border-outline-variant text-on-surface hover:border-primary/40 bg-surface-container/50")+'"><span class="material-symbols-outlined text-[16px]">'+icon+'</span>'+label+'</button>';
+}
+
+/* ───── action queue (calendar WRITES via the brain) ───── */
+async function enqueue(type, payload, okMsg){
+  const ev=(DATA.events||[]).find(x=>String(x.id)===String(payload.eventId));
+  const row={ type, payload };
+  const { error } = await sb.from("maestro_actions").insert(row);
+  if(error){ toast("Couldn’t queue: "+error.message, "error"); return; }
+  toast(okMsg||"Queued for Maestro", "event_upcoming");
+  closeModal();
+  await refreshPending();
+}
+function actionLabel(a){
+  const p=a.payload||{}; const ev=(DATA.events||[]).find(x=>String(x.id)===String(p.eventId)); const t=ev?ev.title:(p.title||p.eventId||"event");
+  if(a.type==="reschedule_event"){ if(p.op==="shift"&&p.minutes>=1440) return "Move “"+t+"” to tomorrow"; if(p.op==="shift") return "Push “"+t+"” by "+(p.minutes/60)+"h"; if(p.op==="move") return "Move “"+t+"” to tomorrow AM"; return "Reschedule “"+t+"”"; }
+  if(a.type==="cancel_event") return "Cancel “"+t+"”";
+  if(a.type==="add_block") return "Add "+(p.minutes||30)+"-min prep before “"+t+"”";
+  if(a.type==="create_event") return "Create “"+(p.title||"event")+"”";
+  return a.type;
+}
+async function refreshPending(){
+  const { data, error } = await sb.from("maestro_actions").select("id,type,payload,status,created_at").eq("status","pending").order("created_at",{ascending:false});
+  PENDING = error? [] : (data||[]);
+  const pill=$("#pending-pill"); if(PENDING.length){ pill.classList.remove("hidden"); pill.classList.add("flex"); $("#pending-count").textContent=PENDING.length; } else { pill.classList.add("hidden"); pill.classList.remove("flex"); }
+}
+function pendingModal(){
+  let h=mhead("Queued for Maestro", PENDING.length+" change"+(PENDING.length===1?"":"s")+" waiting for the next sync");
+  h+='<div class="px-5 sm:px-6 py-5 space-y-2">';
+  if(!PENDING.length) h+='<p class="text-[13px] text-on-surface-variant/60">Nothing queued.</p>';
+  PENDING.forEach(a=>{
+    h+='<div class="flex items-center gap-3 rounded-xl border hairline bg-surface-container/40 p-3"><span class="material-symbols-outlined text-primary text-[19px]">bolt</span><div class="min-w-0 flex-1"><p class="text-[13px] text-on-surface">'+esc(actionLabel(a))+'</p><p class="text-[11px] text-on-surface-variant/50">pending</p></div><button data-act="withdraw" data-id="'+a.id+'" class="pressable text-[12px] font-semibold text-on-surface-variant/70 hover:text-on-error-container px-2 py-1">Withdraw</button></div>';
+  });
+  h+='<p class="text-[11px] text-on-surface-variant/45 pt-2 flex items-center gap-1.5"><span class="material-symbols-outlined text-[15px]">info</span>Maestro executes these against Google Calendar on its next scheduled run. Withdraw to cancel a request before then.</p>';
+  h+='</div>';
+  openModal(h);
+}
+async function withdraw(id){ const { error }=await sb.from("maestro_actions").update({status:"cancelled"}).eq("id",id); if(error){ toast("Couldn’t withdraw: "+error.message,"error"); return; } toast("Request withdrawn","undo"); await refreshPending(); pendingModal(); }
 
 /* ───── rows ───── */
 function eventRow(e, opts){ opts=opts||{};
-  const kk=kindOf(e);
+  const kk=kindOf(e), col=calColor(e.calendar);
   const timeStr = e.allDay ? "all day" : fmtTime(e.start);
   return '<button data-act="open-event" data-id="'+esc(e.id)+'" class="pressable w-full text-left flex items-center gap-3 rounded-xl px-2.5 py-2.5 hover:bg-surface-container/60 '+(opts.highlight?"bg-primary/8 border border-primary/20":"")+'">'+
-    '<span class="material-symbols-outlined text-[18px] '+kk.color+' flex-shrink-0">'+kk.icon+'</span>'+
-    '<div class="min-w-0 flex-1"><p class="text-[13.5px] font-semibold text-on-surface leading-tight truncate">'+esc(e.title)+'</p>'+(e.location&&e.location!=="—"?'<p class="text-[11px] text-on-surface-variant/55 truncate">'+esc(e.location)+'</p>':'')+'</div>'+
+    '<span class="w-1.5 h-7 rounded-full flex-shrink-0" style="background:'+col+'" title="'+esc(e.calendar||"")+'"></span>'+
+    '<span class="material-symbols-outlined text-[18px] text-on-surface-variant/80 flex-shrink-0">'+kk.icon+'</span>'+
+    '<div class="min-w-0 flex-1"><p class="text-[13.5px] font-semibold text-on-surface leading-tight truncate flex items-center gap-1.5">'+esc(e.title)+(e.source==="maestro"?'<span class="material-symbols-outlined text-primary text-[14px] ms-fill" title="Scheduled by Maestro">auto_awesome</span>':'')+'</p>'+(e.location&&e.location!=="—"?'<p class="text-[11px] text-on-surface-variant/55 truncate">'+esc(e.location)+'</p>':'')+'</div>'+
     '<span class="text-[11px] font-mono text-on-surface-variant/60 flex-shrink-0">'+esc(timeStr)+'</span></button>';
 }
 function statTile(big,label,icon,accent){ return '<div class="rounded-2xl border hairline bg-surface-container-low/60 p-4"><span class="material-symbols-outlined '+(accent||"text-primary/80")+' text-[20px] mb-1">'+icon+'</span><p class="text-[26px] font-extrabold text-on-surface leading-none">'+big+'</p><p class="text-[11px] text-on-surface-variant/60 mt-1">'+label+'</p></div>'; }
+function greeting(){ const h=NOW.getHours(); return h<12?"Good morning":h<18?"Good afternoon":"Good evening"; }
 
 /* ───── views ───── */
 function renderOverview(){
   const d=DATA, tkey=todayKey(), byDay=eventsByDay();
   const today=(byDay[tkey]||[]);
   const conflicts=detectConflicts();
-  const weekCount=(DATA.events||[]).filter(e=>{ const k=dateKey(e.start); const base=new Date(tkey+"T00:00:00"); const end=new Date(base); end.setDate(end.getDate()+7); const dk=new Date(k+"T00:00:00"); return dk>=base && dk<end; }).length;
-  const nextTravel=(DATA.events||[]).filter(e=>e.kind==="travel" && new Date(e.start)>=new Date(tkey+"T00:00:00")).sort((a,b)=>startMs(a)-startMs(b))[0];
-  // next/now event
-  const nowMs=NOW.getTime();
+  const base=new Date(tkey+"T00:00:00"); const wend=new Date(base); wend.setDate(wend.getDate()+7);
+  const weekCount=eventsAll().filter(e=>{ const dk=new Date(dateKey(e.start)+"T00:00:00"); return dk>=base && dk<wend; }).length;
+  const nextTravel=eventsAll().filter(e=>e.kind==="travel" && new Date(dateKey(e.start)+"T00:00:00")>=base).sort((a,b)=>startMs(a)-startMs(b))[0];
   const todayTimed=today.filter(e=>!e.allDay);
   const current=todayTimed.find(e=> new Date(e.start)<=NOW && (!e.end||new Date(e.end)>=NOW));
   const next=todayTimed.find(e=> new Date(e.start)>NOW) || (current?null:todayTimed[0]);
@@ -222,7 +284,7 @@ function renderOverview(){
     '<h1 class="text-[26px] sm:text-[31px] font-extrabold tracking-tight leading-[1.1] mb-1">'+greeting()+', <span class="text-primary">'+esc((d.meta&&d.meta.name||"there").split(" ")[0])+'</span>.</h1>';
   if(focusEvent){
     H += '<div class="mt-4 rounded-xl bg-surface-container-lowest/70 border border-primary/20 p-4 flex items-center gap-3">'+
-      '<span class="w-10 h-10 rounded-xl bg-primary/12 flex items-center justify-center '+kindOf(focusEvent).color+'"><span class="material-symbols-outlined">'+kindOf(focusEvent).icon+'</span></span>'+
+      '<span class="w-10 h-10 rounded-xl bg-primary/12 flex items-center justify-center" style="color:'+calColor(focusEvent.calendar)+'"><span class="material-symbols-outlined">'+kindOf(focusEvent).icon+'</span></span>'+
       '<div class="min-w-0 flex-1"><p class="text-[10.5px] font-bold tracking-widest text-primary uppercase">'+(current?"Happening now":"Up next")+'</p><p class="text-[15px] font-bold text-on-surface truncate">'+esc(focusEvent.title)+'</p>'+(focusEvent.location&&focusEvent.location!=="—"?'<p class="text-[12px] text-on-surface-variant/60 truncate">'+esc(focusEvent.location)+'</p>':'')+'</div>'+
       '<span class="text-[12px] font-mono text-on-surface-variant/70 flex-shrink-0">'+(focusEvent.allDay?"all day":fmtTime(focusEvent.start))+'</span></div>';
   } else {
@@ -230,75 +292,70 @@ function renderOverview(){
   }
   if(d.brief) H += '<p class="text-[13.5px] leading-relaxed text-on-surface/80 mt-4">'+esc(d.brief)+'</p>';
   H += '</div>';
-  // pulse column
   H += '<div class="rise grid grid-cols-2 gap-3 content-start" style="animation-delay:.08s">'+
-    statTile(today.length, "on today", "today")+
-    statTile(weekCount, "this week", "date_range")+
-    statTile(conflicts.length, conflicts.length===1?"conflict":"conflicts", "warning", conflicts.length?"text-on-error-container":"text-green")+
-    statTile(nextTravel?fmtShort(nextTravel.start):"—", "next travel", "flight")+
-    '</div>';
+    statTile(today.length,"on today","today")+ statTile(weekCount,"this week","date_range")+
+    statTile(conflicts.length,conflicts.length===1?"conflict":"conflicts","warning",conflicts.length?"text-on-error-container":"text-green")+
+    statTile(nextTravel?fmtShort(nextTravel.start):"—","next travel","flight")+'</div>';
   H += '</div>';
-  // conflict alert
   if(conflicts.length){
-    H += '<div class="rise mb-7 rounded-2xl border border-on-error-container/25 bg-error-container/15 p-4" style="animation-delay:.1s"><div class="flex items-center gap-2 mb-2"><span class="material-symbols-outlined text-on-error-container text-[19px]">warning</span><span class="text-[12px] font-bold tracking-widest text-on-error-container uppercase">Overlap'+(conflicts.length>1?"s":"")+' to resolve</span></div><div class="space-y-1.5">'+
-      conflicts.map(c=>'<p class="text-[13px] text-on-surface/85"><span class="font-mono text-[11px] text-on-error-container/80">'+fmtTime(c.a.start)+'</span> <b>'+esc(c.a.title)+'</b> overlaps <b>'+esc(c.b.title)+'</b> <span class="text-on-surface-variant/55">('+fmtDayLabel(c.key)+')</span></p>').join("")+'</div></div>';
+    H += '<div class="rise mb-7 rounded-2xl border border-on-error-container/25 bg-error-container/15 p-4" style="animation-delay:.1s"><div class="flex items-center gap-2 mb-2"><span class="material-symbols-outlined text-on-error-container text-[19px]">warning</span><span class="text-[12px] font-bold tracking-widest text-on-error-container uppercase">Overlap'+(conflicts.length>1?"s":"")+' — ask Maestro to fix</span></div><div class="space-y-2">'+
+      conflicts.map(c=>'<div class="flex items-center justify-between gap-3 flex-wrap"><p class="text-[13px] text-on-surface/85"><span class="font-mono text-[11px] text-on-error-container/80">'+fmtTime(c.a.start)+'</span> <b>'+esc(c.a.title)+'</b> overlaps <b>'+esc(c.b.title)+'</b></p>'+affBtn("resched",c.b.id,{op:"shift",minutes:60},"schedule","Push “"+esc(c.b.title)+"” 1h")+'</div>').join("")+'</div></div>';
   }
-  // today's agenda
-  H += '<div class="rise mb-7" style="animation-delay:.12s"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase mb-3 px-1">Today\'s agenda</h2><div class="rounded-2xl border hairline bg-surface-container-low/60 p-3 sm:p-4">';
+  H += '<div class="rise mb-7" style="animation-delay:.12s"><div class="flex items-center justify-between mb-3 px-1"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Today\'s agenda</h2><button data-act="add-focus" class="pressable text-[12px] font-semibold text-primary flex items-center gap-1 hover:gap-1.5 transition-all"><span class="material-symbols-outlined text-[17px]">add</span>Focus block</button></div><div class="rounded-2xl border hairline bg-surface-container-low/60 p-3 sm:p-4">';
   H += today.length ? today.map(e=>eventRow(e,{highlight:e===focusEvent})).join("") : '<p class="text-[13px] text-on-surface-variant/50 px-2 py-4">No events today.</p>';
   H += '</div></div>';
-  // week peek + travel/routine peek
   H += '<div class="grid lg:grid-cols-2 gap-5">';
   const wk=upcoming(7).filter(g=>g.key!==tkey).slice(0,3);
   H += '<div class="rise rounded-2xl border hairline bg-surface-container-low/60 p-5" style="animation-delay:.16s"><div class="flex items-center justify-between mb-3"><h2 class="text-[12px] font-bold tracking-[0.22em] text-secondary uppercase">Coming up</h2><a href="#week" data-act="nav" data-view="week" class="text-[11px] text-primary font-semibold">Full week →</a></div><div class="space-y-3">';
   H += wk.length ? wk.map(g=>'<div><p class="text-[10.5px] font-bold tracking-wider text-on-surface-variant/50 uppercase mb-1 px-1">'+fmtDayLabel(g.key)+'</p>'+g.events.slice(0,3).map(e=>eventRow(e)).join("")+'</div>').join("") : '<p class="text-[13px] text-on-surface-variant/50 px-1">Clear ahead.</p>';
   H += '</div></div>';
-  const routines=(DATA.events||[]).filter(e=>e.kind==="routine"||e.kind==="meditation").slice(0,4);
+  const routines=eventsAll().filter(e=>e.kind==="routine"||e.kind==="meditation").slice(0,4);
   H += '<div class="rise rounded-2xl border hairline bg-surface-container-low/60 p-5" style="animation-delay:.2s"><div class="flex items-center justify-between mb-3"><h2 class="text-[12px] font-bold tracking-[0.22em] text-secondary uppercase">Routines</h2><a href="#routines" data-act="nav" data-view="routines" class="text-[11px] text-primary font-semibold">All →</a></div><div class="space-y-1">';
-  H += routines.length? routines.map(e=>eventRow(e)).join("") : '<p class="text-[13px] text-on-surface-variant/50 px-1">No routine blocks on the calendar.</p>';
+  H += routines.length? routines.map(e=>eventRow(e)).join("") : '<p class="text-[13px] text-on-surface-variant/50 px-1">No routine blocks.</p>';
   H += '</div></div></div>';
   H += footerHTML();
   $("#view-overview").innerHTML=H;
 }
+function calLegendFilter(){
+  const present=[...new Set(eventsAll().map(e=>e.calendar).filter(Boolean))];
+  let H='<div class="flex gap-2 overflow-x-auto pb-2 mb-3 -mx-1 px-1">';
+  H+='<button data-act="cal-filter" data-cal="all" class="pressable flex-shrink-0 text-[12px] font-semibold px-3 py-1.5 rounded-full border '+(STATE.calFilter==="all"?"bg-primary text-on-primary border-primary":"bg-surface-container/50 text-on-surface-variant/75 border-outline-variant hover:border-primary/40")+'">All</button>';
+  present.forEach(c=>{ const on=STATE.calFilter===c;
+    H+='<button data-act="cal-filter" data-cal="'+esc(c)+'" class="pressable flex-shrink-0 flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-full border '+(on?"bg-primary text-on-primary border-primary":"bg-surface-container/50 text-on-surface-variant/75 border-outline-variant hover:border-primary/40")+'"><span class="w-2 h-2 rounded-full" style="background:'+calColor(c)+'"></span>'+esc(c)+'</button>'; });
+  H+='</div>'; return H;
+}
 function renderWeek(){
-  const groups=upcoming(8);
-  let H='<div class="rise"><div class="mb-4 px-1"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">The week ahead</h2><p class="text-[12px] text-on-surface-variant/60 mt-0.5">Tap any event for detail. Read-only mirror of your calendar.</p></div><div class="max-w-3xl space-y-4">';
-  if(!groups.length) H += '<p class="text-[13px] text-on-surface-variant/50">Nothing on the calendar this week.</p>';
-  groups.forEach(g=>{
-    const isToday=g.key===todayKey();
-    H += '<div class="rounded-2xl border '+(isToday?"border-primary/30 bg-primary/5":"hairline bg-surface-container-low/50")+' p-4"><div class="flex items-center gap-2 mb-2 px-1"><span class="text-[12px] font-bold '+(isToday?"text-primary":"text-on-surface")+'">'+fmtDayLabel(g.key)+'</span>'+(isToday?'<span class="text-[10px] font-bold text-primary uppercase tracking-wider">Today</span>':'')+'<span class="ml-auto text-[10px] font-mono text-on-surface-variant/40">'+g.events.length+'</span></div>'+
-      g.events.map(e=>eventRow(e)).join("")+'</div>';
+  const groups=upcoming(8, STATE.calFilter);
+  let H='<div class="rise"><div class="mb-3 px-1"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">The week ahead</h2><p class="text-[12px] text-on-surface-variant/60 mt-0.5">All calendars · tap an event to reschedule, add prep, or cancel.</p></div>';
+  H += calLegendFilter();
+  H += '<div class="max-w-3xl space-y-4">';
+  if(!groups.length) H += '<p class="text-[13px] text-on-surface-variant/50">Nothing'+(STATE.calFilter!=="all"?' on “'+esc(STATE.calFilter)+'”':'')+' this week.</p>';
+  groups.forEach(g=>{ const isToday=g.key===todayKey();
+    H += '<div class="rounded-2xl border '+(isToday?"border-primary/30 bg-primary/5":"hairline bg-surface-container-low/50")+' p-4"><div class="flex items-center gap-2 mb-2 px-1"><span class="text-[12px] font-bold '+(isToday?"text-primary":"text-on-surface")+'">'+fmtDayLabel(g.key)+'</span>'+(isToday?'<span class="text-[10px] font-bold text-primary uppercase tracking-wider">Today</span>':'')+'<span class="ml-auto text-[10px] font-mono text-on-surface-variant/40">'+g.events.length+'</span></div>'+g.events.map(e=>eventRow(e)).join("")+'</div>';
   });
   H += '</div>'+footerHTML()+'</div>';
   $("#view-week").innerHTML=H;
 }
 function renderTravel(){
-  const travel=(DATA.events||[]).filter(e=>e.kind==="travel"||e.kind==="stay").sort((a,b)=>startMs(a)-startMs(b));
-  let H='<div class="rise"><div class="mb-4 px-1"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Travel</h2><p class="text-[12px] text-on-surface-variant/60 mt-0.5">Flights and stays Maestro found on your calendar.</p></div><div class="max-w-2xl space-y-3">';
+  const travel=eventsAll().filter(e=>e.kind==="travel"||e.kind==="stay").sort((a,b)=>startMs(a)-startMs(b));
+  let H='<div class="rise"><div class="mb-4 px-1"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Travel</h2><p class="text-[12px] text-on-surface-variant/60 mt-0.5">Flights and stays across your calendars.</p></div><div class="max-w-2xl space-y-3">';
   if(!travel.length) H += '<p class="text-[13px] text-on-surface-variant/50">No travel on the calendar.</p>';
-  travel.forEach(e=>{
-    H += '<button data-act="open-event" data-id="'+esc(e.id)+'" class="pressable w-full text-left flex items-center gap-4 rounded-2xl border hairline bg-surface-container-low/50 hover:border-primary/30 p-4">'+
-      '<span class="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary flex-shrink-0"><span class="material-symbols-outlined">flight</span></span>'+
-      '<div class="min-w-0 flex-1"><p class="text-[14px] font-semibold text-on-surface">'+esc(e.title)+'</p>'+(e.location?'<p class="text-[12px] text-on-surface-variant/60">'+esc(e.location)+'</p>':'')+'</div>'+
-      '<span class="text-[12px] font-mono text-on-surface-variant/70 flex-shrink-0">'+fmtShort(e.start)+'</span></button>';
-  });
+  travel.forEach(e=>{ H += '<button data-act="open-event" data-id="'+esc(e.id)+'" class="pressable w-full text-left flex items-center gap-4 rounded-2xl border hairline bg-surface-container-low/50 hover:border-primary/30 p-4"><span class="w-1.5 h-10 rounded-full" style="background:'+calColor(e.calendar)+'"></span><span class="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary flex-shrink-0"><span class="material-symbols-outlined">flight</span></span><div class="min-w-0 flex-1"><p class="text-[14px] font-semibold text-on-surface">'+esc(e.title)+'</p>'+(e.location?'<p class="text-[12px] text-on-surface-variant/60">'+esc(e.location)+'</p>':'')+'</div><span class="text-[12px] font-mono text-on-surface-variant/70 flex-shrink-0">'+fmtShort(e.start)+'</span></button>'; });
   H += '</div>'+footerHTML()+'</div>';
   $("#view-travel").innerHTML=H;
 }
 function renderRoutines(){
-  const med=(DATA.events||[]).filter(e=>e.kind==="meditation").sort((a,b)=>startMs(a)-startMs(b));
-  const rout=(DATA.events||[]).filter(e=>e.kind==="routine").sort((a,b)=>startMs(a)-startMs(b));
-  let H='<div class="rise"><div class="mb-4 px-1"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Routines &amp; practice</h2><p class="text-[12px] text-on-surface-variant/60 mt-0.5">Meditation and recurring blocks on your calendar.</p></div>';
+  const med=eventsAll().filter(e=>e.kind==="meditation").sort((a,b)=>startMs(a)-startMs(b));
+  const rout=eventsAll().filter(e=>e.kind==="routine").sort((a,b)=>startMs(a)-startMs(b));
+  let H='<div class="rise"><div class="mb-4 px-1"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Routines &amp; practice</h2><p class="text-[12px] text-on-surface-variant/60 mt-0.5">Meditation and recurring blocks across your calendars.</p></div>';
   H += '<div class="grid sm:grid-cols-3 gap-3 mb-6 max-w-2xl">'+statTile(med.length,"meditation blocks","self_improvement","text-green")+statTile(rout.length,"routine blocks","replay")+statTile(med.length+rout.length,"total","spa")+'</div>';
   H += '<div class="max-w-2xl space-y-5">';
-  H += '<div><h3 class="text-[11px] font-bold tracking-widest text-secondary uppercase mb-2 px-1">Meditation</h3><div class="rounded-2xl border hairline bg-surface-container-low/50 p-3">'+(med.length?med.map(e=>eventRow(e)).join(""):'<p class="text-[13px] text-on-surface-variant/50 px-2 py-2">No meditation blocks scheduled.</p>')+'</div></div>';
-  H += '<div><h3 class="text-[11px] font-bold tracking-widest text-secondary uppercase mb-2 px-1">Routines</h3><div class="rounded-2xl border hairline bg-surface-container-low/50 p-3">'+(rout.length?rout.map(e=>eventRow(e)).join(""):'<p class="text-[13px] text-on-surface-variant/50 px-2 py-2">No routine blocks scheduled.</p>')+'</div></div>';
+  H += '<div><h3 class="text-[11px] font-bold tracking-widest text-secondary uppercase mb-2 px-1">Meditation</h3><div class="rounded-2xl border hairline bg-surface-container-low/50 p-3">'+(med.length?med.map(e=>eventRow(e)).join(""):'<p class="text-[13px] text-on-surface-variant/50 px-2 py-2">No meditation blocks.</p>')+'</div></div>';
+  H += '<div><h3 class="text-[11px] font-bold tracking-widest text-secondary uppercase mb-2 px-1">Routines</h3><div class="rounded-2xl border hairline bg-surface-container-low/50 p-3">'+(rout.length?rout.map(e=>eventRow(e)).join(""):'<p class="text-[13px] text-on-surface-variant/50 px-2 py-2">No routine blocks.</p>')+'</div></div>';
   H += '</div>'+footerHTML()+'</div>';
   $("#view-routines").innerHTML=H;
 }
-function footerHTML(){ return '<footer class="pt-8 pb-6 text-center space-y-2"><p class="text-[11px] tracking-[0.25em] text-primary/60 font-bold">MAESTRO</p><p class="text-[12px] text-on-surface-variant/50 max-w-xl mx-auto leading-relaxed">Private &amp; calendar-only. Read-only mirror of your Google Calendar, secured to your account.</p></footer>'; }
-function greeting(){ const h=NOW.getHours(); return h<12?"Good morning":h<18?"Good afternoon":"Good evening"; }
-function fmtShort(iso){ const d=DATEONLY.test(iso)?new Date(iso+"T12:00:00"):new Date(iso); return isNaN(d)?String(iso).slice(5):d.toLocaleDateString(undefined,{month:"short",day:"numeric"}); }
+function footerHTML(){ return '<footer class="pt-8 pb-6 text-center space-y-2"><p class="text-[11px] tracking-[0.25em] text-primary/60 font-bold">MAESTRO</p><p class="text-[12px] text-on-surface-variant/50 max-w-xl mx-auto leading-relaxed">Private · all your calendars, secured to your account. Reschedules and new blocks are queued, then written to Google Calendar by Maestro.</p></footer>'; }
 
 /* ───── router ───── */
 function setView(name, force){
@@ -311,15 +368,29 @@ function setView(name, force){
   $$(".bnav").forEach(t=>t.dataset.active = t.dataset.view===name?"1":"0");
   window.scrollTo({top:0});
 }
+function rerender(name){ RENDERED[name]=false; if(STATE.view===name) setView(name,true); }
 
 /* ───── events ───── */
-document.addEventListener("click", e=>{
+document.addEventListener("click", async (e)=>{
   const el=e.target.closest("[data-act]"); if(!el) return;
   const act=el.dataset.act;
   if(act==="nav"){ e.preventDefault(); location.hash="#"+el.dataset.view; return; }
   if(act==="close-modal"){ closeModal(); return; }
   if(act==="open-event"){ const ev=(DATA.events||[]).find(x=>String(x.id)===el.dataset.id); if(ev) eventModal(ev); return; }
   if(act==="logout"){ signOut(); return; }
+  if(act==="cal-filter"){ STATE.calFilter=el.dataset.cal; rerender("week"); return; }
+  if(act==="open-pending"){ pendingModal(); return; }
+  if(act==="withdraw"){ withdraw(el.dataset.id); return; }
+  if(act==="add-focus"){ enqueue("create_event",{ title:"Focus block", kind:"focus", calendar:"jeremydirons@gmail.com", op:"find_slot", durationMins:90, day:"today" }, "Maestro will find a 90-min focus slot today."); return; }
+  if(act && act.indexOf("aff-")===0){
+    const id=el.dataset.id, payload=JSON.parse(el.dataset.payload||"{}"); payload.eventId=id;
+    const ev=(DATA.events||[]).find(x=>String(x.id)===String(id)); if(ev) payload.calendar=ev.calendar;
+    const sub=act.slice(4);
+    if(sub==="resched") enqueue("reschedule_event", payload, "Maestro will reschedule “"+(ev?ev.title:"event")+"”.");
+    else if(sub==="prep") enqueue("add_block", { eventId:id, calendar:(ev?ev.calendar:"jeremydirons@gmail.com"), minutes:payload.minutes||30, position:"before", title:"Prep: "+(ev?ev.title:"") }, "Maestro will add a prep block before “"+(ev?ev.title:"event")+"”.");
+    else if(sub==="cancel") enqueue("cancel_event", payload, "Maestro will cancel “"+(ev?ev.title:"event")+"”. Withdraw from the queue to undo.");
+    return;
+  }
 });
 document.addEventListener("keydown", e=>{ if(e.key==="Escape" && $("#modal").classList.contains("open")) closeModal(); });
 window.addEventListener("hashchange", ()=> setView((location.hash||"#overview").slice(1)));
@@ -334,17 +405,14 @@ async function loadDashboard(){
   NOW = (DATA.meta && DATA.meta.sample && DATA.meta.generatedAt) ? new Date(DATA.meta.generatedAt) : new Date();
   $("#login").classList.add("hidden"); $("#app").classList.remove("hidden");
   if(DATA.meta && DATA.meta.location) $("#loc").textContent=DATA.meta.location;
-  const sess=(await sb.auth.getSession()).data.session;
   $("#synced").textContent = DATA.meta&&DATA.meta.sample ? "sample data" : "synced "+(data&&data.updated_at?new Date(data.updated_at).toLocaleDateString(undefined,{month:"short",day:"numeric"}):"");
   tick(); setInterval(tick,20000);
   RENDERED={};
+  await refreshPending();
   setView((location.hash||"#overview").slice(1), true);
 }
-function showLogin(msg){
-  $("#app").classList.add("hidden"); $("#login").classList.remove("hidden");
-  const er=$("#login-error"); if(msg){ er.textContent=msg; er.classList.remove("hidden"); } else { er.classList.add("hidden"); }
-}
-async function signOut(){ await sb.auth.signOut(); DATA=null; location.hash=""; showLogin(); }
+function showLogin(msg){ $("#app").classList.add("hidden"); $("#login").classList.remove("hidden"); const er=$("#login-error"); if(msg){ er.textContent=msg; er.classList.remove("hidden"); } else { er.classList.add("hidden"); } }
+async function signOut(){ await sb.auth.signOut(); DATA=null; PENDING=[]; location.hash=""; showLogin(); }
 
 $("#login-form").addEventListener("submit", async (e)=>{
   e.preventDefault();
@@ -357,11 +425,7 @@ $("#login-form").addEventListener("submit", async (e)=>{
   await loadDashboard();
 });
 
-/* boot: resume session if present */
-(async ()=>{
-  const { data:{ session } } = await sb.auth.getSession();
-  if(session){ await loadDashboard(); } else { showLogin(); }
-})();
+(async ()=>{ const { data:{ session } } = await sb.auth.getSession(); if(session){ await loadDashboard(); } else { showLogin(); } })();
 </script>
 </body>
 </html>

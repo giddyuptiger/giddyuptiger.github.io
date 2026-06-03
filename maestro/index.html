@@ -163,7 +163,7 @@
         <a href="#routines" data-act="nav" data-view="routines" class="tab pressable">Routines</a>
       </nav>
       <div class="flex items-center gap-2">
-        <button data-act="open-pending" id="pending-pill" class="hidden pressable items-center gap-1.5 bg-primary/12 text-primary border border-primary/25 rounded-full pl-2 pr-2.5 py-1 text-[12px] font-semibold"><span class="material-symbols-outlined text-[16px]">bolt</span><span id="pending-count">0</span></button>
+        <button data-act="open-pending" id="pending-pill" title="Actions queued for Maestro" class="hidden pressable items-center gap-1.5 bg-primary/12 text-primary border border-primary/25 rounded-full pl-2.5 pr-3 py-1 text-[12px] font-semibold"><span class="material-symbols-outlined text-[16px]">bolt</span>Queued (<span id="pending-count">0</span>)</button>
         <div class="text-right leading-tight hidden sm:block"><div id="clock" class="font-mono text-[14px] text-on-surface font-medium tabular-nums">—:—</div><div id="loc" class="text-[11px] text-on-surface-variant/70">—</div></div>
         <button data-act="open-settings" class="pressable w-9 h-9 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-primary" title="Settings" aria-label="Settings"><span class="material-symbols-outlined text-[20px]">settings</span></button>
         <button data-act="logout" class="pressable w-9 h-9 rounded-full bg-surface-container-high ring-1 ring-primary/30 flex items-center justify-center text-on-surface-variant hover:text-primary" title="Sign out" aria-label="Sign out"><span class="material-symbols-outlined text-[19px]">logout</span></button>
@@ -181,11 +181,12 @@
   </main>
 
   <nav class="sm:hidden fixed bottom-0 inset-x-0 z-40 bg-surface/90 backdrop-blur-xl border-t hairline flex justify-around items-stretch h-[68px] pb-[env(safe-area-inset-bottom)]" id="bnav">
-    <a href="#overview" data-act="nav" data-view="overview" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9.5px] font-semibold"><span class="material-symbols-outlined text-[21px]">today</span>Overview</a>
-    <a href="#projects" data-act="nav" data-view="projects" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9.5px] font-semibold"><span class="material-symbols-outlined text-[21px]">dashboard</span>Projects</a>
-    <a href="#tasks" data-act="nav" data-view="tasks" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9.5px] font-semibold"><span class="material-symbols-outlined text-[21px]">checklist</span>Tasks</a>
-    <a href="#week" data-act="nav" data-view="week" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9.5px] font-semibold"><span class="material-symbols-outlined text-[21px]">calendar_month</span>Week</a>
-    <a href="#travel" data-act="nav" data-view="travel" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9.5px] font-semibold"><span class="material-symbols-outlined text-[21px]">flight</span>Travel</a>
+    <a href="#overview" data-act="nav" data-view="overview" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">today</span>Overview</a>
+    <a href="#projects" data-act="nav" data-view="projects" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">dashboard</span>Projects</a>
+    <a href="#tasks" data-act="nav" data-view="tasks" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">checklist</span>Tasks</a>
+    <a href="#week" data-act="nav" data-view="week" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">calendar_month</span>Week</a>
+    <a href="#travel" data-act="nav" data-view="travel" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">flight</span>Travel</a>
+    <a href="#routines" data-act="nav" data-view="routines" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">self_improvement</span>Routines</a>
   </nav>
 </div>
 
@@ -267,11 +268,11 @@ function eventModal(e){
   if(!e.allDay){
     h += '<div class="rounded-xl border border-primary/25 bg-primary/5 p-4"><div class="flex items-center gap-2 mb-3"><span class="material-symbols-outlined text-primary text-[18px] ms-fill">auto_awesome</span><span class="text-[11px] font-bold tracking-widest text-primary uppercase">Ask Maestro to</span></div>'+
       '<div class="flex flex-wrap gap-2">'+
-        affBtn("resched", e.id, {op:"shift",minutes:60}, "schedule", "Push 1 hour")+
-        affBtn("resched", e.id, {op:"shift",minutes:1440}, "event_repeat", "Move to tomorrow")+
-        affBtn("resched", e.id, {op:"move",target:"tomorrow_09:00"}, "wb_sunny", "Tomorrow AM")+
-        affBtn("prep", e.id, {minutes:30}, "add_circle", "Add 30-min prep")+
-        affBtn("cancel", e.id, {}, "event_busy", "Cancel event")+
+        affBtn("resched", e.id, {op:"shift",minutes:60}, "schedule", "Queue: push 1h")+
+        affBtn("resched", e.id, {op:"shift",minutes:1440}, "event_repeat", "Queue: move to tomorrow")+
+        affBtn("resched", e.id, {op:"move",target:"tomorrow_09:00"}, "wb_sunny", "Queue: tomorrow AM")+
+        affBtn("prep", e.id, {minutes:30}, "add_circle", "Queue: 30-min prep")+
+        affBtn("cancel", e.id, {}, "event_busy", "Queue: cancel event")+
       '</div><p class="text-[11px] text-on-surface-variant/45 mt-3 flex items-center gap-1.5"><span class="material-symbols-outlined text-[15px]">bolt</span>Queues a change — Maestro writes it to your calendar on the next sync.</p></div>';
   } else {
     h += '<p class="text-[11px] text-on-surface-variant/40 flex items-center gap-1.5"><span class="material-symbols-outlined text-[15px]">event_available</span>All-day / travel event — mirrored from '+esc(e.calendar||"your calendar")+'.</p>';
@@ -284,6 +285,20 @@ function affBtn(act, id, payload, icon, label){
 }
 
 /* ───── action queue (calendar WRITES via the brain) ───── */
+// Confirmation gate so a single tap never silently queues a real calendar write.
+let QUEUE_CB=null;
+function confirmQueue(summary, onConfirm, reopenId){
+  QUEUE_CB=onConfirm;
+  let h=mhead("Queue this action?","Maestro applies it on its next sync");
+  h+='<div class="px-5 sm:px-6 py-5 space-y-4">'+
+    '<div class="flex items-start gap-3"><span class="material-symbols-outlined text-primary text-[22px] mt-0.5">event_upcoming</span>'+
+    '<p class="text-[14px] text-on-surface/85 leading-relaxed">Queue Maestro to <b>'+summary+'</b>?<br><span class="text-[12.5px] text-on-surface-variant/65">Nothing changes on your calendar now — it’s added to your queue and written on the next sync. You can withdraw it from <b>Queued</b> anytime.</span></p></div>'+
+    '<div class="flex gap-2 pt-1">'+
+      '<button data-act="confirm-queue" class="pressable flex-1 bg-primary text-on-primary font-bold text-[13.5px] py-2.5 rounded-xl hover:brightness-110 flex items-center justify-center gap-1.5"><span class="material-symbols-outlined text-[18px]">bolt</span>Queue it</button>'+
+      '<button data-act="cancel-queue" data-reopen="'+(reopenId?esc(reopenId):"")+'" class="pressable flex-1 bg-surface-container-high text-on-surface font-semibold text-[13.5px] py-2.5 rounded-xl hover:bg-surface-variant">Cancel</button>'+
+    '</div></div>';
+  openModal(h);
+}
 async function enqueue(type, payload, okMsg){
   const ev=(DATA.events||[]).find(x=>String(x.id)===String(payload.eventId));
   const row={ type, payload };
@@ -367,9 +382,9 @@ function renderOverview(){
   H += '</div>';
   if(conflicts.length){
     H += '<div class="rise mb-7 rounded-2xl border border-on-error-container/25 bg-error-container/15 p-4" style="animation-delay:.1s"><div class="flex items-center gap-2 mb-2"><span class="material-symbols-outlined text-on-error-container text-[19px]">warning</span><span class="text-[12px] font-bold tracking-widest text-on-error-container uppercase">Overlap'+(conflicts.length>1?"s":"")+' — ask Maestro to fix</span></div><div class="space-y-2">'+
-      conflicts.map(c=>'<div class="flex items-center justify-between gap-3 flex-wrap"><p class="text-[13px] text-on-surface/85"><span class="font-mono text-[11px] text-on-error-container/80">'+fmtTime(c.a.start)+'</span> <b>'+esc(c.a.title)+'</b> overlaps <b>'+esc(c.b.title)+'</b></p>'+affBtn("resched",c.b.id,{op:"shift",minutes:60},"schedule","Push “"+esc(c.b.title)+"” 1h")+'</div>').join("")+'</div></div>';
+      conflicts.map(c=>'<div class="flex items-center justify-between gap-3 flex-wrap"><p class="text-[13px] text-on-surface/85"><span class="font-mono text-[11px] text-on-error-container/80">'+fmtTime(c.a.start)+'</span> <b>'+esc(c.a.title)+'</b> overlaps <b>'+esc(c.b.title)+'</b></p>'+affBtn("resched",c.b.id,{op:"shift",minutes:60},"schedule","Queue: push 1h")+'</div>').join("")+'</div></div>';
   }
-  H += '<div class="rise mb-7" style="animation-delay:.12s"><div class="flex items-center justify-between mb-3 px-1"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Today\'s agenda</h2><button data-act="add-focus" class="pressable text-[12px] font-semibold text-primary flex items-center gap-1 hover:gap-1.5 transition-all"><span class="material-symbols-outlined text-[17px]">add</span>Focus block</button></div><div class="rounded-2xl border hairline bg-surface-container-low/60 p-3 sm:p-4">';
+  H += '<div class="rise mb-7" style="animation-delay:.12s"><div class="flex items-center justify-between mb-3 px-1"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Today\'s agenda</h2><button data-act="add-focus" class="pressable text-[12px] font-semibold text-primary flex items-center gap-1 hover:gap-1.5 transition-all"><span class="material-symbols-outlined text-[17px]">add</span>Queue a focus block</button></div><div class="rounded-2xl border hairline bg-surface-container-low/60 p-3 sm:p-4">';
   H += today.length ? today.map(e=>eventRow(e,{highlight:e===focusEvent})).join("") : '<p class="text-[13px] text-on-surface-variant/50 px-2 py-4">No events today.</p>';
   H += '</div></div>';
   H += '<div class="grid lg:grid-cols-2 gap-5">';
@@ -571,14 +586,23 @@ document.addEventListener("click", async (e)=>{
   if(act==="cal-filter"){ STATE.calFilter=el.dataset.cal; rerender("week"); return; }
   if(act==="open-pending"){ pendingModal(); return; }
   if(act==="withdraw"){ withdraw(el.dataset.id); return; }
-  if(act==="add-focus"){ enqueue("create_event",{ title:"Focus block", kind:"focus", calendar:"jeremydirons@gmail.com", op:"find_slot", durationMins:90, day:"today" }, "Maestro will find a 90-min focus slot today."); return; }
+  if(act==="confirm-queue"){ const cb=QUEUE_CB; QUEUE_CB=null; if(cb) cb(); return; }
+  if(act==="cancel-queue"){ QUEUE_CB=null; const rid=el.dataset.reopen; const ev=rid&&(DATA.events||[]).find(x=>String(x.id)===String(rid)); if(ev){ eventModal(ev); } else { closeModal(); } return; }
+  if(act==="add-focus"){ confirmQueue("find a 90-min focus block today", ()=>enqueue("create_event",{ title:"Focus block", kind:"focus", calendar:"jeremydirons@gmail.com", op:"find_slot", durationMins:90, day:"today" }, "Queued — Maestro will find a 90-min focus slot today.")); return; }
   if(act && act.indexOf("aff-")===0){
     const id=el.dataset.id, payload=JSON.parse(el.dataset.payload||"{}"); payload.eventId=id;
     const ev=(DATA.events||[]).find(x=>String(x.id)===String(id)); if(ev) payload.calendar=ev.calendar;
-    const sub=act.slice(4);
-    if(sub==="resched") enqueue("reschedule_event", payload, "Maestro will reschedule “"+(ev?ev.title:"event")+"”.");
-    else if(sub==="prep") enqueue("add_block", { eventId:id, calendar:(ev?ev.calendar:"jeremydirons@gmail.com"), minutes:payload.minutes||30, position:"before", title:"Prep: "+(ev?ev.title:"") }, "Maestro will add a prep block before “"+(ev?ev.title:"event")+"”.");
-    else if(sub==="cancel") enqueue("cancel_event", payload, "Maestro will cancel “"+(ev?ev.title:"event")+"”. Withdraw from the queue to undo.");
+    const sub=act.slice(4); const title=esc(ev?ev.title:"event");
+    if(sub==="resched"){
+      const summ = (payload.op==="shift"&&payload.minutes>=1440) ? ("move “"+title+"” to tomorrow")
+                 : (payload.op==="shift") ? ("push “"+title+"” by "+(payload.minutes/60)+"h")
+                 : ("move “"+title+"” to tomorrow morning");
+      confirmQueue(summ, ()=>enqueue("reschedule_event", payload, "Queued — Maestro will reschedule it."), id);
+    } else if(sub==="prep"){
+      confirmQueue("add a "+(payload.minutes||30)+"-min prep block before “"+title+"”", ()=>enqueue("add_block", { eventId:id, calendar:(ev?ev.calendar:"jeremydirons@gmail.com"), minutes:payload.minutes||30, position:"before", title:"Prep: "+(ev?ev.title:"") }, "Queued — Maestro will add a prep block."), id);
+    } else if(sub==="cancel"){
+      confirmQueue("cancel “"+title+"”", ()=>enqueue("cancel_event", payload, "Queued — Maestro will cancel it. Withdraw from Queued to undo."), id);
+    }
     return;
   }
 });

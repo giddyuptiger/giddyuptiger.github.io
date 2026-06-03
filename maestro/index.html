@@ -578,6 +578,10 @@ function settingsModal(){
   });
   h+='</div>'+
      '<p class="text-[11px] text-on-surface-variant/45 mt-3 flex items-center gap-1.5"><span class="material-symbols-outlined text-[15px]">cloud_done</span>Saved to your account · the brain skips hidden calendars when finding overlaps.</p>'+
+     '</div>'+
+     '<div><h3 class="text-[11px] font-bold tracking-widest text-on-surface-variant/70 uppercase mb-1">Google connection</h3>'+
+     '<p class="text-[12px] text-on-surface-variant/55 mb-3">Connect Google once to enable on-demand <b>live</b> calendar sync (the “Sync now” button). Your refresh token is stored encrypted server-side and never leaves Supabase.</p>'+
+     '<button data-act="connect-google" class="w-full flex items-center justify-center gap-2 rounded-xl bg-primary text-on-primary font-bold text-[13.5px] py-2.5 hover:brightness-110"><span class="material-symbols-outlined text-[18px]">link</span>Connect Google</button>'+
      '</div></div>';
   openModal(h);
 }
@@ -616,6 +620,7 @@ document.addEventListener("click", async (e)=>{
   if(act==="open-event"){ const ev=(DATA.events||[]).find(x=>String(x.id)===el.dataset.id); if(ev) eventModal(ev); return; }
   if(act==="logout"){ signOut(); return; }
   if(act==="sync-now"){ liveSync({}); return; }
+  if(act==="connect-google"){ connectGoogle(); return; }
   if(act==="cal-filter"){ STATE.calFilter=el.dataset.cal; rerender("week"); return; }
   if(act==="open-pending"){ pendingModal(); return; }
   if(act==="withdraw"){ withdraw(el.dataset.id); return; }
@@ -714,6 +719,25 @@ async function liveSync(opts){
   }catch(_e){ /* offline or backend not enabled yet — keep brain data, no regression */ }
   finally{ if(icon) icon.classList.remove("animate-spin"); }
 }
+
+/* Connect Google once → stores Jeremy's refresh token server-side (enwrco), which the
+   calendar-sync function then uses for live reads. One consent; tokens never leave Supabase. */
+async function connectGoogle(){
+  try{
+    const { data:{ session } } = await sb.auth.getSession();
+    if(!session){ toast("Sign in first","lock"); return; }
+    const res = await fetch(SUPABASE_URL+"/functions/v1/google-oauth/start", {
+      method:"POST", headers:{ apikey:SUPABASE_ANON, authorization:"Bearer "+session.access_token }
+    });
+    const body = await res.json();
+    if(!res.ok || !body.url) throw new Error(body.error||"could not start Google connect");
+    // If the hosted OAuth client isn't configured yet, the consent URL has no client_id.
+    if(!new URL(body.url).searchParams.get("client_id")){
+      toast("Google connect isn't fully configured yet — see setup notes.","info"); return;
+    }
+    window.location.href = body.url;   // → Google consent → enwrco callback → back here
+  }catch(e){ toast("Couldn't start Google connect: "+e.message,"error"); }
+}
 function showScreen(name){ ["login","forgot","reset"].forEach(s=>{ var el=$("#"+s); if(el) el.classList.toggle("hidden", s!==name); }); $("#app").classList.add("hidden"); }
 function showLogin(msg){ showScreen("login"); const er=$("#login-error"); if(msg){ er.textContent=msg; er.classList.remove("hidden"); } else { er.classList.add("hidden"); } }
 function showForgot(){ showScreen("forgot"); $("#forgot-msg").classList.add("hidden"); var fe=$("#forgot-email"); if(fe && $("#email") && $("#email").value) fe.value=$("#email").value.trim(); }
@@ -765,6 +789,13 @@ $("#reset-form").addEventListener("submit", async (e)=>{
 
 // Recovery links fire PASSWORD_RECOVERY once supabase-js parses the URL token
 sb.auth.onAuthStateChange((event)=>{ if(event==="PASSWORD_RECOVERY"){ showReset(); } });
+
+// Surface the result of a Google consent round-trip (callback redirects here with ?connected=…).
+(function(){
+  const p = new URLSearchParams(location.search);
+  if(p.get("connected")==="google"){ history.replaceState(null,"",location.pathname); setTimeout(()=>toast("Google connected — live sync is on.","check_circle"),600); }
+  else if(p.get("connected")==="error"){ history.replaceState(null,"",location.pathname); setTimeout(()=>toast("Google connection failed — try again from Settings.","error"),600); }
+})();
 
 (async ()=>{
   const isRecovery = /(?:^|[#&?])type=recovery(?:&|$)/.test(INITIAL_HASH) || /(?:^|[#&?])type=recovery(?:&|$)/.test(location.search);

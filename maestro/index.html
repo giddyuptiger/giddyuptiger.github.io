@@ -467,26 +467,41 @@ function renderProjects(){
   H+=footerHTML()+'</div>';
   $("#view-projects").innerHTML=H;
 }
+function completedTasks(){ return (DATA.settings && DATA.settings.completedTasks) || []; }
+function taskDone(id){ return completedTasks().indexOf(id) >= 0; }
 function taskRow(t){
-  const st=pstate(t.state); const urgent=/asap/i.test(t.urgency);
-  const clickable=!!t.projectId;
+  const st=pstate(t.state); const urgent=/asap/i.test(t.urgency); const done=taskDone(t.id);
+  const clickable=!!t.projectId && !done;
   const tag='<span class="inline-flex items-center gap-1 text-[10.5px] font-semibold text-on-surface-variant/60 bg-surface-container-high px-1.5 py-0.5 rounded">'+(t.icon?esc(t.icon)+' ':'')+esc(t.project||"")+'</span>';
-  return '<'+(clickable?'button data-act="open-project" data-id="'+esc(t.projectId)+'"':'div')+' class="pressable w-full text-left flex items-start gap-3 rounded-xl px-3 py-2.5 '+(clickable?'hover:bg-surface-container/60':'')+'">'+
-    '<span class="material-symbols-outlined text-[19px] mt-0.5 flex-shrink-0 '+(st.dot==="bg-primary"?"text-primary":st.dot==="bg-blue"?"text-blue":"text-on-surface-variant/60")+'">radio_button_unchecked</span>'+
-    '<div class="min-w-0 flex-1"><p class="text-[13.5px] text-on-surface leading-snug">'+esc(t.title)+'</p><div class="flex items-center gap-2 mt-1">'+tag+(t.source==="drive"?'<span class="text-[10px] text-on-surface-variant/40">· from Drive</span>':'')+'</div></div>'+
-    (t.urgency?'<span class="text-[10.5px] font-mono flex-shrink-0 mt-0.5 px-1.5 py-0.5 rounded '+(urgent?"bg-error-container/40 text-on-error-container":"bg-surface-container-high text-on-surface-variant/65")+'">'+esc(t.urgency)+'</span>':'')+
-    (clickable?'<span class="material-symbols-outlined text-on-surface-variant/30 text-[18px] flex-shrink-0 mt-0.5">chevron_right</span>':'')+
-    '</'+(clickable?'button':'div')+'>';
+  const check='<button data-act="toggle-task" data-id="'+esc(t.id)+'" class="pressable mt-0.5 flex-shrink-0 leading-none" aria-label="'+(done?"Mark incomplete":"Mark done")+'">'+
+    '<span class="material-symbols-outlined text-[20px] '+(done?"text-green ms-fill":(st.dot==="bg-primary"?"text-primary":st.dot==="bg-blue"?"text-blue":"text-on-surface-variant/55"))+'">'+(done?"check_circle":"radio_button_unchecked")+'</span></button>';
+  const body='<'+(clickable?'button data-act="open-project" data-id="'+esc(t.projectId)+'"':'div')+' class="min-w-0 flex-1 text-left '+(clickable?"pressable":"")+'">'+
+    '<p class="text-[13.5px] leading-snug '+(done?"line-through text-on-surface-variant/40":"text-on-surface")+'">'+esc(t.title)+'</p>'+
+    '<div class="flex items-center gap-2 mt-1 '+(done?"opacity-50":"")+'">'+tag+(t.source==="drive"?'<span class="text-[10px] text-on-surface-variant/40">· from Drive</span>':'')+'</div></'+(clickable?'button':'div')+'>';
+  const right=(!done && t.urgency)?'<span class="text-[10.5px] font-mono flex-shrink-0 mt-0.5 px-1.5 py-0.5 rounded '+(urgent?"bg-error-container/40 text-on-error-container":"bg-surface-container-high text-on-surface-variant/65")+'">'+esc(t.urgency)+'</span>':
+    (clickable?'<span class="material-symbols-outlined text-on-surface-variant/30 text-[18px] flex-shrink-0 mt-0.5">chevron_right</span>':'');
+  return '<div class="flex items-start gap-3 rounded-xl px-3 py-2.5 hover:bg-surface-container/40 transition-colors">'+check+body+right+'</div>';
 }
 function renderTasks(){
   const ts=DATA.tasks||[];
-  const needs=ts.filter(t=>t.state==="waiting-on-jeremy"||/asap/i.test(t.urgency));
-  const tracking=ts.filter(t=>!(t.state==="waiting-on-jeremy"||/asap/i.test(t.urgency)));
-  let H='<div class="rise"><div class="mb-4 px-1"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Tasks</h2><p class="text-[12px] text-on-surface-variant/60 mt-0.5">Next actions across your projects — from the command center, your personal list, and Drive.</p></div><div class="max-w-2xl space-y-5">';
-  H+='<div><h3 class="text-[11px] font-bold tracking-widest text-primary uppercase mb-2 px-1">Needs you ('+needs.length+')</h3><div class="rounded-2xl border hairline bg-surface-container-low/50 p-2">'+(needs.length?needs.map(taskRow).join(""):'<p class="text-[13px] text-on-surface-variant/50 px-2 py-2">All clear.</p>')+'</div></div>';
+  const open=ts.filter(t=>!taskDone(t.id)), done=ts.filter(t=>taskDone(t.id));
+  const needs=open.filter(t=>t.state==="waiting-on-jeremy"||/asap/i.test(t.urgency));
+  const tracking=open.filter(t=>!(t.state==="waiting-on-jeremy"||/asap/i.test(t.urgency)));
+  let H='<div class="rise"><div class="mb-4 px-1"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Tasks</h2><p class="text-[12px] text-on-surface-variant/60 mt-0.5">Tap the circle to check one off — your check-offs are saved and survive every sync.</p></div><div class="max-w-2xl space-y-5">';
+  H+='<div><h3 class="text-[11px] font-bold tracking-widest text-primary uppercase mb-2 px-1">Needs you ('+needs.length+')</h3><div class="rounded-2xl border hairline bg-surface-container-low/50 p-2">'+(needs.length?needs.map(taskRow).join(""):'<p class="text-[13px] text-on-surface-variant/50 px-2 py-2">All clear 🎉</p>')+'</div></div>';
   if(tracking.length) H+='<div><h3 class="text-[11px] font-bold tracking-widest text-secondary uppercase mb-2 px-1">Tracking ('+tracking.length+')</h3><div class="rounded-2xl border hairline bg-surface-container-low/50 p-2">'+tracking.map(taskRow).join("")+'</div></div>';
+  if(done.length) H+='<div><h3 class="text-[11px] font-bold tracking-widest text-green uppercase mb-2 px-1 flex items-center gap-1.5"><span class="material-symbols-outlined text-[15px] ms-fill">task_alt</span>Done ('+done.length+')</h3><div class="rounded-2xl border hairline bg-surface-container-low/30 p-2">'+done.map(taskRow).join("")+'</div></div>';
   H+='</div>'+footerHTML()+'</div>';
   $("#view-tasks").innerHTML=H;
+}
+async function toggleTask(id){
+  const cur = completedTasks().slice();
+  const i = cur.indexOf(id);
+  if(i>=0) cur.splice(i,1); else cur.push(id);
+  DATA.settings = DATA.settings || {}; DATA.settings.completedTasks = cur;
+  rerender("tasks");                       // instant strike-through / move to Done
+  const { error } = await sb.from("maestro_dashboard").update({ settings: DATA.settings }).eq("user_id", USER_ID);
+  if(error){ toast("Couldn’t save: "+error.message,"error"); }
 }
 // project/task click + filter actions
 document.addEventListener("click",(e)=>{
@@ -495,6 +510,7 @@ document.addEventListener("click",(e)=>{
   else if(el.dataset.act==="proj-filter"){ STATE.projFilter=el.dataset.key; rerender("projects"); }
   else if(el.dataset.act==="open-settings"){ settingsModal(); }
   else if(el.dataset.act==="toggle-cal"){ toggleCalendar(el.dataset.cal); }
+  else if(el.dataset.act==="toggle-task"){ toggleTask(el.dataset.id); }
 });
 
 /* ───── SETTINGS: calendar visibility (user-owned, persisted to settings column) ───── */

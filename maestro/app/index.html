@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0b0d" />
+    <title>Maestro — get started</title>
+    <meta name="description" content="Maestro — your autonomous chief of staff. Sign up and get operational." />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <!-- ── LANDING / ENTRY ─────────────────────────────────── -->
+    <main id="landing-view" class="card wide hidden">
+      <div class="wordmark">Maestro<span class="dot">.</span></div>
+      <h1 class="hero-title">Your autonomous chief&nbsp;of&nbsp;staff.</h1>
+      <p class="tagline hero-tagline">
+        Maestro links to your Claude, reads your calendar and Drive, and runs your day —
+        scheduling, briefing, and keeping your projects moving. Create an account and you'll be
+        operational in four steps.
+      </p>
+
+      <ol class="steps-preview">
+        <li><span class="num">1</span><div><b>Create your account</b><p>Email &amp; password. Your data lives in Maestro's secure store.</p></div></li>
+        <li><span class="num">2</span><div><b>Link your Claude</b><p>Run one command in Claude Code to tie it to your account.</p></div></li>
+        <li><span class="num">3</span><div><b>Connect Google</b><p>One consent connects Calendar + Drive so Maestro can act for you.</p></div></li>
+        <li><span class="num">4</span><div><b>Your dashboard goes live</b><p>Your command center renders your day, projects, and tasks.</p></div></li>
+      </ol>
+
+      <div class="landing-cta">
+        <button class="btn" id="cta-signup">Create your account</button>
+        <div class="switch" style="margin-top: 14px">
+          Already have an account? <a id="cta-login">Sign in</a>
+        </div>
+      </div>
+    </main>
+
+    <!-- ── AUTH (sign in / create account) ─────────────────── -->
+    <main id="auth-view" class="card hidden">
+      <a class="back-link" id="auth-back">← Back</a>
+      <div class="wordmark">Maestro<span class="dot">.</span></div>
+      <h1 id="auth-title">Create your account</h1>
+      <p class="tagline" id="auth-tagline">Start here. One account links your Claude, your Google, and your dashboard.</p>
+
+      <form id="auth-form" autocomplete="on">
+        <label for="email">Email</label>
+        <input id="email" type="email" required placeholder="you@example.com" autocomplete="email" />
+        <label for="password">Password</label>
+        <input id="password" type="password" required placeholder="At least 6 characters" autocomplete="new-password" minlength="6" />
+        <button class="btn" id="auth-submit" type="submit">Create account</button>
+      </form>
+      <div class="msg" id="auth-msg"></div>
+      <a id="forgot-link" class="subtle-link hidden">Forgot password?</a>
+      <div class="switch">
+        <span id="switch-text">Already have an account?</span>
+        <a id="switch-link">Sign in</a>
+      </div>
+    </main>
+
+    <!-- ── CONFIRM EMAIL (after signup) ────────────────────── -->
+    <main id="confirm-view" class="card hidden">
+      <div class="wordmark">Maestro<span class="dot">.</span></div>
+      <div class="big-icon">✉️</div>
+      <h1>Confirm your email</h1>
+      <p class="tagline">
+        We sent a confirmation link to <strong id="confirm-email" class="hl"></strong>.
+        Click it to verify your account — then you'll land right back here, signed in and ready to set up.
+      </p>
+      <div class="note">
+        <span class="material">Tip:</span> the link opens Maestro and finishes sign-in automatically.
+        Can't find it? Check spam — it can take a minute to arrive.
+      </div>
+      <div class="actions" style="margin-top: 18px">
+        <button class="btn sm ghost" id="resend-confirm">Resend confirmation email</button>
+        <button class="btn sm ghost" id="confirm-to-login">I've confirmed — sign in</button>
+      </div>
+      <div class="msg" id="confirm-msg"></div>
+    </main>
+
+    <!-- ── FORGOT PASSWORD (request reset) ─────────────────── -->
+    <main id="forgot-view" class="card hidden">
+      <a class="back-link" id="forgot-back">← Back to sign in</a>
+      <div class="wordmark">Maestro<span class="dot">.</span></div>
+      <h1>Reset your password</h1>
+      <p class="tagline">Enter your account email and we'll send a secure link to set a new password.</p>
+      <form id="forgot-form" autocomplete="on">
+        <label for="forgot-email">Email</label>
+        <input id="forgot-email" type="email" required placeholder="you@example.com" autocomplete="email" />
+        <button class="btn" id="forgot-submit" type="submit">Send reset link</button>
+      </form>
+      <div class="msg" id="forgot-msg"></div>
+    </main>
+
+    <!-- ── RESET PASSWORD (from recovery link) ─────────────── -->
+    <main id="reset-view" class="card hidden">
+      <div class="wordmark">Maestro<span class="dot">.</span></div>
+      <h1>Set a new password</h1>
+      <p class="tagline">Choose a new password for your account.</p>
+      <form id="reset-form" autocomplete="on">
+        <label for="reset-pw">New password</label>
+        <input id="reset-pw" type="password" required placeholder="At least 6 characters" autocomplete="new-password" minlength="6" />
+        <label for="reset-pw2">Confirm new password</label>
+        <input id="reset-pw2" type="password" required placeholder="Re-enter password" autocomplete="new-password" minlength="6" />
+        <button class="btn" id="reset-submit" type="submit">Update password</button>
+      </form>
+      <div class="msg" id="reset-msg"></div>
+    </main>
+
+    <!-- ── CHECKLIST (operational onboarding) ──────────────── -->
+    <main id="app-view" class="card wide hidden">
+      <div class="topbar">
+        <div class="wordmark">Maestro<span class="dot">.</span></div>
+        <div class="account">
+          <span id="account-email"></span>
+          <a id="signout" style="margin-left: 12px; cursor: pointer">Sign out</a>
+        </div>
+      </div>
+      <h1>Get operational</h1>
+      <p class="tagline">Four steps to link this account to your Claude and bring your dashboard to life.</p>
+      <div class="progress"><i id="progress-bar"></i></div>
+
+      <!-- Step 1 — Link Claude -->
+      <section class="step" id="step-link" data-key="plugin_linked">
+        <div class="bullet">1</div>
+        <div class="step-body">
+          <div class="row">
+            <h2>Link your Claude</h2>
+            <span class="status-pill">Pending</span>
+          </div>
+          <p class="detail">
+            Install the Maestro plugin in Claude Code, then generate a one-time code below and run the
+            link command in Claude. This ties this machine's Claude to your account.
+          </p>
+          <div class="actions" id="link-actions">
+            <button class="btn sm ghost" id="gen-code">Generate link code</button>
+          </div>
+          <div id="link-detail" class="hidden" style="margin-top: 12px">
+            <div class="actions" style="margin-bottom: 10px">
+              <span class="hint">Your code:</span> <span class="code" id="link-code">————</span>
+              <span class="hint" id="code-ttl"></span>
+            </div>
+            <div class="hint" style="margin-bottom: 6px">In Claude Code, run:</div>
+            <div class="cmd-row">
+              <div class="cmd" id="link-cmd">/maestro-link ————</div>
+              <button class="btn sm ghost copy-btn" id="copy-cmd" title="Copy command">Copy</button>
+            </div>
+            <p class="hint" style="margin-top: 8px">This step ticks ✓ automatically once you run it.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Step 2 — Connect Google (Calendar + Drive in one consent) -->
+      <section class="step" id="step-cal" data-key="calendar_connected">
+        <div class="bullet">2</div>
+        <div class="step-body">
+          <div class="row">
+            <h2>Connect Google</h2>
+            <span class="status-pill">Pending</span>
+          </div>
+          <p class="detail">
+            Grant access so Maestro can see your day and schedule on your behalf. <strong>One consent
+            connects both Calendar and Drive</strong> (step 3 below) — you only do this once.
+          </p>
+          <div class="actions">
+            <button class="btn sm" id="connect-google">Connect Google</button>
+          </div>
+          <div class="msg" id="google-msg" style="margin-top: 10px"></div>
+        </div>
+      </section>
+
+      <!-- Step 3 — Drive (covered by the same consent) -->
+      <section class="step linked-step" id="step-drive" data-key="drive_connected">
+        <div class="bullet">3</div>
+        <div class="step-body">
+          <div class="row">
+            <h2>Connect Google Drive</h2>
+            <span class="status-pill">Pending</span>
+          </div>
+          <p class="detail">
+            Your workspace store — project docs, code-history, and SOPs.
+            <strong>Connected automatically by the Google consent in step 2</strong> — no separate
+            sign-in. Minimal scope: Maestro reads your existing docs and writes only files it creates.
+          </p>
+          <div class="actions">
+            <span class="hint linked-hint">↑ Lights up together with step 2.</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Step 4 — Dashboard -->
+      <section class="step" id="step-dash" data-key="dashboard_live">
+        <div class="bullet">4</div>
+        <div class="step-body">
+          <div class="row">
+            <h2>Confirm your dashboard is live</h2>
+            <span class="status-pill">Pending</span>
+          </div>
+          <p class="detail">Open your command-center dashboard and confirm it renders your status.</p>
+          <div class="actions">
+            <button class="btn sm" id="open-dashboard">Open my dashboard</button>
+          </div>
+        </div>
+      </section>
+
+      <div class="done-banner" id="done-banner">
+        <strong style="color: var(--gold)">You're operational. 🎉</strong>
+        <p class="hint" style="margin: 6px 0 0">
+          Every Claude session now opens with your brief. Head to your
+          <a id="done-dash-link" href="#" target="_blank" rel="noopener">dashboard</a>.
+        </p>
+      </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

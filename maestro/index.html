@@ -165,6 +165,7 @@
       <div class="flex items-center gap-2">
         <button data-act="open-pending" id="pending-pill" title="Actions queued for Maestro" class="hidden pressable items-center gap-1.5 bg-primary/12 text-primary border border-primary/25 rounded-full pl-2.5 pr-3 py-1 text-[12px] font-semibold"><span class="material-symbols-outlined text-[16px]">bolt</span>Queued (<span id="pending-count">0</span>)</button>
         <div class="text-right leading-tight hidden sm:block"><div id="clock" class="font-mono text-[14px] text-on-surface font-medium tabular-nums">—:—</div><div id="loc" class="text-[11px] text-on-surface-variant/70">—</div></div>
+        <button data-act="sync-now" id="sync-now-btn" class="pressable w-9 h-9 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-primary" title="Sync calendar now" aria-label="Sync calendar now"><span class="material-symbols-outlined text-[20px]">sync</span></button>
         <button data-act="open-settings" class="pressable w-9 h-9 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-primary" title="Settings" aria-label="Settings"><span class="material-symbols-outlined text-[20px]">settings</span></button>
         <button data-act="logout" class="pressable w-9 h-9 rounded-full bg-surface-container-high ring-1 ring-primary/30 flex items-center justify-center text-on-surface-variant hover:text-primary" title="Sign out" aria-label="Sign out"><span class="material-symbols-outlined text-[19px]">logout</span></button>
       </div>
@@ -438,7 +439,7 @@ function renderRoutines(){
   H += '</div>'+footerHTML()+'</div>';
   $("#view-routines").innerHTML=H;
 }
-/* ───── PROJECTS + TASKS (real data from command-center status.json + Drive) ───── */
+/* ───── PROJECTS + TASKS (real data from the auth-gated Supabase row, brain-written from Drive) ───── */
 const PSTATE = {
   "waiting-on-jeremy": { label:"Needs you", pill:"bg-primary/12 text-primary border-primary/25", dot:"bg-primary", order:0 },
   "in-progress":       { label:"In motion", pill:"bg-blue/12 text-blue border-blue/25",          dot:"bg-blue",    order:1 },
@@ -583,6 +584,7 @@ document.addEventListener("click", async (e)=>{
   if(act==="close-modal"){ closeModal(); return; }
   if(act==="open-event"){ const ev=(DATA.events||[]).find(x=>String(x.id)===el.dataset.id); if(ev) eventModal(ev); return; }
   if(act==="logout"){ signOut(); return; }
+  if(act==="sync-now"){ liveSync({}); return; }
   if(act==="cal-filter"){ STATE.calFilter=el.dataset.cal; rerender("week"); return; }
   if(act==="open-pending"){ pendingModal(); return; }
   if(act==="withdraw"){ withdraw(el.dataset.id); return; }
@@ -611,23 +613,13 @@ window.addEventListener("hashchange", ()=> setView((location.hash||"#overview").
 function tick(){ const c=$("#clock"); if(c) c.textContent=new Date().toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"}); }
 
 /* ───── auth + data ───── */
-// Durability: projects/tasks live in the Supabase blob (brain-populated), but if a
-// calendar-only sync ever lands without them, derive them live from the same-origin,
-// public command-center status.json so the feature never disappears.
+// SECURITY: projects/tasks come ONLY from the user's RLS-protected maestro_dashboard row
+// (brain-populated from the Google Drive connector). We deliberately do NOT fall back to the
+// public /status.json file — that file is readable without a password, so reading it here
+// would surface private portfolio data on a "logged-in" surface. If the row somehow lacks
+// projects/tasks, the tabs show an empty state until the next brain run fills them in.
 async function ensureProjectsTasks(){
-  if(DATA.projects && DATA.projects.length) return;
-  try{
-    const r = await fetch("/status.json?t="+Date.now(), { cache:"no-store" });
-    if(!r.ok) return;
-    const cc = await r.json();
-    const slug = s => String(s||"x").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
-    const projects = (cc.projects||[]).map(p=>({ id:slug(p.name), name:p.name, state:p.state, shortStatus:p.shortStatus||"", note:p.note||"", nextStep:p.nextStep||"", todo:p.todo||"", url:p.url||null, priority:p.priority, urgency:p.urgency||"" }));
-    const tasks=[];
-    (cc.projects||[]).forEach(p=>{ if(p.todo && (p.state==="waiting-on-jeremy"||p.state==="in-progress")) tasks.push({ id:"t-"+slug(p.name), title:p.todo, project:p.name, projectId:slug(p.name), state:p.state, urgency:p.urgency||"", url:p.url||null, source:"status" }); });
-    (cc.personal||[]).forEach(p=>{ if(p.todo) tasks.push({ id:"tp-"+slug(p.name), title:p.todo, project:p.name, projectId:null, state:"waiting-on-jeremy", urgency:p.urgency||"", icon:p.icon, source:"personal" }); });
-    DATA.projects = projects; DATA.tasks = tasks;
-    DATA.meta = DATA.meta || {}; if(!DATA.meta.projectsSource) DATA.meta.projectsSource = "status.json (live)";
-  }catch(e){ /* leave projects/tasks empty; tabs will show an empty state */ }
+  /* no-op by design — see note above. Data is sourced exclusively from Supabase (auth-gated). */
 }
 async function loadDashboard(){
   // Read the isolated per-domain columns (each is written independently by the brain).
@@ -645,7 +637,7 @@ async function loadDashboard(){
     else { DATA={ meta:{}, events:[], projects:[], tasks:[] }; }
   }
   DATA.settings = (row && row.settings) || {};   // user-owned calendar visibility
-  await ensureProjectsTasks();   // defense-in-depth: derive projects/tasks from public status.json if still empty
+  await ensureProjectsTasks();   // no-op: projects/tasks come only from the auth-gated Supabase row
   NOW = (DATA.meta && DATA.meta.sample && DATA.meta.generatedAt) ? new Date(DATA.meta.generatedAt) : new Date();
   ["login","forgot","reset"].forEach(s=>{ var el=$("#"+s); if(el) el.classList.add("hidden"); }); $("#app").classList.remove("hidden");
   if(DATA.meta && DATA.meta.location) $("#loc").textContent=DATA.meta.location;
@@ -654,6 +646,42 @@ async function loadDashboard(){
   RENDERED={};
   await refreshPending();
   setView((location.hash||"#overview").slice(1), true);
+  liveSync({ silent:true });   // on-demand: refresh the calendar live, don't wait for the scheduled brain
+}
+
+/* ───── on-demand / live calendar sync (Part 2) ─────
+   Calls the calendar-sync edge function (enwrco) to fetch the calendar LIVE via Jeremy's
+   server-side Google token, then re-pulls the freshly-written events column. The dashboard
+   no longer DEPENDS on the scheduled brain for fresh reads. Degrades gracefully: if live
+   sync isn't available yet (token not connected / function returns 409), we keep the brain's
+   last data — no regression. The scheduled brain stays the background backstop + action queue. */
+async function liveSync(opts){
+  opts = opts || {};
+  const icon = document.querySelector('#sync-now-btn .material-symbols-outlined');
+  if(icon) icon.classList.add("animate-spin");
+  try{
+    const { data:{ session } } = await sb.auth.getSession();
+    if(!session) return;
+    const res = await fetch(SUPABASE_URL+"/functions/v1/calendar-sync", {
+      method:"POST", headers:{ apikey:SUPABASE_ANON, authorization:"Bearer "+session.access_token }
+    });
+    if(res.ok){
+      const body = await res.json();
+      const { data: row } = await sb.from("maestro_dashboard").select("events, meta, updated_at").maybeSingle();
+      if(row){
+        DATA.events = row.events || [];
+        if(row.meta) DATA.meta = Object.assign({}, DATA.meta, row.meta);
+        RENDERED={}; setView(STATE.view, true);
+      }
+      $("#synced").textContent = "synced just now";
+      if(!opts.silent) toast("Calendar synced — "+(body.count||0)+" events live","sync");
+    } else if(res.status===409){
+      if(!opts.silent) toast("Connect Google to enable live sync","link");
+    } else if(!opts.silent){
+      toast("Live sync unavailable — showing last sync","schedule");
+    }
+  }catch(_e){ /* offline or backend not enabled yet — keep brain data, no regression */ }
+  finally{ if(icon) icon.classList.remove("animate-spin"); }
 }
 function showScreen(name){ ["login","forgot","reset"].forEach(s=>{ var el=$("#"+s); if(el) el.classList.toggle("hidden", s!==name); }); $("#app").classList.add("hidden"); }
 function showLogin(msg){ showScreen("login"); const er=$("#login-error"); if(msg){ er.textContent=msg; er.classList.remove("hidden"); } else { er.classList.add("hidden"); } }

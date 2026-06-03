@@ -547,15 +547,24 @@ async function ensureProjectsTasks(){
   }catch(e){ /* leave projects/tasks empty; tabs will show an empty state */ }
 }
 async function loadDashboard(){
-  const { data, error } = await sb.from("maestro_dashboard").select("data, updated_at").maybeSingle();
+  // Read the isolated per-domain columns (each is written independently by the brain).
+  // Fall back to the legacy `data` blob only if the columns are empty (transition safety).
+  const { data: row, error } = await sb.from("maestro_dashboard").select("events, projects, tasks, meta, data, updated_at").maybeSingle();
   if(error){ console.error(error); showLogin("Couldn’t load your data: "+error.message); return; }
-  if(!data){ DATA={ meta:{name:"", sample:true}, brief:"No dashboard row yet — your calendar brain hasn’t synced. Once it upserts your row, this fills in.", events:[] }; }
-  else { DATA=data.data||{events:[]}; }
-  await ensureProjectsTasks();   // durable: derive from the public command-center status.json if the blob lacks them
+  if(!row){
+    DATA={ meta:{name:"", sample:true}, brief:"No dashboard row yet — your calendar brain hasn’t synced. Once it does, this fills in.", events:[], projects:[], tasks:[] };
+  } else {
+    const ev=row.events||[], pr=row.projects||[], tk=row.tasks||[], mt=row.meta||{};
+    const hasCols = ev.length || pr.length || tk.length || Object.keys(mt).length;
+    if(hasCols){ DATA={ meta:mt, brief:mt.brief||"", events:ev, projects:pr, tasks:tk }; }
+    else if(row.data){ DATA=row.data; }            // legacy single-blob fallback
+    else { DATA={ meta:{}, events:[], projects:[], tasks:[] }; }
+  }
+  await ensureProjectsTasks();   // defense-in-depth: derive projects/tasks from public status.json if still empty
   NOW = (DATA.meta && DATA.meta.sample && DATA.meta.generatedAt) ? new Date(DATA.meta.generatedAt) : new Date();
   ["login","forgot","reset"].forEach(s=>{ var el=$("#"+s); if(el) el.classList.add("hidden"); }); $("#app").classList.remove("hidden");
   if(DATA.meta && DATA.meta.location) $("#loc").textContent=DATA.meta.location;
-  $("#synced").textContent = DATA.meta&&DATA.meta.sample ? "sample data" : "synced "+(data&&data.updated_at?new Date(data.updated_at).toLocaleDateString(undefined,{month:"short",day:"numeric"}):"");
+  $("#synced").textContent = DATA.meta&&DATA.meta.sample ? "sample data" : "synced "+(row&&row.updated_at?new Date(row.updated_at).toLocaleDateString(undefined,{month:"short",day:"numeric"}):"");
   tick(); setInterval(tick,20000);
   RENDERED={};
   await refreshPending();

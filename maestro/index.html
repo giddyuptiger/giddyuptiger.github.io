@@ -348,6 +348,7 @@ function eventRow(e, opts){ opts=opts||{};
     '<span class="text-[11px] font-mono text-on-surface-variant/60 flex-shrink-0">'+esc(timeStr)+'</span></button>';
 }
 function statTile(big,label,icon,accent){ return '<div class="rounded-2xl border hairline bg-surface-container-low/60 p-4"><span class="material-symbols-outlined '+(accent||"text-primary/80")+' text-[20px] mb-1">'+icon+'</span><p class="text-[26px] font-extrabold text-on-surface leading-none">'+big+'</p><p class="text-[11px] text-on-surface-variant/60 mt-1">'+label+'</p></div>'; }
+function statChip(big,label,icon,accent){ return '<div class="flex items-center gap-2 rounded-xl border hairline bg-surface-container-low/60 px-3 py-2"><span class="material-symbols-outlined '+(accent||"text-primary/80")+' text-[18px]">'+icon+'</span><div class="leading-tight"><span class="text-[16px] font-extrabold text-on-surface">'+big+'</span> <span class="text-[10.5px] text-on-surface-variant/60">'+label+'</span></div></div>'; }
 function greeting(){ const h=NOW.getHours(); return h<12?"Good morning":h<18?"Good afternoon":"Good evening"; }
 
 /* ───── views ───── */
@@ -362,43 +363,60 @@ function renderOverview(){
   const current=todayTimed.find(e=> new Date(e.start)<=NOW && (!e.end||new Date(e.end)>=NOW));
   const next=todayTimed.find(e=> new Date(e.start)>NOW) || (current?null:todayTimed[0]);
   const focusEvent=current||next;
+  // Next tasks: open (not done), Needs-you first, top 5
+  const openTasks=(d.tasks||[]).filter(t=>!taskDone(t.id));
+  const needs=openTasks.filter(t=>t.state==="waiting-on-jeremy"||/asap/i.test(t.urgency));
+  const nextTasks=(needs.length?needs:openTasks).slice(0,5);
   let H="";
   const sampleBadge = d.meta&&d.meta.sample ? '<span class="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded-full ml-2">Sample</span>' : '';
-  H += '<div class="grid lg:grid-cols-[1.5fr_1fr] gap-5 mb-7">';
-  H += '<div class="rise rounded-2xl gold-edge bg-surface-container/70 p-6 sm:p-7">'+
-    '<div class="flex items-center justify-between mb-3"><span class="text-[11px] font-bold tracking-[0.22em] text-primary uppercase">Maestro · Today'+sampleBadge+'</span><span class="text-[11px] font-mono text-on-surface-variant/60">'+fmtDayLabel(tkey).toUpperCase()+'</span></div>'+
-    '<h1 class="text-[26px] sm:text-[31px] font-extrabold tracking-tight leading-[1.1] mb-1">'+greeting()+', <span class="text-primary">'+esc((d.meta&&d.meta.name||"there").split(" ")[0])+'</span>.</h1>';
+
+  // ── compact header: greeting + date + at-a-glance stat chips ──
+  H += '<div class="rise flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-5">'+
+    '<div><div class="flex items-center mb-0.5"><span class="text-[11px] font-bold tracking-[0.22em] text-primary uppercase">Maestro · Today</span>'+sampleBadge+'</div>'+
+    '<h1 class="text-[23px] sm:text-[27px] font-extrabold tracking-tight leading-tight">'+greeting()+', <span class="text-primary">'+esc((d.meta&&d.meta.name||"there").split(" ")[0])+'</span>.</h1>'+
+    '<p class="text-[11.5px] text-on-surface-variant/60 font-mono mt-0.5">'+fmtDayLabel(tkey).toUpperCase()+'</p></div>'+
+    '<div class="flex gap-2 flex-wrap">'+
+      statChip(today.length,"today","today")+ statChip(weekCount,"this week","date_range")+
+      statChip(conflicts.length,conflicts.length===1?"conflict":"conflicts","warning",conflicts.length?"text-on-error-container":"text-green")+
+      statChip(nextTravel?fmtShort(nextTravel.start):"—","next travel","flight")+
+    '</div></div>';
+
+  // ── now / next (the single most useful glance) ──
   if(focusEvent){
-    H += '<div class="mt-4 rounded-xl bg-surface-container-lowest/70 border border-primary/20 p-4 flex items-center gap-3">'+
-      '<span class="w-10 h-10 rounded-xl bg-primary/12 flex items-center justify-center" style="color:'+calColor(focusEvent.calendar)+'"><span class="material-symbols-outlined">'+kindOf(focusEvent).icon+'</span></span>'+
-      '<div class="min-w-0 flex-1"><p class="text-[10.5px] font-bold tracking-widest text-primary uppercase">'+(current?"Happening now":"Up next")+'</p><p class="text-[15px] font-bold text-on-surface truncate">'+esc(focusEvent.title)+'</p>'+(focusEvent.location&&focusEvent.location!=="—"?'<p class="text-[12px] text-on-surface-variant/60 truncate">'+esc(focusEvent.location)+'</p>':'')+'</div>'+
-      '<span class="text-[12px] font-mono text-on-surface-variant/70 flex-shrink-0">'+(focusEvent.allDay?"all day":fmtTime(focusEvent.start))+'</span></div>';
-  } else {
-    H += '<div class="mt-4 rounded-xl bg-surface-container-lowest/70 border hairline p-4 text-[13px] text-on-surface-variant/70 flex items-center gap-2"><span class="material-symbols-outlined text-green text-[19px]">check_circle</span>Nothing scheduled today — open space.</div>';
+    H += '<div class="rise mb-5 rounded-2xl gold-edge bg-surface-container/70 p-4 flex items-center gap-3" style="animation-delay:.04s">'+
+      '<span class="w-11 h-11 rounded-xl bg-primary/12 flex items-center justify-center flex-shrink-0" style="color:'+calColor(focusEvent.calendar)+'"><span class="material-symbols-outlined text-[24px]">'+kindOf(focusEvent).icon+'</span></span>'+
+      '<div class="min-w-0 flex-1"><p class="text-[10.5px] font-bold tracking-widest text-primary uppercase">'+(current?"Happening now":"Up next")+'</p><p class="text-[16px] font-bold text-on-surface truncate">'+esc(focusEvent.title)+'</p>'+(focusEvent.location&&focusEvent.location!=="—"?'<p class="text-[12px] text-on-surface-variant/60 truncate">'+esc(focusEvent.location)+'</p>':'')+'</div>'+
+      '<span class="text-[13px] font-mono text-on-surface-variant/70 flex-shrink-0">'+(focusEvent.allDay?"all day":fmtTime(focusEvent.start)+(focusEvent.end?"–"+fmtTime(focusEvent.end):""))+'</span></div>';
   }
-  if(d.brief && typeof d.brief==="string") H += '<p class="text-[13.5px] leading-relaxed text-on-surface/80 mt-4">'+esc(d.brief)+'</p>';
+
+  // ── lead content: Today's plan + Next tasks, side by side ──
+  H += '<div class="grid lg:grid-cols-2 gap-5 mb-5">';
+  H += '<div class="rise rounded-2xl border hairline bg-surface-container-low/60 p-4 sm:p-5" style="animation-delay:.08s">'+
+    '<div class="flex items-center justify-between mb-3"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase flex items-center gap-2"><span class="material-symbols-outlined text-[18px]">event_note</span>Today’s plan</h2><button data-act="add-focus" class="pressable text-[11px] font-semibold text-primary flex items-center gap-1 hover:gap-1.5 transition-all"><span class="material-symbols-outlined text-[16px]">add</span>Focus block</button></div>'+
+    '<div class="space-y-0.5">'+
+    (today.length ? today.map(e=>eventRow(e,{highlight:e===focusEvent})).join("") : '<p class="text-[13px] text-on-surface-variant/55 px-2 py-4 flex items-center gap-2"><span class="material-symbols-outlined text-green text-[18px]">check_circle</span>Nothing scheduled today — open space.</p>')+
+    '</div></div>';
+  H += '<div class="rise rounded-2xl border hairline bg-surface-container-low/60 p-4 sm:p-5" style="animation-delay:.12s">'+
+    '<div class="flex items-center justify-between mb-3"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase flex items-center gap-2"><span class="material-symbols-outlined text-[18px]">checklist</span>Next tasks</h2><a href="#tasks" data-act="nav" data-view="tasks" class="text-[11px] text-primary font-semibold">All tasks →</a></div>'+
+    '<div class="space-y-0.5">'+
+    (nextTasks.length ? nextTasks.map(taskRow).join("") : '<p class="text-[13px] text-on-surface-variant/55 px-2 py-4 flex items-center gap-2"><span class="material-symbols-outlined text-green text-[18px]">task_alt</span>All caught up.</p>')+
+    '</div></div>';
   H += '</div>';
-  H += '<div class="rise grid grid-cols-2 gap-3 content-start" style="animation-delay:.08s">'+
-    statTile(today.length,"on today","today")+ statTile(weekCount,"this week","date_range")+
-    statTile(conflicts.length,conflicts.length===1?"conflict":"conflicts","warning",conflicts.length?"text-on-error-container":"text-green")+
-    statTile(nextTravel?fmtShort(nextTravel.start):"—","next travel","flight")+'</div>';
-  H += '</div>';
-  if(conflicts.length){
-    H += '<div class="rise mb-7 rounded-2xl border border-on-error-container/25 bg-error-container/15 p-4" style="animation-delay:.1s"><div class="flex items-center gap-2 mb-2"><span class="material-symbols-outlined text-on-error-container text-[19px]">warning</span><span class="text-[12px] font-bold tracking-widest text-on-error-container uppercase">Overlap'+(conflicts.length>1?"s":"")+' — ask Maestro to fix</span></div><div class="space-y-2">'+
-      conflicts.map(c=>'<div class="flex items-center justify-between gap-3 flex-wrap"><p class="text-[13px] text-on-surface/85"><span class="font-mono text-[11px] text-on-error-container/80">'+fmtTime(c.a.start)+'</span> <b>'+esc(c.a.title)+'</b> overlaps <b>'+esc(c.b.title)+'</b></p><div class="flex items-center gap-2 flex-shrink-0">'+affBtn("resched",c.b.id,{op:"shift",minutes:60},"schedule","Queue: push 1h")+'<button data-act="dismiss-conflict" data-cid="'+esc(c.cid)+'" title="Stop flagging this overlap" class="pressable flex items-center gap-1.5 text-[12.5px] font-semibold px-3 py-1.5 rounded-full border border-outline-variant text-on-surface-variant/80 hover:border-green/40 hover:text-green"><span class="material-symbols-outlined text-[16px]">do_not_disturb_on</span>It’s fine</button></div></div>').join("")+'</div></div>';
-  }
-  H += '<div class="rise mb-7" style="animation-delay:.12s"><div class="flex items-center justify-between mb-3 px-1"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Today\'s agenda</h2><button data-act="add-focus" class="pressable text-[12px] font-semibold text-primary flex items-center gap-1 hover:gap-1.5 transition-all"><span class="material-symbols-outlined text-[17px]">add</span>Queue a focus block</button></div><div class="rounded-2xl border hairline bg-surface-container-low/60 p-3 sm:p-4">';
-  H += today.length ? today.map(e=>eventRow(e,{highlight:e===focusEvent})).join("") : '<p class="text-[13px] text-on-surface-variant/50 px-2 py-4">No events today.</p>';
-  H += '</div></div>';
-  H += '<div class="grid lg:grid-cols-2 gap-5">';
+
+  // ── coming up (week peek) ──
   const wk=upcoming(7).filter(g=>g.key!==tkey).slice(0,3);
-  H += '<div class="rise rounded-2xl border hairline bg-surface-container-low/60 p-5" style="animation-delay:.16s"><div class="flex items-center justify-between mb-3"><h2 class="text-[12px] font-bold tracking-[0.22em] text-secondary uppercase">Coming up</h2><a href="#week" data-act="nav" data-view="week" class="text-[11px] text-primary font-semibold">Full week →</a></div><div class="space-y-3">';
-  H += wk.length ? wk.map(g=>'<div><p class="text-[10.5px] font-bold tracking-wider text-on-surface-variant/50 uppercase mb-1 px-1">'+fmtDayLabel(g.key)+'</p>'+g.events.slice(0,3).map(e=>eventRow(e)).join("")+'</div>').join("") : '<p class="text-[13px] text-on-surface-variant/50 px-1">Clear ahead.</p>';
-  H += '</div></div>';
-  const routines=eventsAll().filter(e=>e.kind==="routine"||e.kind==="meditation").slice(0,4);
-  H += '<div class="rise rounded-2xl border hairline bg-surface-container-low/60 p-5" style="animation-delay:.2s"><div class="flex items-center justify-between mb-3"><h2 class="text-[12px] font-bold tracking-[0.22em] text-secondary uppercase">Routines</h2><a href="#routines" data-act="nav" data-view="routines" class="text-[11px] text-primary font-semibold">All →</a></div><div class="space-y-1">';
-  H += routines.length? routines.map(e=>eventRow(e)).join("") : '<p class="text-[13px] text-on-surface-variant/50 px-1">No routine blocks.</p>';
-  H += '</div></div></div>';
+  if(wk.length){
+    H += '<div class="rise rounded-2xl border hairline bg-surface-container-low/60 p-4 sm:p-5 mb-5" style="animation-delay:.16s"><div class="flex items-center justify-between mb-3"><h2 class="text-[12px] font-bold tracking-[0.22em] text-secondary uppercase">Coming up</h2><a href="#week" data-act="nav" data-view="week" class="text-[11px] text-primary font-semibold">Full week →</a></div><div class="grid sm:grid-cols-3 gap-4">'+
+      wk.map(g=>'<div><p class="text-[10.5px] font-bold tracking-wider text-on-surface-variant/50 uppercase mb-1 px-1">'+fmtDayLabel(g.key)+'</p>'+g.events.slice(0,3).map(e=>eventRow(e)).join("")+'</div>').join("")+
+    '</div></div>';
+  }
+
+  // ── overlaps: secondary, moved to the bottom (and dismissible) ──
+  if(conflicts.length){
+    H += '<div class="rise rounded-2xl border border-on-error-container/20 bg-error-container/10 p-4 mb-2" style="animation-delay:.2s"><div class="flex items-center gap-2 mb-2"><span class="material-symbols-outlined text-on-error-container/80 text-[18px]">warning</span><span class="text-[11.5px] font-bold tracking-widest text-on-error-container/90 uppercase">Overlap'+(conflicts.length>1?"s":"")+' — ask Maestro to fix ('+conflicts.length+')</span></div><div class="space-y-2">'+
+      conflicts.map(c=>'<div class="flex items-center justify-between gap-3 flex-wrap"><p class="text-[13px] text-on-surface/85"><span class="font-mono text-[11px] text-on-error-container/80">'+fmtTime(c.a.start)+'</span> <b>'+esc(c.a.title)+'</b> overlaps <b>'+esc(c.b.title)+'</b></p><div class="flex items-center gap-2 flex-shrink-0">'+affBtn("resched",c.b.id,{op:"shift",minutes:60},"schedule","Queue: push 1h")+'<button data-act="dismiss-conflict" data-cid="'+esc(c.cid)+'" title="Stop flagging this overlap" class="pressable flex items-center gap-1.5 text-[12.5px] font-semibold px-3 py-1.5 rounded-full border border-outline-variant text-on-surface-variant/80 hover:border-green/40 hover:text-green"><span class="material-symbols-outlined text-[16px]">do_not_disturb_on</span>It’s fine</button></div></div>').join("")+
+    '</div></div>';
+  }
   H += footerHTML();
   $("#view-overview").innerHTML=H;
 }

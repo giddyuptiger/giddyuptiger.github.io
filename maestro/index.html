@@ -528,11 +528,30 @@ window.addEventListener("hashchange", ()=> setView((location.hash||"#overview").
 function tick(){ const c=$("#clock"); if(c) c.textContent=new Date().toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"}); }
 
 /* ───── auth + data ───── */
+// Durability: projects/tasks live in the Supabase blob (brain-populated), but if a
+// calendar-only sync ever lands without them, derive them live from the same-origin,
+// public command-center status.json so the feature never disappears.
+async function ensureProjectsTasks(){
+  if(DATA.projects && DATA.projects.length) return;
+  try{
+    const r = await fetch("/status.json?t="+Date.now(), { cache:"no-store" });
+    if(!r.ok) return;
+    const cc = await r.json();
+    const slug = s => String(s||"x").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+    const projects = (cc.projects||[]).map(p=>({ id:slug(p.name), name:p.name, state:p.state, shortStatus:p.shortStatus||"", note:p.note||"", nextStep:p.nextStep||"", todo:p.todo||"", url:p.url||null, priority:p.priority, urgency:p.urgency||"" }));
+    const tasks=[];
+    (cc.projects||[]).forEach(p=>{ if(p.todo && (p.state==="waiting-on-jeremy"||p.state==="in-progress")) tasks.push({ id:"t-"+slug(p.name), title:p.todo, project:p.name, projectId:slug(p.name), state:p.state, urgency:p.urgency||"", url:p.url||null, source:"status" }); });
+    (cc.personal||[]).forEach(p=>{ if(p.todo) tasks.push({ id:"tp-"+slug(p.name), title:p.todo, project:p.name, projectId:null, state:"waiting-on-jeremy", urgency:p.urgency||"", icon:p.icon, source:"personal" }); });
+    DATA.projects = projects; DATA.tasks = tasks;
+    DATA.meta = DATA.meta || {}; if(!DATA.meta.projectsSource) DATA.meta.projectsSource = "status.json (live)";
+  }catch(e){ /* leave projects/tasks empty; tabs will show an empty state */ }
+}
 async function loadDashboard(){
   const { data, error } = await sb.from("maestro_dashboard").select("data, updated_at").maybeSingle();
   if(error){ console.error(error); showLogin("Couldn’t load your data: "+error.message); return; }
   if(!data){ DATA={ meta:{name:"", sample:true}, brief:"No dashboard row yet — your calendar brain hasn’t synced. Once it upserts your row, this fills in.", events:[] }; }
   else { DATA=data.data||{events:[]}; }
+  await ensureProjectsTasks();   // durable: derive from the public command-center status.json if the blob lacks them
   NOW = (DATA.meta && DATA.meta.sample && DATA.meta.generatedAt) ? new Date(DATA.meta.generatedAt) : new Date();
   ["login","forgot","reset"].forEach(s=>{ var el=$("#"+s); if(el) el.classList.add("hidden"); }); $("#app").classList.remove("hidden");
   if(DATA.meta && DATA.meta.location) $("#loc").textContent=DATA.meta.location;

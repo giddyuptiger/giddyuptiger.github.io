@@ -366,6 +366,7 @@
     text-decoration: none; color: inherit;
     transition: border-color 0.15s, background 0.15s, transform 0.15s;
     display: flex; flex-direction: column; gap: 12px;
+    min-width: 0;   /* respect the grid track (1fr); was overflowing to the screen edge */
   }
   .ep-card:hover { border-color: #d4af37; background: #262524; transform: translateY(-1px); }
   .ep-card .head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }

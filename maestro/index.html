@@ -208,7 +208,7 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON, { auth:{ persistSession:tru
 const $ = (s,r)=> (r||document).querySelector(s);
 const $$ = (s,r)=> Array.from((r||document).querySelectorAll(s));
 const esc = s => (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-let DATA=null, NOW=new Date(), STATE={ view:"overview", calFilter:"all" }, RENDERED={}, PENDING=[], USER_ID=null;
+let DATA=null, NOW=new Date(), STATE={ view:"overview", calFilter:"all", setupExpanded:{} }, RENDERED={}, PENDING=[], USER_ID=null;
 
 const KIND = {
   meeting:{icon:"groups",label:"Meeting"}, shoot:{icon:"photo_camera",label:"Shoot"}, edit:{icon:"movie_edit",label:"Edit"},
@@ -518,12 +518,84 @@ function taskRow(t){
     (clickable?'<span class="material-symbols-outlined text-on-surface-variant/30 text-[18px] flex-shrink-0 mt-0.5">chevron_right</span>':'');
   return '<div class="flex items-start gap-3 rounded-xl px-3 py-2.5 hover:bg-surface-container/40 transition-colors">'+check+body+right+'</div>';
 }
+/* ───── Setup / Needs-you checklist (one-time onboarding actions) ───── */
+var SETUP_ITEMS = [
+  { id:"setup-calendar-sync", title:"Enable live calendar sync on this dashboard",
+    summary:"SQL token-custody is already applied — 2 steps left.",
+    steps:[
+      "<b>a) Add the redirect URI.</b> Google Cloud Console → APIs &amp; Services → Credentials → open OAuth client <code>345053305524-…</code> → Authorized redirect URIs → <b>+ Add URI</b> → paste <code>https://enwrcoiljmtcsteejdbw.supabase.co/functions/v1/google-oauth/callback</code> → <b>Save</b> (leave existing URIs).",
+      "<b>b) Connect once.</b> Maestro dashboard → Settings → <b>Connect Google</b> → approve. After this, live sync works on demand (Sync now / on load)." ] },
+  { id:"setup-hdlove-friendsearch", title:"Apply the HD-LOVE friend-search migration",
+    summary:"Enables username + display-name search (substring, @-strip).",
+    steps:[
+      "HD-LOVE Supabase project → <b>SQL Editor</b> → run migration <code>20260603000000_friend_search_fix.sql</code>.",
+      "The client-side fix already ships in <b>TestFlight 1.0.36</b>; the substring + display-name matching lands once the function is replaced.",
+      "Optional pre-check for case-variant duplicate handles: <code>select lower(username), count(*) from profiles where username is not null group by 1 having count(*)&gt;1;</code>" ] },
+  { id:"setup-rotate-tokens", title:"Rotate the GitHub tokens (and revoke the old ones)",
+    summary:"A PAT was embedded in plaintext — replace + revoke.",
+    steps:[
+      "GitHub → Settings → Developer settings → <b>Fine-grained tokens</b> → Generate new token (resource owner <b>giddyuptiger</b>; <b>Contents R/W</b> + <b>Workflows R/W</b>) → copy.",
+      "Wire it up: <code>echo \"NEW_TOKEN\" | gh auth login --with-token</code> then <code>gh auth setup-git</code>.",
+      "<b>Revoke</b> the old PAT, and revoke the old gh OAuth token under Settings → Applications → <b>Authorized OAuth Apps → GitHub CLI</b>." ] },
+  { id:"setup-product-oauth", title:"Create the Google WEB OAuth client (product signup)",
+    summary:"So outside users can connect their Google.",
+    steps:[
+      "Google Cloud Console → Credentials → <b>Create OAuth client ID</b> → <b>Web application</b>.",
+      "Add the product callback redirect URI: <code>https://cixmyhdzzbgbltmitzkb.supabase.co/functions/v1/google-oauth/callback</code> → <b>Save</b>.",
+      "Send Maestro the <b>client ID + secret</b> (they go into the product edge-function secrets — the last blocker for end-to-end Connect Google on the product)." ] },
+  { id:"setup-product-email", title:"Product Supabase email config (Site URL + redirect allow-list)",
+    summary:"So signup-confirm + reset emails return to the app.",
+    steps:[
+      "Product project <code>cixmyhdzzbgbltmitzkb</code> → <b>Authentication → URL Configuration</b>.",
+      "Set <b>Site URL</b> to the product app URL, and add that URL to the <b>redirect allow-list</b>.",
+      "This makes confirmation + password-reset links land back on the app instead of localhost." ] },
+  { id:"setup-mindbody", title:"Mindbody — request production / go-live access",
+    summary:"Unblocks the Primal Ops live sync.",
+    steps:[
+      "Mindbody developer portal → open the <b>Irons-1</b> app → request <b>production / go-live</b> access.",
+      "Once approved, Maestro generates the studio-owner <b>activation link</b> for Primal to authorize." ] },
+  { id:"setup-store-builds", title:"Cut store builds when ready",
+    summary:"FUTON → App Store · GRDN already on TestFlight.",
+    steps:[
+      "<b>FUTON</b> — cut the iOS <b>App Store</b> build when you're ready to submit.",
+      "<b>GRDN</b> — already building to <b>TestFlight (1.11.7)</b>; watch the Xcode Cloud run reach TestFlight." ] },
+  { id:"setup-posture", title:"POSTURE on your phone", optional:true,
+    summary:"EAS development build — needs your Expo + Apple login.",
+    steps:[
+      "<code>rm -rf node_modules &amp;&amp; npm install --legacy-peer-deps</code>",
+      "<code>npx eas login</code> → <code>npx eas init</code> → <code>npx eas update:configure</code>",
+      "<code>npx eas build --profile development --platform ios</code> (needs your Expo + Apple login).",
+      "Open the resulting install link in <b>Safari</b> (not Expo Go)." ] }
+];
+function setupRow(it){
+  const done=taskDone(it.id), open=!!STATE.setupExpanded[it.id];
+  let h='<div class="rounded-xl '+(open?"bg-surface-container/50":"")+'">'+
+    '<div class="flex items-start gap-3 px-3 py-2.5">'+
+      '<button data-act="toggle-task" data-id="'+it.id+'" class="pressable mt-0.5 flex-shrink-0 leading-none" aria-label="'+(done?"Mark not done":"Mark done")+'"><span class="material-symbols-outlined text-[20px] '+(done?"text-green ms-fill":"text-primary")+'">'+(done?"check_circle":"radio_button_unchecked")+'</span></button>'+
+      '<button data-act="setup-expand" data-id="'+it.id+'" class="min-w-0 flex-1 text-left pressable">'+
+        '<p class="text-[13.5px] font-semibold leading-snug '+(done?"line-through text-on-surface-variant/40":"text-on-surface")+'">'+esc(it.title)+(it.optional?' <span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/50 bg-surface-container-high px-1.5 py-0.5 rounded ml-1 no-underline">Optional</span>':'')+'</p>'+
+        '<p class="text-[11.5px] text-on-surface-variant/60 mt-0.5 '+(done?"opacity-50":"")+'">'+esc(it.summary)+'</p>'+
+      '</button>'+
+      '<button data-act="setup-expand" data-id="'+it.id+'" class="pressable flex-shrink-0 text-on-surface-variant/40 mt-0.5" aria-label="Steps"><span class="material-symbols-outlined text-[20px] transition-transform" style="'+(open?"transform:rotate(90deg)":"")+'">chevron_right</span></button>'+
+    '</div>';
+  if(open){
+    h+='<ol class="list-decimal pl-12 pr-4 pb-3 space-y-1.5 text-[12.5px] text-on-surface-variant/80 leading-relaxed marker:text-primary/60 marker:font-bold">'+
+      it.steps.map(s=>'<li>'+s+'</li>').join("")+'</ol>';
+  }
+  return h+'</div>';
+}
+function renderSetupGroup(){
+  const remaining=SETUP_ITEMS.filter(it=>!taskDone(it.id)).length;
+  return '<div class="rounded-2xl border border-primary/25 bg-primary/[0.04] p-2 sm:p-3"><div class="flex items-center gap-2 px-2 pt-1 pb-2"><span class="material-symbols-outlined text-primary text-[18px]">rocket_launch</span><h3 class="text-[11px] font-bold tracking-widest text-primary uppercase">Setup · needs you ('+remaining+')</h3><span class="ml-auto text-[10.5px] text-on-surface-variant/50">tap an item for steps</span></div><div class="divide-y divide-outline-variant/15">'+
+    SETUP_ITEMS.map(setupRow).join("")+'</div></div>';
+}
 function renderTasks(){
   const ts=DATA.tasks||[];
   const open=ts.filter(t=>!taskDone(t.id)), done=ts.filter(t=>taskDone(t.id));
   const needs=open.filter(t=>t.state==="waiting-on-jeremy"||/asap/i.test(t.urgency));
   const tracking=open.filter(t=>!(t.state==="waiting-on-jeremy"||/asap/i.test(t.urgency)));
   let H='<div class="rise"><div class="mb-4 px-1"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Tasks</h2><p class="text-[12px] text-on-surface-variant/60 mt-0.5">Tap the circle to check one off — your check-offs are saved and survive every sync.</p></div><div class="max-w-2xl space-y-5">';
+  H+= renderSetupGroup();
   H+='<div><h3 class="text-[11px] font-bold tracking-widest text-primary uppercase mb-2 px-1">Needs you ('+needs.length+')</h3><div class="rounded-2xl border hairline bg-surface-container-low/50 p-2">'+(needs.length?needs.map(taskRow).join(""):'<p class="text-[13px] text-on-surface-variant/50 px-2 py-2">All clear 🎉</p>')+'</div></div>';
   if(tracking.length) H+='<div><h3 class="text-[11px] font-bold tracking-widest text-secondary uppercase mb-2 px-1">Tracking ('+tracking.length+')</h3><div class="rounded-2xl border hairline bg-surface-container-low/50 p-2">'+tracking.map(taskRow).join("")+'</div></div>';
   if(done.length) H+='<div><h3 class="text-[11px] font-bold tracking-widest text-green uppercase mb-2 px-1 flex items-center gap-1.5"><span class="material-symbols-outlined text-[15px] ms-fill">task_alt</span>Done ('+done.length+')</h3><div class="rounded-2xl border hairline bg-surface-container-low/30 p-2">'+done.map(taskRow).join("")+'</div></div>';
@@ -557,6 +629,7 @@ document.addEventListener("click",(e)=>{
   else if(el.dataset.act==="open-settings"){ settingsModal(); }
   else if(el.dataset.act==="toggle-cal"){ toggleCalendar(el.dataset.cal); }
   else if(el.dataset.act==="toggle-task"){ toggleTask(el.dataset.id); }
+  else if(el.dataset.act==="setup-expand"){ const id=el.dataset.id; STATE.setupExpanded[id]=!STATE.setupExpanded[id]; rerender("tasks"); }
   else if(el.dataset.act==="dismiss-conflict"){ dismissConflict(el.dataset.cid); }
 });
 

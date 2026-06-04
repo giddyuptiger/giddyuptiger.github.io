@@ -181,7 +181,7 @@
     <section id="view-routines" class="view"></section>
   </main>
 
-  <nav class="sm:hidden fixed bottom-0 inset-x-0 z-40 bg-surface/90 backdrop-blur-xl border-t hairline flex justify-around items-stretch h-[68px] pb-[env(safe-area-inset-bottom)]" id="bnav">
+  <nav class="sm:hidden fixed bottom-0 inset-x-0 z-40 bg-surface/90 backdrop-blur-xl border-t hairline flex justify-around items-stretch gap-1 px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.6rem)]" id="bnav">
     <a href="#overview" data-act="nav" data-view="overview" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">today</span>Overview</a>
     <a href="#projects" data-act="nav" data-view="projects" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">dashboard</span>Projects</a>
     <a href="#tasks" data-act="nav" data-view="tasks" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">checklist</span>Tasks</a>
@@ -483,6 +483,12 @@ function projectModal(p){
   let h=mhead(esc(p.name), st.label+(p.urgency?' · '+esc(p.urgency):''));
   h+='<div class="px-5 sm:px-6 py-5 space-y-5">';
   h+='<div class="flex flex-wrap items-center gap-2"><span class="text-[10.5px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border '+st.pill+'">'+st.label+'</span>'+(p.priority?'<span class="text-[11px] text-on-surface-variant/60">priority '+p.priority+'</span>':'')+(p.urgency?'<span class="text-[11px] font-mono '+(/asap/i.test(p.urgency)?"text-on-error-container":"text-on-surface-variant/60")+'">'+esc(p.urgency)+'</span>':'')+'</div>';
+  // Mark done / undo for the task(s) linked to this project
+  const linked=(DATA.tasks||[]).filter(t=>t.projectId===p.id);
+  if(linked.length){
+    const allDone=linked.every(t=>taskDone(t.id)), ids=linked.map(t=>t.id).join(",");
+    h+='<button data-act="mark-task" data-ids="'+esc(ids)+'" data-pid="'+esc(p.id)+'" data-done="'+(allDone?"1":"0")+'" class="pressable w-full flex items-center justify-center gap-2 font-bold text-[13.5px] py-2.5 rounded-xl '+(allDone?"bg-surface-container-high text-on-surface hover:bg-surface-variant":"bg-primary text-on-primary hover:brightness-110")+'"><span class="material-symbols-outlined text-[18px]'+(allDone?" text-green ms-fill":"")+'">'+(allDone?"undo":"check_circle")+'</span>'+(allDone?"Done ✓ — mark not done":"Mark done")+'</button>';
+  }
   if(p.note) h+='<p class="text-[14px] leading-relaxed text-on-surface/85">'+esc(p.note)+'</p>';
   if(p.nextStep) h+='<div class="rounded-xl border border-primary/25 bg-primary/5 p-4"><div class="flex items-center gap-2 mb-1"><span class="material-symbols-outlined text-primary text-[18px]">bolt</span><span class="text-[11px] font-bold tracking-widest text-primary uppercase">Next action</span></div><p class="text-[13.5px] text-on-surface/90 leading-snug">'+esc(p.nextStep)+'</p></div>';
   if(p.url) h+='<a href="'+esc(p.url)+'" target="_blank" rel="noopener" class="pressable w-full flex items-center gap-3 rounded-xl border hairline bg-surface-container/40 hover:border-primary/30 px-4 py-3"><span class="material-symbols-outlined text-primary text-[20px]">open_in_new</span><span class="text-[13px] text-on-surface flex-1 truncate">'+esc(linkLabel(p.url))+'</span><span class="material-symbols-outlined text-on-surface-variant/40 text-[18px]">arrow_outward</span></a>';
@@ -607,7 +613,8 @@ async function toggleTask(id){
   const i = cur.indexOf(id);
   if(i>=0) cur.splice(i,1); else cur.push(id);
   DATA.settings = DATA.settings || {}; DATA.settings.completedTasks = cur;
-  rerender("tasks");                       // instant strike-through / move to Done
+  RENDERED.overview=false; RENDERED.tasks=false;   // both views show completion
+  setView(STATE.view, true);                       // re-render the view the user is ACTUALLY on (overview or tasks)
   const { error } = await sb.from("maestro_dashboard").update({ settings: DATA.settings }).eq("user_id", USER_ID);
   if(error){ toast("Couldn’t save: "+error.message,"error"); }
 }
@@ -629,6 +636,17 @@ document.addEventListener("click",(e)=>{
   else if(el.dataset.act==="open-settings"){ settingsModal(); }
   else if(el.dataset.act==="toggle-cal"){ toggleCalendar(el.dataset.cal); }
   else if(el.dataset.act==="toggle-task"){ toggleTask(el.dataset.id); }
+  else if(el.dataset.act==="mark-task"){
+    const ids=(el.dataset.ids||"").split(",").filter(Boolean);
+    const markDone = el.dataset.done!=="1";   // currently allDone → undo
+    const cur=completedTasks().slice();
+    ids.forEach(id=>{ const i=cur.indexOf(id); if(markDone){ if(i<0) cur.push(id); } else if(i>=0){ cur.splice(i,1); } });
+    DATA.settings=DATA.settings||{}; DATA.settings.completedTasks=cur;
+    RENDERED.overview=false; RENDERED.tasks=false; setView(STATE.view, true);
+    const p=projById(el.dataset.pid); if(p) projectModal(p);   // refresh modal so the button flips
+    toast(markDone?"Marked done":"Marked not done", markDone?"check_circle":"undo");
+    sb.from("maestro_dashboard").update({ settings: DATA.settings }).eq("user_id", USER_ID).then(({error})=>{ if(error) toast("Couldn’t save: "+error.message,"error"); });
+  }
   else if(el.dataset.act==="setup-expand"){ const id=el.dataset.id; STATE.setupExpanded[id]=!STATE.setupExpanded[id]; rerender("tasks"); }
   else if(el.dataset.act==="dismiss-conflict"){ dismissConflict(el.dataset.cid); }
 });
@@ -672,6 +690,14 @@ async function toggleCalendar(name){
 function footerHTML(){ return '<footer class="pt-8 pb-6 text-center space-y-2"><p class="text-[11px] tracking-[0.25em] text-primary/60 font-bold">MAESTRO</p><p class="text-[12px] text-on-surface-variant/50 max-w-xl mx-auto leading-relaxed">Private · your calendar, projects and tasks, secured to your account.</p></footer>'; }
 
 /* ───── router ───── */
+function showSkeleton(name){
+  if(["overview","projects","tasks","week","travel","routines"].indexOf(name)<0) name="overview";
+  $$(".view").forEach(v=>v.classList.toggle("active", v.id==="view-"+name));
+  $$(".tab").forEach(t=>t.dataset.active = t.dataset.view===name?"1":"0");
+  $$(".bnav").forEach(t=>t.dataset.active = t.dataset.view===name?"1":"0");
+  var card='<div class="rounded-2xl border hairline bg-surface-container-low/60 p-4"><div class="h-4 w-2/3 rounded bg-surface-container-high animate-pulse mb-2.5"></div><div class="h-3 w-1/3 rounded bg-surface-container-high/70 animate-pulse"></div></div>';
+  $("#view-"+name).innerHTML='<div class="space-y-4 max-w-2xl"><div class="h-7 w-44 rounded bg-surface-container-high animate-pulse mb-1"></div>'+card+card+card+card+'</div>';
+}
 function setView(name, force){
   if(["overview","projects","tasks","week","travel","routines"].indexOf(name)<0) name="overview";
   STATE.view=name;
@@ -731,9 +757,15 @@ async function ensureProjectsTasks(){
   /* no-op by design — see note above. Data is sourced exclusively from Supabase (auth-gated). */
 }
 async function loadDashboard(){
+  // Reveal the app + a loading skeleton IMMEDIATELY so a tab never shows blank-black while loading.
+  ["login","forgot","reset"].forEach(s=>{ var el=$("#"+s); if(el) el.classList.add("hidden"); });
+  $("#app").classList.remove("hidden");
+  const initView=(location.hash||"#overview").slice(1);
+  showSkeleton(initView);
+  // user id from the LOCAL session (no network round-trip — faster than getUser)
+  try { USER_ID = (await sb.auth.getSession()).data.session?.user?.id || USER_ID; } catch(_e){}
   // Read the isolated per-domain columns (each is written independently by the brain).
   // Fall back to the legacy `data` blob only if the columns are empty (transition safety).
-  try { USER_ID = (await sb.auth.getUser()).data.user?.id || USER_ID; } catch(_e){}
   const { data: row, error } = await sb.from("maestro_dashboard").select("events, projects, tasks, meta, settings, data, updated_at").maybeSingle();
   if(error){ console.error(error); showLogin("Couldn’t load your data: "+error.message); return; }
   if(!row){
@@ -748,13 +780,12 @@ async function loadDashboard(){
   DATA.settings = (row && row.settings) || {};   // user-owned calendar visibility
   await ensureProjectsTasks();   // no-op: projects/tasks come only from the auth-gated Supabase row
   NOW = (DATA.meta && DATA.meta.sample && DATA.meta.generatedAt) ? new Date(DATA.meta.generatedAt) : new Date();
-  ["login","forgot","reset"].forEach(s=>{ var el=$("#"+s); if(el) el.classList.add("hidden"); }); $("#app").classList.remove("hidden");
   if(DATA.meta && DATA.meta.location) $("#loc").textContent=DATA.meta.location;
   $("#synced").textContent = DATA.meta&&DATA.meta.sample ? "sample data" : "synced "+(row&&row.updated_at?new Date(row.updated_at).toLocaleDateString(undefined,{month:"short",day:"numeric"}):"");
   tick(); setInterval(tick,20000);
   RENDERED={};
   await refreshPending();
-  setView((location.hash||"#overview").slice(1), true);
+  setView(initView, true);
   liveSync({ silent:true });   // on-demand: refresh the calendar live, don't wait for the scheduled brain
 }
 

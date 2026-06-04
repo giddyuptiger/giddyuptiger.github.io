@@ -200,8 +200,10 @@
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-const SUPABASE_URL = "https://enwrcoiljmtcsteejdbw.supabase.co";
-const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVud3Jjb2lsam10Y3N0ZWVqZGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MTMxODQsImV4cCI6MjA5NTk4OTE4NH0.L-AmjufXvqYmW8AO9loWyDLz9ZJHDvKH0j4ghhwGsV8";
+// Consolidated onto the single Maestro PRODUCT project (Jeremy = owner / user #1).
+// Anon key is public by design — RLS scopes every read to auth.uid().
+const SUPABASE_URL = "https://cixmyhdzzbgbltmitzkb.supabase.co";
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpeG15aGR6emJnYmx0bWl0emtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjYxMzEsImV4cCI6MjA5NjAwMjEzMX0.vjWESdexsMOLlqRAQXTV81gQ709ZN3v_K6HgtjCtulY";
 const INITIAL_HASH = window.location.hash;   // capture before supabase-js consumes the recovery token
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON, { auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true } });
 

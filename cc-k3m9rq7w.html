@@ -723,8 +723,9 @@
   // ── auth gate + Supabase-sourced status (replaces the public status.json) ──
   // Every read is the signed-in user's OWN RLS-protected maestro_dashboard row. No session
   // → the login gate covers the page and no data loads. There is no public-file path here.
-  var SB_URL = "https://enwrcoiljmtcsteejdbw.supabase.co";
-  var SB_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVud3Jjb2lsam10Y3N0ZWVqZGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MTMxODQsImV4cCI6MjA5NTk4OTE4NH0.L-AmjufXvqYmW8AO9loWyDLz9ZJHDvKH0j4ghhwGsV8";
+  // Consolidated onto the single Maestro PRODUCT project. Anon key public by design (RLS).
+  var SB_URL = "https://cixmyhdzzbgbltmitzkb.supabase.co";
+  var SB_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpeG15aGR6emJnYmx0bWl0emtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjYxMzEsImV4cCI6MjA5NjAwMjEzMX0.vjWESdexsMOLlqRAQXTV81gQ709ZN3v_K6HgtjCtulY";
   var sb = window.supabase.createClient(SB_URL, SB_ANON, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
 
   function showGate(show) { document.getElementById("login-gate").classList.toggle("hidden", !show); }

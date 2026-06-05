@@ -143,15 +143,20 @@
 
   /* code block + copy */
   .codeblock{ margin-top:14px; display:flex; align-items:stretch; gap:0; background:#0a0a0a; border:1px solid var(--line-strong);
-    border-radius:12px; overflow:hidden; }
-  .codeblock code{ flex:1; min-width:0; font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--primary);
-    padding:13px 15px; overflow-x:auto; white-space:nowrap; }
-  .copy-btn{ flex:none; display:inline-flex; align-items:center; gap:7px; font-weight:700; font-size:13px; color:var(--text);
+    border-radius:12px; overflow:hidden; max-width:100%; }
+  .codeblock code{ flex:1 1 auto; min-width:0; font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--primary);
+    padding:13px 15px; white-space:normal; overflow-wrap:anywhere; word-break:break-word; }
+  .copy-btn{ flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; gap:7px; font-weight:700; font-size:13px; color:var(--text);
     background:var(--surface-high); border:none; border-left:1px solid var(--line-strong); padding:0 16px; cursor:pointer;
     transition:background-color .2s, color .2s; }
   .copy-btn:hover{ background:#322f29; color:var(--primary); }
   .copy-btn.copied{ color:var(--green); }
   .copy-btn .material-symbols-outlined{ font-size:18px; }
+  /* stack the copy button beneath the URL on narrow screens so nothing overflows the card */
+  @media(max-width:560px){
+    .codeblock{ flex-direction:column; }
+    .copy-btn{ width:100%; border-left:none; border-top:1px solid var(--line-strong); padding:11px 16px; }
+  }
   .note{ display:flex; align-items:flex-start; gap:9px; margin-top:14px; font-size:13.5px; color:var(--muted-2);
     background:rgba(122,162,247,0.06); border:1px solid rgba(122,162,247,0.18); border-radius:11px; padding:11px 13px; }
   .note .material-symbols-outlined{ font-size:18px; color:var(--blue); flex:none; }

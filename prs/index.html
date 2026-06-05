@@ -1580,7 +1580,18 @@
     headLeft.appendChild(icon("podcasts", "text-primary text-[20px]"));
     html(headLeft, "h2", "text-[12px] font-bold tracking-widest text-primary uppercase", "Episodes");
     head.appendChild(headLeft);
-    html(head, "span", "text-[11px] text-secondary font-medium", total + " total");
+    var headRight = el("div", "flex items-center gap-2");
+    var junk = placeholderEps(allEps);
+    if (junk.length) {
+      var cleanBtn = el("button", "inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-full bg-surface-container-high text-secondary hover:text-error border border-outline-variant hover:border-error/40 transition-colors");
+      cleanBtn.type = "button";
+      cleanBtn.appendChild(icon("mop", "text-[14px]"));
+      html(cleanBtn, "span", null, "Remove " + junk.length + " placeholder" + (junk.length > 1 ? "s" : ""));
+      cleanBtn.addEventListener("click", function () { cleanupPlaceholders(allEps); });
+      headRight.appendChild(cleanBtn);
+    }
+    html(headRight, "span", "text-[11px] text-secondary font-medium", total + " total");
+    head.appendChild(headRight);
     section.appendChild(head);
 
     if (!allEps.length) {
@@ -2517,6 +2528,18 @@
     var mainEl = document.querySelector("main");
     if (mainEl) mainEl.classList.remove("is-home");
 
+    // Episode actions — edit core fields / delete the episode (anon client; RLS-gated).
+    var actionBar = el("div", "flex items-center justify-end gap-2 mb-3");
+    var editBtn = el("button", "inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold rounded-lg bg-surface-container-high text-on-surface-variant hover:text-primary border border-outline-variant transition-colors");
+    editBtn.type = "button"; editBtn.appendChild(icon("edit", "text-[15px]")); html(editBtn, "span", null, "Edit");
+    editBtn.addEventListener("click", openEditEpisodeModal);
+    actionBar.appendChild(editBtn);
+    var delBtn = el("button", "inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold rounded-lg bg-surface-container-high text-error hover:text-on-error-container border border-outline-variant hover:border-error/40 transition-colors");
+    delBtn.type = "button"; delBtn.appendChild(icon("delete", "text-[15px]")); html(delBtn, "span", null, "Delete");
+    delBtn.addEventListener("click", deleteEpisode);
+    actionBar.appendChild(delBtn);
+    c.appendChild(actionBar);
+
     renderEpProgress(c);
     if (ep) renderMetricsCard(c);
     renderPastEpisodesStrip(c);
@@ -2614,6 +2637,115 @@
     sb.from("prs_checklist_items").delete().eq("id", item.id).then(function (r) {
       if (r.error) alert("Delete failed: " + r.error.message);
     });
+  }
+
+  // ── Episode-level edit / delete (anon client; RLS allows UPDATE + DELETE) ──
+  // NOTE: prs_episodes has no separate `title` column — the title shown everywhere IS
+  // `guest_name`, so the "Episode title" field below edits guest_name. The slug (URL key)
+  // is intentionally kept stable on edit so existing ?episode= links never break.
+  function epDateVal(v) { return v ? String(v).slice(0, 10) : ""; }
+  function openEditEpisodeModal() {
+    if (!ep) return;
+    var root = document.getElementById("modal-root");
+    root.innerHTML = "";
+    var bd = el("div", "modal-bd");
+    bd.addEventListener("click", function (e) { if (e.target === bd) closeModal(); });
+    var card = el("div", "modal-card");
+    html(card, "h3", null, "Edit episode");
+
+    var form = document.createElement("form");
+    form.className = "ne-form";
+    function field(labelText, name, type, value) {
+      var wrap = document.createElement("div");
+      var lbl = el("label", null, labelText);
+      lbl.setAttribute("for", "ee-" + name);
+      wrap.appendChild(lbl);
+      var inp = document.createElement("input");
+      inp.id = "ee-" + name; inp.name = name; inp.type = type;
+      if (value != null) inp.value = value;
+      wrap.appendChild(inp);
+      return wrap;
+    }
+    form.appendChild(field("Episode title (guest name)", "guest", "text", ep.guest_name || ""));
+    var dates = el("div", "ne-dates");
+    dates.appendChild(field("Shooting date", "shoot", "date", epDateVal(ep.shooting_date)));
+    dates.appendChild(field("Airing date", "air", "date", epDateVal(ep.airing_date)));
+    form.appendChild(dates);
+    var showPremiere = (ep.status === "shipped") || !!ep.premiere_at;
+    if (showPremiere) form.appendChild(field("Premiere / aired date", "premiere", "date", epDateVal(ep.premiere_at)));
+
+    var err = el("p", "text-[12px] text-error", ""); err.style.display = "none"; form.appendChild(err);
+
+    var actions = el("div", "flex justify-end gap-2 mt-4");
+    var cancel = el("button", "px-4 py-2 text-[12px] font-semibold text-secondary hover:text-on-surface transition-colors");
+    cancel.type = "button"; cancel.textContent = "Cancel"; cancel.addEventListener("click", closeModal);
+    actions.appendChild(cancel);
+    var save = el("button", "px-4 py-2 text-[12px] font-bold bg-primary text-on-primary rounded-lg hover:opacity-90 transition-opacity");
+    save.type = "submit"; save.textContent = "Save"; actions.appendChild(save);
+    form.appendChild(actions);
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault(); err.style.display = "none";
+      var guest = form.querySelector('input[name="guest"]').value.trim();
+      if (!guest) { err.textContent = "Episode title (guest name) can't be empty."; err.style.display = "block"; return; }
+      var patch = {
+        guest_name: guest,
+        shooting_date: form.querySelector('input[name="shoot"]').value || null,
+        airing_date: form.querySelector('input[name="air"]').value || null
+      };
+      if (showPremiere) {
+        var pv = form.querySelector('input[name="premiere"]').value;
+        patch.premiere_at = pv ? new Date(pv + "T12:00:00").toISOString() : null;
+      }
+      save.disabled = true; save.textContent = "Saving…";
+      sb.from("prs_episodes").update(patch).eq("id", ep.id).select().single().then(function (r) {
+        if (r.error) { err.textContent = "Save failed: " + r.error.message; err.style.display = "block"; save.disabled = false; save.textContent = "Save"; return; }
+        ep = r.data; closeModal(); render(); loadPastEpisodes();
+      });
+    });
+
+    card.appendChild(form); bd.appendChild(card); root.appendChild(bd);
+  }
+  function deleteEpisodeChildren(epId) {
+    // Remove FK children first so the parent row can be deleted (RLS allows these deletes).
+    return sb.from("prs_checklist_items").delete().eq("episode_id", epId).then(function () {
+      return sb.from("prs_sponsors").delete().eq("episode_id", epId);
+    });
+  }
+  function deleteEpisode() {
+    if (!ep) return;
+    if (!confirm("Delete this episode permanently?\n\n" + (ep.guest_name || ep.slug) +
+      "\n\nThis removes the episode and its checklist items. This cannot be undone.")) return;
+    deleteEpisodeChildren(ep.id)
+      .then(function () { return sb.from("prs_episodes").delete().eq("id", ep.id); })
+      .then(function (r) {
+        if (r && r.error) { alert("Delete failed: " + r.error.message); return; }
+        window.location.href = "/prs/";
+      })
+      .catch(function (e) { alert("Delete failed: " + (e && e.message ? e.message : String(e))); });
+  }
+  // Junk placeholder rows seeded earlier (slugs not-set / not-set-2 / not-yet-set, name "Not set").
+  function placeholderEps(eps) {
+    var junkSlugs = { "not-set": 1, "not-set-2": 1, "not-yet-set": 1 };
+    return (eps || []).filter(function (e) {
+      if (junkSlugs[e.slug]) return true;
+      var g = (e.guest_name || "").trim().toLowerCase();
+      return g === "not set" || g === "not yet set";
+    });
+  }
+  function cleanupPlaceholders(eps) {
+    var junk = placeholderEps(eps);
+    if (!junk.length) return;
+    if (!confirm("Remove " + junk.length + " placeholder episode" + (junk.length > 1 ? "s" : "") +
+      " (" + junk.map(function (e) { return e.slug; }).join(", ") + ")?\n\nThis deletes them and their checklist items.")) return;
+    var chain = Promise.resolve();
+    junk.forEach(function (e) {
+      chain = chain.then(function () { return deleteEpisodeChildren(e.id); })
+                   .then(function () { return sb.from("prs_episodes").delete().eq("id", e.id); });
+    });
+    chain.then(function () {
+      return loadAllEpisodes().then(function (r) { if (r && !r.error) renderHome(r.data); });
+    }).catch(function (err) { alert("Cleanup failed: " + (err && err.message ? err.message : String(err))); });
   }
 
   // ============================================================

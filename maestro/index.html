@@ -32,6 +32,7 @@
   .ms-fill{ font-variation-settings:'FILL' 1; }
   .pulse-dot{ animation:pulseFade 2.4s cubic-bezier(.4,0,.6,1) infinite; } @keyframes pulseFade{0%,100%{opacity:1}50%{opacity:.35}}
   .rise{ opacity:0; transform:translateY(10px); animation:rise .5s cubic-bezier(.16,1,.3,1) forwards; } @keyframes rise{to{opacity:1;transform:none}}
+  .run-indet{ animation:runPulse 1.2s ease-in-out infinite; } @keyframes runPulse{0%,100%{opacity:.45}50%{opacity:1}}
   .gold-edge{ box-shadow:inset 0 0 0 1px rgba(242,202,80,0.22), 0 24px 60px -30px rgba(0,0,0,0.9); }
   .hairline{ border-color:rgba(154,144,124,0.16); }
   .tab{ position:relative; transition:color .2s; } .tab[data-active="1"]{ color:#f2ca50; }
@@ -214,6 +215,7 @@ const $ = (s,r)=> (r||document).querySelector(s);
 const $$ = (s,r)=> Array.from((r||document).querySelectorAll(s));
 const esc = s => (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 let DATA=null, NOW=new Date(), STATE={ view:"overview", calFilter:"all", setupExpanded:{} }, RENDERED={}, PENDING=[], USER_ID=null;
+let RUNS=[], RUNS_TIMER=null;
 
 const KIND = {
   meeting:{icon:"groups",label:"Meeting"}, shoot:{icon:"photo_camera",label:"Shoot"}, edit:{icon:"movie_edit",label:"Edit"},
@@ -439,6 +441,7 @@ function renderOverview(){
   }
   H += footerHTML();
   $("#view-overview").innerHTML=H;
+  syncRunsSection();   // keep the live-runs strip at the top of Overview
 }
 function calLegendFilter(){
   const present=[...new Set(eventsAll().map(e=>e.calendar).filter(Boolean))];
@@ -743,6 +746,135 @@ function respondTaskModal(taskId){
   openModal(h);
 }
 
+/* ───── LIVE RUNS — step-based progress bars fed by maestro_runs (realtime; Sync = fallback) ─────
+   One row in maestro_runs = one task execution. We surface ACTIVE runs (queued/running) plus any
+   that finished in the last few seconds, so the bar visibly lands on Done/Error before it drops.
+   HONESTY RULE: the bar never reads 100% until status==='done'. ETA is a rough average of past
+   finished runs with a similar title or identical step-count, labelled "est", hidden if no history. */
+const RUN_FINISHED_LINGER_MS = 9000;
+function runNorm(s){ return String(s||"").trim().toLowerCase().replace(/\s+/g," "); }
+async function loadRuns(){
+  if(!USER_ID) return;
+  try{
+    const { data, error } = await sb.from("maestro_runs")
+      .select("id,title,status,steps_total,steps_done,current_step,started_at,updated_at,finished_at,eta_seconds,source")
+      .order("started_at",{ascending:false}).limit(60);
+    if(error) return;                       // RLS / transient — keep last known, no regression
+    RUNS = data || [];
+    syncRunsSection();
+  }catch(_e){ /* offline — realtime or the next poll catches up */ }
+}
+function runsActive(){
+  const now=Date.now();
+  return RUNS.filter(r=>{
+    if(r.status==="running" || r.status==="queued") return true;
+    if((r.status==="done"||r.status==="error") && r.finished_at && (now-new Date(r.finished_at).getTime()<RUN_FINISHED_LINGER_MS)) return true;
+    return false;
+  }).sort((a,b)=> new Date(a.started_at)-new Date(b.started_at));
+}
+// est TOTAL seconds, averaged over past finished runs with a similar title or identical step-count
+function runEtaTotal(r){
+  const hist=RUNS.filter(x=> x.status==="done" && x.finished_at && x.id!==r.id &&
+      ((r.title && x.title && runNorm(x.title)===runNorm(r.title)) || (r.steps_total && x.steps_total===r.steps_total)))
+    .map(x=> (new Date(x.finished_at)-new Date(x.started_at))/1000).filter(s=>s>0);
+  if(!hist.length) return null;
+  return hist.reduce((a,b)=>a+b,0)/hist.length;
+}
+function runPct(r){
+  if(r.status==="done") return 100;
+  const t=r.steps_total||0;
+  if(t<=0) return null;                      // unknown total → indeterminate bar
+  let pct=(r.steps_done||0)/t*100;
+  if(pct>99) pct=99;                         // never 100% until status==='done'
+  return Math.max(0,pct);
+}
+function fmtDur(secs){
+  secs=Math.max(0,Math.round(secs));
+  const m=Math.floor(secs/60), s=secs%60;
+  if(m<=0) return s+"s";
+  if(m<60) return s? (m+"m "+s+"s") : (m+"m");
+  const h=Math.floor(m/60); return h+"h "+(m%60)+"m";
+}
+function runCardHTML(r){
+  const pct=runPct(r);
+  const isDone=r.status==="done", isErr=r.status==="error";
+  const indeterminate=(pct===null && !isDone && !isErr);
+  const barColor=isErr? "#ef5350" : (isDone? "#36c275" : "#f2ca50");
+  const pill = isDone ? '<span class="text-[10px] font-bold uppercase tracking-wider text-green bg-green/10 px-2 py-0.5 rounded-full">Done</span>'
+             : isErr  ? '<span class="text-[10px] font-bold uppercase tracking-wider text-on-error-container bg-error-container/30 px-2 py-0.5 rounded-full">Error</span>'
+             : r.status==="queued" ? '<span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 bg-surface-container-high px-2 py-0.5 rounded-full">Queued</span>'
+             : '<span class="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded-full">Running</span>';
+  const stepText = r.steps_total ? '<span data-run-steps="'+esc(r.id)+'">'+Math.min(r.steps_done||0,r.steps_total)+'/'+r.steps_total+'</span> · ' : '';
+  const cur = r.current_step ? esc(r.current_step) : (isDone?"Finished":(isErr?"Failed":"Working…"));
+  const width = isDone ? "100%" : (indeterminate ? "42%" : (pct||0)+"%");
+  const barInner = '<div data-run-bar="'+esc(r.id)+'" class="h-full rounded-full transition-all duration-500'+(indeterminate?" run-indet":"")+'" style="width:'+width+';background:'+barColor+'"></div>';
+  return '<div class="rounded-2xl border hairline bg-surface-container-low/60 p-3.5 sm:p-4" data-run-card="'+esc(r.id)+'">'+
+      '<div class="flex items-center gap-2 mb-2">'+
+        '<span class="material-symbols-outlined text-[18px] '+(isErr?"text-on-error-container":(isDone?"text-green":"text-primary"))+'">'+(isDone?"task_alt":(isErr?"error":"bolt"))+'</span>'+
+        '<p class="text-[13.5px] font-bold text-on-surface truncate flex-1">'+esc(r.title||"Task run")+'</p>'+pill+
+      '</div>'+
+      '<div class="h-2 rounded-full bg-surface-container-high overflow-hidden mb-1.5">'+barInner+'</div>'+
+      '<div class="flex items-center justify-between gap-3 text-[11.5px]">'+
+        '<span class="text-on-surface-variant/70 truncate flex items-center min-w-0">'+stepText+'<span data-run-cur="'+esc(r.id)+'" class="truncate">'+cur+'</span></span>'+
+        '<span class="font-mono text-on-surface-variant/55 flex-shrink-0 flex items-center gap-1.5"><span data-run-elapsed="'+esc(r.id)+'"></span><span data-run-eta="'+esc(r.id)+'" class="text-on-surface-variant/45"></span></span>'+
+      '</div>'+
+    '</div>';
+}
+function runsSectionHTML(){
+  const act=runsActive();
+  if(!act.length) return "";
+  return '<div id="runs-section" class="rise mb-5">'+
+    '<div class="flex items-center gap-2 mb-2.5"><span class="material-symbols-outlined text-primary text-[18px]">pending</span>'+
+      '<h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Live runs</h2>'+
+      '<span class="text-[11px] text-on-surface-variant/50 font-mono">'+act.length+' active</span></div>'+
+    '<div class="space-y-2.5">'+act.map(runCardHTML).join("")+'</div></div>';
+}
+// Insert / update / remove #runs-section as the first child of the Overview view, without
+// disturbing the rest of the overview render (which rebuilds via innerHTML).
+function syncRunsSection(){
+  const existing=document.getElementById("runs-section");
+  const html=runsSectionHTML();
+  if(existing){
+    if(!html){ existing.remove(); return; }
+    const tmp=document.createElement("div"); tmp.innerHTML=html;
+    existing.replaceWith(tmp.firstElementChild);
+  } else if(html){
+    const ov=$("#view-overview");
+    if(ov){ const tmp=document.createElement("div"); tmp.innerHTML=html; ov.insertBefore(tmp.firstElementChild, ov.firstChild); }
+  }
+  updateRunDynamics();
+}
+// Per-second live bits: elapsed timer + ETA countdown. Cheap — touches text/style only.
+function updateRunDynamics(){
+  const cards=document.querySelectorAll("[data-run-card]");
+  if(!cards.length) return;
+  const now=Date.now();
+  cards.forEach(card=>{
+    const id=card.getAttribute("data-run-card");
+    const r=RUNS.find(x=>String(x.id)===String(id)); if(!r) return;
+    const elapsed=(now-new Date(r.started_at).getTime())/1000;
+    const elEl=card.querySelector('[data-run-elapsed="'+CSS.escape(id)+'"]');
+    if(elEl){
+      const shown=((r.status==="done"||r.status==="error") && r.finished_at)
+        ? (new Date(r.finished_at)-new Date(r.started_at))/1000 : elapsed;
+      elEl.textContent=fmtDur(shown);
+    }
+    const etaEl=card.querySelector('[data-run-eta="'+CSS.escape(id)+'"]');
+    if(etaEl){
+      if(r.status==="running"){
+        const total=runEtaTotal(r);
+        etaEl.textContent = total ? (total-elapsed>5 ? "· ~"+fmtDur(total-elapsed)+" left (est)" : "· wrapping up (est)") : "";
+      } else etaEl.textContent="";
+    }
+  });
+}
+function tickRuns(){
+  // If the active set changed (a finished run aged out, or a new run appeared), rebuild; else just refresh.
+  const before=Array.from(document.querySelectorAll("[data-run-card]")).map(c=>c.getAttribute("data-run-card")).join(",");
+  const after=runsActive().map(r=>String(r.id)).join(",");
+  if(before!==after) syncRunsSection(); else updateRunDynamics();
+}
+
 /* ───── REALTIME — live dashboard + inbox via Supabase postgres_changes (sync button stays as fallback) ───── */
 let RT_CHANNELS=[];
 function teardownRealtime(){ RT_CHANNELS.forEach(c=>{ try{ sb.removeChannel(c); }catch(_e){} }); RT_CHANNELS=[]; }
@@ -771,7 +903,10 @@ async function setupRealtime(){
     const dashCh = sb.channel("rt-dash-"+USER_ID)
       .on("postgres_changes", { event:"*", schema:"public", table:"maestro_dashboard", filter:"user_id=eq."+USER_ID }, ()=>{ refreshDashboardLive(); })
       .subscribe();
-    RT_CHANNELS=[inboxCh, dashCh];
+    const runsCh = sb.channel("rt-runs-"+USER_ID)
+      .on("postgres_changes", { event:"*", schema:"public", table:"maestro_runs", filter:"user_id=eq."+USER_ID }, ()=>{ loadRuns(); })
+      .subscribe();
+    RT_CHANNELS=[inboxCh, dashCh, runsCh];
   }catch(_e){ /* realtime unavailable — sync button + on-load fetch remain the fallback */ }
 }
 
@@ -940,6 +1075,9 @@ async function loadDashboard(){
   liveSync({ silent:true });   // on-demand: refresh the calendar live, don't wait for the scheduled brain
   loadInbox();                 // pull the user's Dispatch messages + light up the inbox badge
   setupRealtime();             // live dashboard + inbox updates (sync button stays as fallback)
+  loadRuns();                  // live task-run progress bars from maestro_runs
+  if(!RUNS_TIMER) RUNS_TIMER=setInterval(tickRuns,1000);   // 1s elapsed/ETA ticker (no network)
+  setInterval(loadRuns, 20000);                            // sync fallback if realtime drops
 }
 
 /* ───── on-demand / live calendar sync (Part 2) ─────
@@ -974,7 +1112,7 @@ async function liveSync(opts){
       toast("Live sync unavailable — showing last sync","schedule");
     }
   }catch(_e){ /* offline or backend not enabled yet — keep brain data, no regression */ }
-  finally{ if(icon) icon.classList.remove("animate-spin"); }
+  finally{ if(icon) icon.classList.remove("animate-spin"); loadRuns(); }
 }
 
 /* Connect Google once → stores Jeremy's refresh token server-side (enwrco), which the

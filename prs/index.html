@@ -481,6 +481,16 @@
   }
   /* The form rows themselves get a bit more vertical space than the global space-y-3. */
   .ne-form > * + * { margin-top: 16px; }
+  /* Transcript-received toggle row in the edit-episode modal. */
+  .ee-toggle-lbl {
+    display: flex; align-items: center; gap: 10px;
+    cursor: pointer; user-select: none;
+    font-size: 13px; color: #c8c6c5;
+  }
+  .ee-toggle-lbl input[type="checkbox"] {
+    width: 18px; height: 18px; flex: none;
+    accent-color: #f2ca50; cursor: pointer;
+  }
   /* Sponsor input modal row */
   .sponsor-input-row {
     background: #1c1b1b;
@@ -944,10 +954,22 @@
       month: "short", day: "numeric", hour: "numeric", minute: "2-digit"
     });
   }
+  // Parse a value to a Date in LOCAL time. Date-only strings (YYYY-MM-DD, as stored
+  // in airing_date / shooting_date) must be built from local Y/M/D components — passing
+  // them to `new Date()` parses them as UTC midnight, which then renders a day early in
+  // any behind-UTC timezone (the "Air Jun 4" for a 2026-06-05 date bug). Full timestamps
+  // (premiere_at / created_at, which carry a time + offset) are parsed normally.
+  function parseLocalDate(s) {
+    if (!s) return null;
+    var str = String(s).trim();
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(str);
+    var d = m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(str);
+    return isNaN(d.getTime()) ? null : d;
+  }
   function shortDate(s) {
     if (!s) return "";
-    var d = new Date(s);
-    if (isNaN(d.getTime())) return s;
+    var d = parseLocalDate(s);
+    if (!d) return s;
     return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
   }
 
@@ -1607,38 +1629,25 @@
       return;
     }
 
-    // Sort by bucket then date:
-    //   1. in-progress  (active work, no clear secondary order)
-    //   2. planned      (upcoming, sort by soonest airing date)
-    //   3. shipped      (released, sort by air date most-recent first)
-    function bucket(e) {
-      var st = statusOf(e);
-      if (st === "in-progress") return 0;
-      if (st === "planned") return 1;
-      return 2;
-    }
-    function airTs(e) {
-      // Best-effort air timestamp: premiere_at first (real-world ground truth
-      // for shipped eps), then airing_date (planned), then nothing.
-      var d = e.premiere_at || e.airing_date;
-      return d ? new Date(d).getTime() : null;
+    // Single flat sort by airing date, DESCENDING — latest/upcoming first, so an
+    // upcoming planned episode (e.g. Lorenzo Lamas, airing Jun 15) sits at the top
+    // and the back catalogue trails off by air date.
+    // Sort key falls back so undated rows still order naturally:
+    //   airing_date → premiere_at (the real air date for shipped eps)
+    //              → shooting_date → created_at.
+    // Rows with no usable date at all sink to the bottom, so dated upcoming
+    // episodes always sit above undated ones.
+    function sortTs(e) {
+      var raw = e.airing_date || e.premiere_at || e.shooting_date || e.created_at;
+      var d = parseLocalDate(raw);
+      return d ? d.getTime() : null;
     }
     var sorted = allEps.slice().sort(function (a, b) {
-      var ba = bucket(a), bb = bucket(b);
-      if (ba !== bb) return ba - bb;
-      var aT = airTs(a), bT = airTs(b);
-      if (ba === 2) {
-        // Shipped: most recent first. Missing dates sink to the bottom of the bucket.
-        if (aT == null && bT == null) return 0;
-        if (aT == null) return 1;
-        if (bT == null) return -1;
-        return bT - aT;
-      }
-      // Planned: soonest first.
+      var aT = sortTs(a), bT = sortTs(b);
       if (aT == null && bT == null) return 0;
-      if (aT == null) return 1;
+      if (aT == null) return 1;   // undated sink to the bottom
       if (bT == null) return -1;
-      return aT - bT;
+      return bT - aT;             // descending: latest/upcoming first
     });
 
     var grid = el("div", "ep-grid");
@@ -2674,6 +2683,21 @@
     var showPremiere = (ep.status === "shipped") || !!ep.premiere_at;
     if (showPremiere) form.appendChild(field("Premiere / aired date", "premiere", "date", epDateVal(ep.premiere_at)));
 
+    // Transcript received toggle — flips prs_episodes.transcript_received, which drives
+    // the "Transcript ✓" / "Transcript pending" badge on the card + episode header.
+    var trWrap = el("div", "ee-toggle");
+    var trLbl = document.createElement("label");
+    trLbl.className = "ee-toggle-lbl";
+    trLbl.setAttribute("for", "ee-transcript");
+    var trBox = document.createElement("input");
+    trBox.type = "checkbox"; trBox.id = "ee-transcript"; trBox.name = "transcript";
+    trBox.checked = !!ep.transcript_received;
+    var trText = document.createElement("span");
+    trText.textContent = "Transcript received";
+    trLbl.appendChild(trBox); trLbl.appendChild(trText);
+    trWrap.appendChild(trLbl);
+    form.appendChild(trWrap);
+
     var err = el("p", "text-[12px] text-error", ""); err.style.display = "none"; form.appendChild(err);
 
     var actions = el("div", "flex justify-end gap-2 mt-4");
@@ -2696,6 +2720,12 @@
       if (showPremiere) {
         var pv = form.querySelector('input[name="premiere"]').value;
         patch.premiere_at = pv ? new Date(pv + "T12:00:00").toISOString() : null;
+      }
+      // Transcript received flag (+ timestamp), only written when it actually changed.
+      var trChecked = form.querySelector('input[name="transcript"]').checked;
+      if (trChecked !== !!ep.transcript_received) {
+        patch.transcript_received = trChecked;
+        patch.transcript_received_at = trChecked ? new Date().toISOString() : null;
       }
       save.disabled = true; save.textContent = "Saving…";
       sb.from("prs_episodes").update(patch).eq("id", ep.id).select().single().then(function (r) {

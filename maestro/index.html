@@ -608,9 +608,21 @@ function setupRow(it){
   return h+'</div>';
 }
 function renderSetupGroup(){
-  const remaining=SETUP_ITEMS.filter(it=>!taskDone(it.id)).length;
-  return '<div class="rounded-2xl border border-primary/25 bg-primary/[0.04] p-2 sm:p-3"><div class="flex items-center gap-2 px-2 pt-1 pb-2"><span class="material-symbols-outlined text-primary text-[18px]">rocket_launch</span><h3 class="text-[11px] font-bold tracking-widest text-primary uppercase">Setup · needs you ('+remaining+')</h3><span class="ml-auto text-[10.5px] text-on-surface-variant/50">tap an item for steps</span></div><div class="divide-y divide-outline-variant/15">'+
-    SETUP_ITEMS.map(setupRow).join("")+'</div></div>';
+  // Completed setup items drop off the active list (they no longer "need you").
+  // They're not lost: a collapsed "Done" archive keeps them recoverable (re-tap to undo).
+  const active=SETUP_ITEMS.filter(it=>!taskDone(it.id));
+  const doneItems=SETUP_ITEMS.filter(it=>taskDone(it.id));
+  const remaining=active.length;
+  let h='<div class="rounded-2xl border border-primary/25 bg-primary/[0.04] p-2 sm:p-3"><div class="flex items-center gap-2 px-2 pt-1 pb-2"><span class="material-symbols-outlined text-primary text-[18px]">rocket_launch</span><h3 class="text-[11px] font-bold tracking-widest text-primary uppercase">Setup · needs you ('+remaining+')</h3><span class="ml-auto text-[10.5px] text-on-surface-variant/50">tap an item for steps</span></div>';
+  h+= active.length
+    ? '<div class="divide-y divide-outline-variant/15">'+active.map(setupRow).join("")+'</div>'
+    : '<p class="text-[13px] text-on-surface-variant/55 px-2 py-2">All setup steps done 🎉</p>';
+  if(doneItems.length){
+    const open=!!STATE.setupExpanded["__setup_done"];
+    h+='<button data-act="setup-expand" data-id="__setup_done" class="pressable mt-1 w-full flex items-center gap-1.5 px-2 py-1.5 text-[11px] font-bold tracking-widest text-green uppercase"><span class="material-symbols-outlined text-[15px] ms-fill">task_alt</span>Done ('+doneItems.length+')<span class="material-symbols-outlined text-[18px] ml-auto transition-transform" style="'+(open?"transform:rotate(90deg)":"")+'">chevron_right</span></button>';
+    if(open) h+='<div class="divide-y divide-outline-variant/10 opacity-70">'+doneItems.map(setupRow).join("")+'</div>';
+  }
+  return h+'</div>';
 }
 function renderTasks(){
   const ts=DATA.tasks||[];

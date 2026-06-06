@@ -35,7 +35,7 @@ function setMode(next) {
   const signup = mode === "signup";
   $("auth-title").textContent = signup ? "Create your account" : "Sign in";
   $("auth-tagline").textContent = signup
-    ? "Start here. One account links your Claude, your Google, and your dashboard."
+    ? "Start here. Create the account that connects Claude to Maestro."
     : "Welcome back. Sign in to pick up where you left off.";
   $("auth-submit").textContent = signup ? "Create account" : "Sign in";
   $("switch-text").textContent = signup ? "Already have an account?" : "New here?";
@@ -190,9 +190,8 @@ $("signout").onclick = async () => {
 
 /* ── checklist ──────────────────────────────────────────── */
 const STEPS = [
-  { key: "plugin_linked", el: "step-link" },
-  { key: "calendar_connected", el: "step-cal" },
-  { key: "drive_connected", el: "step-drive" },
+  { key: "__account", el: "step-account" }, // always complete once signed in
+  { key: "plugin_linked", el: "step-connector" }, // ticks when Claude connects via the connector (OAuth)
   { key: "dashboard_live", el: "step-dash" },
 ];
 
@@ -203,12 +202,14 @@ function enterApp(session) {
 }
 
 async function refreshChecklist() {
-  const { data, error } = await sb.from("maestro_onboarding").select("*").maybeSingle();
-  if (error || !data) return;
+  const { data } = await sb.from("maestro_onboarding").select("*").maybeSingle();
+  const row = data || {};
   let done = 0;
   for (const s of STEPS) {
     const stepEl = $(s.el);
-    const complete = !!data[s.key];
+    if (!stepEl) continue;
+    // The account step is implicitly complete once the user is signed in (they're in app-view).
+    const complete = s.key === "__account" ? true : !!row[s.key];
     if (complete) done++;
     stepEl.classList.toggle("done", complete);
     stepEl.querySelector(".status-pill").textContent = complete ? "Done" : "Pending";
@@ -223,7 +224,7 @@ async function refreshChecklist() {
 
 function startPolling() {
   stopPolling();
-  // Light poll so the UI ticks as the user runs /maestro-link or finishes Google consent.
+  // Light poll so the UI ticks as Claude connects via the connector or Google consent finishes.
   pollTimer = setInterval(refreshChecklist, 4000);
 }
 function stopPolling() {
@@ -232,43 +233,37 @@ function stopPolling() {
 }
 window.addEventListener("focus", () => $("app-view").classList.contains("hidden") || refreshChecklist());
 
-/* ── Step 1: generate a one-time link code ──────────────── */
-function randomCode() {
-  const alphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no ambiguous chars
-  const pick = () => alphabet[Math.floor(Math.random() * alphabet.length)];
-  return Array.from({ length: 4 }, pick).join("") + "-" + Array.from({ length: 4 }, pick).join("");
+/* ── Step 2: add the Maestro connector in Claude ────────── */
+// Copy the connector URL the user pastes into Claude → Settings → Connectors.
+const copyConnectorBtn = $("copy-connector");
+if (copyConnectorBtn) {
+  copyConnectorBtn.onclick = async () => {
+    const url = $("connector-url").textContent.trim();
+    try {
+      await navigator.clipboard.writeText(url);
+      copyConnectorBtn.textContent = "Copied ✓";
+      setTimeout(() => (copyConnectorBtn.textContent = "Copy"), 1600);
+    } catch (_e) {
+      /* clipboard blocked — the URL stays selectable as a fallback */
+    }
+  };
 }
-
-$("gen-code").onclick = async () => {
-  const btn = $("gen-code");
-  btn.disabled = true;
-  const { data: session } = await sb.auth.getSession();
-  const uid = session.session.user.id;
-  let code = randomCode();
-  let { error } = await sb.from("maestro_links").insert({ code, user_id: uid });
-  if (error) {
-    code = randomCode(); // retry once on the rare unique collision
-    ({ error } = await sb.from("maestro_links").insert({ code, user_id: uid }));
-  }
-  btn.disabled = false;
-  if (error) return;
-  $("link-code").textContent = code;
-  $("link-cmd").textContent = `/maestro-link ${code}`;
-  $("code-ttl").textContent = "(valid 15 min)";
-  $("link-detail").classList.remove("hidden");
-  $("gen-code").textContent = "Regenerate code";
-};
-
-$("copy-cmd").onclick = async () => {
-  try {
-    await navigator.clipboard.writeText($("link-cmd").textContent);
-    const b = $("copy-cmd");
-    b.textContent = "Copied ✓";
-    setTimeout(() => (b.textContent = "Copy"), 1600);
-  } catch (_e) {
-    /* clipboard blocked — the command is selectable as a fallback */
-  }
-};
+// This step ticks ✓ automatically when Claude connects via the connector (sets plugin_linked).
+// Offer a manual confirm too, so nobody is stranded if that signal lags.
+const connectorDone = $("connector-done");
+if (connectorDone) {
+  connectorDone.onclick = async () => {
+    connectorDone.textContent = "Saving…";
+    const { data: session } = await sb.auth.getSession();
+    if (session.session) {
+      await sb
+        .from("maestro_onboarding")
+        .update({ plugin_linked: true })
+        .eq("user_id", session.session.user.id);
+    }
+    await refreshChecklist();
+  };
+}
 
 /* ── Step 2 (and 3): Google OAuth — one consent connects both ─ */
 async function connectGoogle(btn) {

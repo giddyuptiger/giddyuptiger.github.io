@@ -5,25 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#0b0b0d" />
     <title>Maestro — get started</title>
-    <meta name="description" content="Maestro — your autonomous chief of staff. Sign up and get operational." />
+    <meta name="description" content="Maestro — your life and work, organized by you and Claude. Create an account, add the connector, and open your view." />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <!-- ── LANDING / ENTRY ─────────────────────────────────── -->
     <main id="landing-view" class="card wide hidden">
       <div class="wordmark">Maestro<span class="dot">.</span></div>
-      <h1 class="hero-title">Your autonomous chief&nbsp;of&nbsp;staff.</h1>
+      <h1 class="hero-title">Your life and work, organized by you and&nbsp;Claude.</h1>
       <p class="tagline hero-tagline">
-        Maestro links to your Claude, reads your calendar and Drive, and runs your day —
-        scheduling, briefing, and keeping your projects moving. Create an account and you'll be
-        operational in four steps.
+        Maestro is the place to see everything Claude is working on for you — projects, tasks,
+        and calendar, all in one view. Claude is the write path; Maestro is the view. Create an
+        account and you'll be up and running in three steps.
       </p>
 
       <ol class="steps-preview">
-        <li><span class="num">1</span><div><b>Create your account</b><p>Email &amp; password. Your data lives in Maestro's secure store.</p></div></li>
-        <li><span class="num">2</span><div><b>Link your Claude</b><p>Run one command in Claude Code to tie it to your account.</p></div></li>
-        <li><span class="num">3</span><div><b>Connect Google</b><p>One consent connects Calendar + Drive so Maestro can act for you.</p></div></li>
-        <li><span class="num">4</span><div><b>Your dashboard goes live</b><p>Your command center renders your day, projects, and tasks.</p></div></li>
+        <li><span class="num">1</span><div><b>Create your account</b><p>Email &amp; password. Your private, row-level-secured space — visible only to you.</p></div></li>
+        <li><span class="num">2</span><div><b>Add the Maestro connector in Claude</b><p>In Claude: Settings &rsaquo; Connectors &rsaquo; Add custom connector. Paste the Maestro URL and sign in.</p></div></li>
+        <li><span class="num">3</span><div><b>Open your dashboard</b><p>Sign in to Maestro and watch your projects, tasks, and calendar fill in.</p></div></li>
       </ol>
 
       <div class="landing-cta">
@@ -39,7 +38,7 @@
       <a class="back-link" id="auth-back">← Back</a>
       <div class="wordmark">Maestro<span class="dot">.</span></div>
       <h1 id="auth-title">Create your account</h1>
-      <p class="tagline" id="auth-tagline">Start here. One account links your Claude, your Google, and your dashboard.</p>
+      <p class="tagline" id="auth-tagline">Start here. Create the account that connects Claude to Maestro.</p>
 
       <form id="auth-form" autocomplete="on">
         <label for="email">Email</label>
@@ -105,7 +104,7 @@
       <div class="msg" id="reset-msg"></div>
     </main>
 
-    <!-- ── CHECKLIST (operational onboarding) ──────────────── -->
+    <!-- ── CHECKLIST (connector onboarding) ────────────────── -->
     <main id="app-view" class="card wide hidden">
       <div class="topbar">
         <div class="wordmark">Maestro<span class="dot">.</span></div>
@@ -114,97 +113,84 @@
           <a id="signout" style="margin-left: 12px; cursor: pointer">Sign out</a>
         </div>
       </div>
-      <h1>Get operational</h1>
-      <p class="tagline">Four steps to link this account to your Claude and bring your dashboard to life.</p>
+      <h1>Finish setting up</h1>
+      <p class="tagline">Three steps to connect Claude and bring your dashboard to life.</p>
       <div class="progress"><i id="progress-bar"></i></div>
 
-      <!-- Step 1 — Link Claude -->
-      <section class="step" id="step-link" data-key="plugin_linked">
+      <!-- Step 1 — Account created -->
+      <section class="step" id="step-account">
         <div class="bullet">1</div>
         <div class="step-body">
           <div class="row">
-            <h2>Link your Claude</h2>
+            <h2>Create your account</h2>
             <span class="status-pill">Pending</span>
           </div>
           <p class="detail">
-            Install the Maestro plugin in Claude Code, then generate a one-time code below and run the
-            link command in Claude. This ties this machine's Claude to your account.
+            Your private, row-level-secured space — visible only to you. You're signed in, so
+            this one's already done.
           </p>
-          <div class="actions" id="link-actions">
-            <button class="btn sm ghost" id="gen-code">Generate link code</button>
-          </div>
-          <div id="link-detail" class="hidden" style="margin-top: 12px">
-            <div class="actions" style="margin-bottom: 10px">
-              <span class="hint">Your code:</span> <span class="code" id="link-code">————</span>
-              <span class="hint" id="code-ttl"></span>
-            </div>
-            <div class="hint" style="margin-bottom: 6px">In Claude Code, run:</div>
-            <div class="cmd-row">
-              <div class="cmd" id="link-cmd">/maestro-link ————</div>
-              <button class="btn sm ghost copy-btn" id="copy-cmd" title="Copy command">Copy</button>
-            </div>
-            <p class="hint" style="margin-top: 8px">This step ticks ✓ automatically once you run it.</p>
-          </div>
         </div>
       </section>
 
-      <!-- Step 2 — Connect Google (Calendar + Drive in one consent) -->
-      <section class="step" id="step-cal" data-key="calendar_connected">
+      <!-- Step 2 — Add the Maestro connector in Claude -->
+      <section class="step" id="step-connector" data-key="plugin_linked">
         <div class="bullet">2</div>
         <div class="step-body">
           <div class="row">
-            <h2>Connect Google</h2>
+            <h2>Add the Maestro connector in Claude</h2>
             <span class="status-pill">Pending</span>
           </div>
           <p class="detail">
-            Grant access so Maestro can see your day and schedule on your behalf. <strong>One consent
-            connects both Calendar and Drive</strong> (step 3 below) — you only do this once.
+            This is what lets Claude work in concert with Maestro — the write path. In Claude, open
+            <strong>Settings &rsaquo; Connectors &rsaquo; Add custom connector</strong>, paste this
+            URL, then click <strong>Add</strong>:
           </p>
-          <div class="actions">
-            <button class="btn sm" id="connect-google">Connect Google</button>
+          <div class="cmd-row">
+            <div class="cmd" id="connector-url">https://cixmyhdzzbgbltmitzkb.supabase.co/functions/v1/maestro-mcp</div>
+            <button class="btn sm ghost copy-btn" id="copy-connector" title="Copy connector URL">Copy</button>
           </div>
-          <div class="msg" id="google-msg" style="margin-top: 10px"></div>
+          <p class="hint" style="margin-top: 10px">
+            Claude will then open a sign-in screen — sign in with this <strong>same Maestro
+            account</strong>. That securely links Claude to your space over OAuth, so Claude can read
+            your overview and add projects, tasks, and notes for you.
+          </p>
+          <div class="actions" style="margin-top: 12px">
+            <a class="subtle-link" id="connector-done" style="cursor: pointer">I've added the connector — mark this done</a>
+          </div>
         </div>
       </section>
 
-      <!-- Step 3 — Drive (covered by the same consent) -->
-      <section class="step linked-step" id="step-drive" data-key="drive_connected">
+      <!-- Step 3 — Open your dashboard -->
+      <section class="step" id="step-dash" data-key="dashboard_live">
         <div class="bullet">3</div>
         <div class="step-body">
           <div class="row">
-            <h2>Connect Google Drive</h2>
+            <h2>Open your dashboard</h2>
             <span class="status-pill">Pending</span>
           </div>
           <p class="detail">
-            Your workspace store — project docs, code-history, and SOPs.
-            <strong>Connected automatically by the Google consent in step 2</strong> — no separate
-            sign-in. Minimal scope: Maestro reads your existing docs and writes only files it creates.
+            Ask Claude to organize a project or track something, then open your command-center view
+            and watch it land in your overview, tasks, and calendar.
           </p>
           <div class="actions">
-            <span class="hint linked-hint">↑ Lights up together with step 2.</span>
-          </div>
-        </div>
-      </section>
-
-      <!-- Step 4 — Dashboard -->
-      <section class="step" id="step-dash" data-key="dashboard_live">
-        <div class="bullet">4</div>
-        <div class="step-body">
-          <div class="row">
-            <h2>Confirm your dashboard is live</h2>
-            <span class="status-pill">Pending</span>
-          </div>
-          <p class="detail">Open your command-center dashboard and confirm it renders your status.</p>
-          <div class="actions">
             <button class="btn sm" id="open-dashboard">Open my dashboard</button>
+          </div>
+          <div class="note" style="margin-top: 12px">
+            <span class="material">Optional:</span> inside the dashboard, tap <strong>Connect
+            Google</strong> once to enable live calendar sync. Your refresh token is stored encrypted
+            server-side and never leaves Supabase.
+            <div class="actions" style="margin-top: 10px">
+              <button class="btn sm ghost" id="connect-google">Connect Google</button>
+            </div>
+            <div class="msg" id="google-msg" style="margin-top: 10px"></div>
           </div>
         </div>
       </section>
 
       <div class="done-banner" id="done-banner">
-        <strong style="color: var(--gold)">You're operational. 🎉</strong>
+        <strong style="color: var(--gold)">You're all set. 🎉</strong>
         <p class="hint" style="margin: 6px 0 0">
-          Every Claude session now opens with your brief. Head to your
+          Claude is connected and your view is live. Head to your
           <a id="done-dash-link" href="#" target="_blank" rel="noopener">dashboard</a>.
         </p>
       </div>

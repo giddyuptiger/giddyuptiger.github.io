@@ -391,7 +391,8 @@
     font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
     text-transform: uppercase; white-space: nowrap;
   }
-  .pill.in-progress { background: rgba(242, 202, 80, 0.12); color: #f2ca50; border: 1px solid rgba(242, 202, 80, 0.4); }
+  .pill.in_production { background: rgba(242, 202, 80, 0.12); color: #f2ca50; border: 1px solid rgba(242, 202, 80, 0.4); }
+  .pill.airing { background: rgba(141, 219, 162, 0.14); color: #8ddba2; border: 1px solid rgba(141, 219, 162, 0.45); }
   .pill.planned { background: rgba(116, 192, 252, 0.12); color: #8fc8ff; border: 1px solid rgba(116, 192, 252, 0.4); }
   .pill.shipped { background: rgba(200, 198, 197, 0.08); color: #c8c6c5; border: 1px solid rgba(200, 198, 197, 0.25); }
   .pill.tr-ok { background: rgba(141, 219, 162, 0.1); color: #8ddba2; border: 1px solid rgba(141, 219, 162, 0.3); font-weight: 600; letter-spacing: 0.02em; text-transform: none; }
@@ -981,20 +982,21 @@
     });
   }
 
+  // Canonical four-state lifecycle: planned -> in_production -> airing -> shipped.
+  // Legacy/loose values (in-progress / in progress / active / upcoming / live / aired)
+  // are folded onto the canonical set so older rows keep rendering cleanly.
   function statusOf(e) {
-    var s = e && e.status ? String(e.status).toLowerCase() : "";
+    var s = e && e.status ? String(e.status).toLowerCase().replace(/[\s-]+/g, "_") : "";
     if (s === "planned" || s === "upcoming") return "planned";
-    if (s === "in-progress" || s === "in_progress" || s === "active") return "in-progress";
+    if (s === "in_production" || s === "in_progress" || s === "active" || s === "production") return "in_production";
+    if (s === "airing" || s === "live" || s === "aired") return "airing";
     return "shipped";
   }
-  function isInProgress(e) { return statusOf(e) === "in-progress"; }
-  function statusLabel(e) {
-    switch (statusOf(e)) {
-      case "planned": return "Planned";
-      case "in-progress": return "In progress";
-      default: return "Shipped";
-    }
-  }
+  // "Active pipeline" = anything between planned and shipped.
+  function isInProgress(e) { var s = statusOf(e); return s === "in_production" || s === "airing"; }
+  var STATUS_ORDER = ["planned", "in_production", "airing", "shipped"];
+  var STATUS_LABELS = { planned: "Planned", in_production: "In Production", airing: "Airing", shipped: "Shipped" };
+  function statusLabel(e) { return STATUS_LABELS[statusOf(e)] || "Shipped"; }
 
   function slugify(s) {
     return String(s || "").toLowerCase().trim()
@@ -1668,8 +1670,8 @@
       var meta = el("div", "meta");
       var ep_status = statusOf(e);
       var anyDate = false;
-      if (ep_status === "shipped" && e.premiere_at) {
-        var pd = el("span"); pd.textContent = "Aired " + shortDate(e.premiere_at); meta.appendChild(pd);
+      if ((ep_status === "shipped" || ep_status === "airing") && (e.premiere_at || e.airing_date)) {
+        var pd = el("span"); pd.textContent = "Aired " + shortDate(e.premiere_at || e.airing_date); meta.appendChild(pd);
         anyDate = true;
       } else if (ep_status === "planned") {
         if (e.shooting_date) {
@@ -2680,6 +2682,22 @@
     dates.appendChild(field("Shooting date", "shoot", "date", epDateVal(ep.shooting_date)));
     dates.appendChild(field("Airing date", "air", "date", epDateVal(ep.airing_date)));
     form.appendChild(dates);
+
+    // STATUS dropdown — set any of the four lifecycle states directly. Writing status here
+    // stamps status_manual_at so the daily auto-ship never overrides a state the user set
+    // on purpose (manual override always wins).
+    var stWrap = document.createElement("div");
+    var stLbl = el("label", null, "Status"); stLbl.setAttribute("for", "ee-status"); stWrap.appendChild(stLbl);
+    var stSel = document.createElement("select");
+    stSel.id = "ee-status"; stSel.name = "status";
+    STATUS_ORDER.forEach(function (key) {
+      var opt = document.createElement("option");
+      opt.value = key; opt.textContent = STATUS_LABELS[key];
+      if (key === statusOf(ep)) opt.selected = true;
+      stSel.appendChild(opt);
+    });
+    stWrap.appendChild(stSel);
+    form.appendChild(stWrap);
     var showPremiere = (ep.status === "shipped") || !!ep.premiere_at;
     if (showPremiere) form.appendChild(field("Premiere / aired date", "premiere", "date", epDateVal(ep.premiere_at)));
 
@@ -2717,6 +2735,13 @@
         shooting_date: form.querySelector('input[name="shoot"]').value || null,
         airing_date: form.querySelector('input[name="air"]').value || null
       };
+      // Status: only write (and stamp the manual-override timestamp) when it actually changed,
+      // so we don't reset status_manual_at on unrelated edits.
+      var newStatus = form.querySelector('select[name="status"]').value;
+      if (newStatus && newStatus !== statusOf(ep)) {
+        patch.status = newStatus;
+        patch.status_manual_at = new Date().toISOString();
+      }
       if (showPremiere) {
         var pv = form.querySelector('input[name="premiere"]').value;
         patch.premiere_at = pv ? new Date(pv + "T12:00:00").toISOString() : null;

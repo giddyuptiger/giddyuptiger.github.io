@@ -385,10 +385,9 @@ function renderOverview(){
   const current=todayTimed.find(e=> new Date(e.start)<=NOW && (!e.end||new Date(e.end)>=NOW));
   const next=todayTimed.find(e=> new Date(e.start)>NOW) || (current?null:todayTimed[0]);
   const focusEvent=current||next;
-  // Next tasks: open (not done), Needs-you first, top 5
-  const openTasks=(d.tasks||[]).filter(t=>!taskDone(t.id));
-  const needs=openTasks.filter(t=>t.state==="waiting-on-jeremy"||/asap/i.test(t.urgency));
-  const nextTasks=(needs.length?needs:openTasks).slice(0,5);
+  // Next tasks: open (not done, not snoozed), highest horizon first (ASAP → Someday), top 5
+  const openTasks=(d.tasks||[]).filter(t=>!taskDone(t.id) && !taskSnoozed(t));
+  const nextTasks=openTasks.slice().sort((a,b)=>pmeta(taskPriority(a)).order-pmeta(taskPriority(b)).order).slice(0,5);
   let H="";
   const sampleBadge = d.meta&&d.meta.sample ? '<span class="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded-full ml-2">Sample</span>' : '';
 
@@ -534,6 +533,34 @@ function renderProjects(){
 }
 function completedTasks(){ return (DATA.settings && DATA.settings.completedTasks) || []; }
 function taskDone(id){ return completedTasks().indexOf(id) >= 0; }
+
+/* ───── PRIORITY HORIZONS — a task's time-horizon (user-owned field: priority) ─────
+   Four values replace the old low/medium/high urgency for tasks. Each is a colored,
+   sortable horizon; the board groups + sorts by these (ASAP → This Week → This Month →
+   Someday). priority + snoozed_until are user-owned overrides the brain sync preserves. */
+const PRIORITY = {
+  asap:       { label:"ASAP",       order:0, badge:"bg-error-container/40 text-on-error-container border-on-error-container/30", text:"text-on-error-container", dot:"bg-on-error-container" },
+  this_week:  { label:"This Week",  order:1, badge:"bg-primary/15 text-primary border-primary/35",                              text:"text-primary",            dot:"bg-primary" },
+  this_month: { label:"This Month", order:2, badge:"bg-blue/12 text-blue border-blue/25",                                       text:"text-blue",               dot:"bg-blue" },
+  someday:    { label:"Someday",    order:3, badge:"bg-surface-container-high text-on-surface-variant/70 border-outline-variant", text:"text-on-surface-variant/70", dot:"bg-on-surface-variant/45" }
+};
+const PRIORITY_ORDER = ["asap","this_week","this_month","someday"];
+function pmeta(p){ return PRIORITY[p] || PRIORITY.someday; }
+// Map a legacy urgency (low/medium/high/asap) → a horizon. Used only as a DEFAULT when a task
+// has no explicit priority — migration + the brain set priority explicitly, so this is a fallback.
+function urgencyToPriority(u){
+  const s=String(u||"").trim().toLowerCase();
+  if(!s) return "someday";
+  if(s==="high"||/asap|urgent/.test(s)) return "asap";
+  if(s==="medium"||/this.?week|soon/.test(s)) return "this_week";
+  if(s==="low"||/this.?month/.test(s)) return "this_month";
+  return "someday";
+}
+function taskPriority(t){ const p=String((t&&t.priority)||"").toLowerCase(); return PRIORITY[p] ? p : urgencyToPriority(t&&t.urgency); }
+function taskSnoozed(t){ return !!(t && t.snoozed_until) && new Date(t.snoozed_until) > NOW; }
+function fmtSnooze(iso){ try{ return new Date(iso).toLocaleDateString(undefined,{month:"short",day:"numeric"}); }catch(_e){ return String(iso); } }
+function fmtSnoozeLong(iso){ try{ return new Date(iso).toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"}); }catch(_e){ return String(iso); } }
+
 function taskRow(t){
   const st=pstate(t.state); const urgent=/asap/i.test(t.urgency); const done=taskDone(t.id);
   const clickable=!!t.projectId && !done;
@@ -543,10 +570,12 @@ function taskRow(t){
   const body='<'+(clickable?'button data-act="open-project" data-id="'+esc(t.projectId)+'"':'div')+' class="min-w-0 flex-1 text-left '+(clickable?"pressable":"")+'">'+
     '<p class="text-[13.5px] leading-snug '+(done?"line-through text-on-surface-variant/40":"text-on-surface")+'">'+esc(t.title)+'</p>'+
     '<div class="flex items-center gap-2 mt-1 '+(done?"opacity-50":"")+'">'+tag+(t.source==="drive"?'<span class="text-[10px] text-on-surface-variant/40">· from Drive</span>':'')+'</div></'+(clickable?'button':'div')+'>';
-  const right=(!done && t.urgency)?'<span class="text-[10.5px] font-mono flex-shrink-0 mt-0.5 px-1.5 py-0.5 rounded '+(urgent?"bg-error-container/40 text-on-error-container":"bg-surface-container-high text-on-surface-variant/65")+'">'+esc(t.urgency)+'</span>':
-    (clickable?'<span class="material-symbols-outlined text-on-surface-variant/30 text-[18px] flex-shrink-0 mt-0.5">chevron_right</span>':'');
+  // Priority horizon badge — tap to set horizon / snooze (the clear per-task control).
+  const prio=taskPriority(t), pm=pmeta(prio), snz=taskSnoozed(t);
+  const badge=!done?'<button data-act="task-options" data-id="'+esc(t.id)+'" class="pressable flex-shrink-0 mt-0.5 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full border '+pm.badge+' hover:brightness-110" title="Set priority / snooze" aria-label="Set priority or snooze">'+pm.label+'</button>':'';
+  const snzPill=(!done && snz)?'<span class="flex-shrink-0 mt-0.5 inline-flex items-center gap-1 text-[10px] font-semibold text-on-surface-variant/55 px-1.5 py-1" title="Snoozed"><span class="material-symbols-outlined text-[14px]">snooze</span>'+esc(fmtSnooze(t.snoozed_until))+'</span>':'';
   const respond='<button data-act="task-respond" data-id="'+esc(t.id)+'" class="pressable flex-shrink-0 mt-0.5 inline-flex items-center gap-1 rounded-full border border-primary/35 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary hover:bg-primary/20 transition-colors" title="Tell Claude to change this task" aria-label="Tell Claude about this task"><span class="material-symbols-outlined text-[15px]">forum</span>Tell&nbsp;Claude</button>';
-  return '<div class="flex items-start gap-3 rounded-xl px-3 py-2.5 hover:bg-surface-container/40 transition-colors">'+check+body+right+respond+'</div>';
+  return '<div class="flex items-start gap-2.5 rounded-xl px-3 py-2.5 hover:bg-surface-container/40 transition-colors">'+check+body+snzPill+badge+respond+'</div>';
 }
 /* ───── Setup / Needs-you checklist (one-time onboarding actions) ───── */
 var SETUP_ITEMS = [
@@ -633,16 +662,87 @@ function renderSetupGroup(){
 }
 function renderTasks(){
   const ts=DATA.tasks||[];
-  const open=ts.filter(t=>!taskDone(t.id)), done=ts.filter(t=>taskDone(t.id));
-  const needs=open.filter(t=>t.state==="waiting-on-jeremy"||/asap/i.test(t.urgency));
-  const tracking=open.filter(t=>!(t.state==="waiting-on-jeremy"||/asap/i.test(t.urgency)));
-  let H='<div class="rise"><div class="mb-4 px-1"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Tasks</h2><p class="text-[12px] text-on-surface-variant/60 mt-0.5">Tap the circle to check one off — your check-offs are saved and survive every sync.</p></div><div class="max-w-2xl space-y-5">';
+  const open=ts.filter(t=>!taskDone(t.id));
+  const active=open.filter(t=>!taskSnoozed(t));
+  const snoozed=open.filter(t=>taskSnoozed(t)).sort((a,b)=>new Date(a.snoozed_until)-new Date(b.snoozed_until));
+  const done=ts.filter(t=>taskDone(t.id));
+  const groups={asap:[],this_week:[],this_month:[],someday:[]};
+  active.forEach(t=>{ (groups[taskPriority(t)]||groups.someday).push(t); });
+  let H='<div class="rise"><div class="mb-4 px-1"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Tasks</h2><p class="text-[12px] text-on-surface-variant/60 mt-0.5">Grouped by time horizon — tap a task’s badge to change its horizon or snooze it. Check-offs and horizons survive every sync.</p></div><div class="max-w-2xl space-y-5">';
   H+= renderSetupGroup();
-  H+='<div><h3 class="text-[11px] font-bold tracking-widest text-primary uppercase mb-2 px-1">Needs you ('+needs.length+')</h3><div class="rounded-2xl border hairline bg-surface-container-low/50 p-2">'+(needs.length?needs.map(taskRow).join(""):'<p class="text-[13px] text-on-surface-variant/50 px-2 py-2">All clear 🎉</p>')+'</div></div>';
-  if(tracking.length) H+='<div><h3 class="text-[11px] font-bold tracking-widest text-secondary uppercase mb-2 px-1">Tracking ('+tracking.length+')</h3><div class="rounded-2xl border hairline bg-surface-container-low/50 p-2">'+tracking.map(taskRow).join("")+'</div></div>';
+  PRIORITY_ORDER.forEach(key=>{
+    const arr=groups[key]; if(!arr.length) return; const pm=PRIORITY[key];
+    H+='<div><h3 class="text-[11px] font-bold tracking-widest uppercase mb-2 px-1 flex items-center gap-2"><span class="inline-block w-2 h-2 rounded-full '+pm.dot+'"></span><span class="'+pm.text+'">'+pm.label+' ('+arr.length+')</span></h3><div class="rounded-2xl border hairline bg-surface-container-low/50 p-2">'+arr.map(taskRow).join("")+'</div></div>';
+  });
+  if(!active.length) H+='<div class="rounded-2xl border hairline bg-surface-container-low/50 p-2"><p class="text-[13px] text-on-surface-variant/50 px-2 py-2">All clear 🎉</p></div>';
+  if(snoozed.length){
+    const sopen=!!STATE.setupExpanded["__snoozed"];
+    H+='<div><button data-act="setup-expand" data-id="__snoozed" class="pressable w-full flex items-center gap-1.5 px-1 mb-2 text-[11px] font-bold tracking-widest text-on-surface-variant/70 uppercase"><span class="material-symbols-outlined text-[15px]">snooze</span>Snoozed ('+snoozed.length+')<span class="material-symbols-outlined text-[18px] ml-auto transition-transform" style="'+(sopen?"transform:rotate(90deg)":"")+'">chevron_right</span></button>';
+    if(sopen) H+='<div class="rounded-2xl border hairline bg-surface-container-low/30 p-2 opacity-90">'+snoozed.map(taskRow).join("")+'</div>';
+    H+='</div>';
+  }
   if(done.length) H+='<div><h3 class="text-[11px] font-bold tracking-widest text-green uppercase mb-2 px-1 flex items-center gap-1.5"><span class="material-symbols-outlined text-[15px] ms-fill">task_alt</span>Done ('+done.length+')</h3><div class="rounded-2xl border hairline bg-surface-container-low/30 p-2">'+done.map(taskRow).join("")+'</div></div>';
   H+='</div>'+footerHTML()+'</div>';
   $("#view-tasks").innerHTML=H;
+}
+/* ───── Task options: set time horizon + snooze (the per-task control) ───── */
+function taskOptionsModal(taskId){
+  const t=(DATA.tasks||[]).find(x=>String(x.id)===String(taskId)); if(!t) return;
+  const cur=taskPriority(t), snz=taskSnoozed(t);
+  let h=mhead("Priority &amp; snooze", esc(t.title));
+  h+='<div class="px-5 sm:px-6 py-5 space-y-5">';
+  h+='<div><p class="text-[11px] font-bold tracking-widest text-on-surface-variant/70 uppercase mb-2">Time horizon</p>'+
+     '<div class="grid grid-cols-2 gap-2">'+PRIORITY_ORDER.map(k=>{ const pm=PRIORITY[k], on=k===cur;
+       return '<button data-act="set-prio" data-id="'+esc(taskId)+'" data-prio="'+k+'" class="pressable text-[12.5px] font-bold py-2.5 rounded-xl border '+(on?pm.badge+' ring-2 ring-inset ring-current":"bg-surface-container/50 text-on-surface-variant/75 border-outline-variant hover:border-primary/40")+'">'+pm.label+'</button>'; }).join("")+'</div></div>';
+  h+='<div><p class="text-[11px] font-bold tracking-widest text-on-surface-variant/70 uppercase mb-2">Snooze</p>';
+  if(snz) h+='<div class="rounded-xl border border-primary/25 bg-primary/[0.05] px-3.5 py-2.5 mb-2.5 flex items-center justify-between gap-2"><span class="text-[12.5px] text-on-surface flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px] text-primary">snooze</span>Snoozed until '+esc(fmtSnoozeLong(t.snoozed_until))+'</span><button data-act="unsnooze" data-id="'+esc(taskId)+'" class="pressable text-[12px] font-bold text-primary hover:brightness-110">Un-snooze</button></div>';
+  h+='<p class="text-[11.5px] text-on-surface-variant/55 mb-2.5">Snoozed tasks hide from the active board until the date, then come back automatically.</p>'+
+     '<div class="flex flex-wrap gap-2 mb-2.5">'+
+       '<button data-act="snooze" data-id="'+esc(taskId)+'" data-when="tomorrow" class="pressable text-[12.5px] font-semibold px-3.5 py-2 rounded-xl border border-outline-variant bg-surface-container/50 hover:border-primary/40">Tomorrow</button>'+
+       '<button data-act="snooze" data-id="'+esc(taskId)+'" data-when="next_week" class="pressable text-[12.5px] font-semibold px-3.5 py-2 rounded-xl border border-outline-variant bg-surface-container/50 hover:border-primary/40">Next week</button>'+
+     '</div>'+
+     '<div class="flex items-center gap-2"><input type="date" id="snooze-date" class="flex-1 bg-surface-container-lowest/80 border hairline rounded-xl px-3 py-2 text-[13px] text-on-surface focus:border-primary/50"><button data-act="snooze-date" data-id="'+esc(taskId)+'" class="pressable text-[12.5px] font-bold bg-primary text-on-primary px-3.5 py-2 rounded-xl hover:brightness-110">Set date</button></div>';
+  h+='</div></div>';
+  openModal(h);
+}
+function findTaskById(id){ return (DATA.tasks||[]).find(x=>String(x.id)===String(id)); }
+async function writeTasksCol(){
+  // Merge-not-clobber: DATA.tasks is the full current array; we mutate one object in place and
+  // write the whole array back to the tasks column only. priority/snoozed_until are user-owned.
+  const { error } = await sb.from("maestro_dashboard").update({ tasks: DATA.tasks }).eq("user_id", USER_ID);
+  if(error){ toast("Couldn’t save: "+error.message,"error"); }
+}
+async function setTaskPriority(id, prio){
+  if(!PRIORITY[prio]) return; const t=findTaskById(id); if(!t) return;
+  t.priority=prio; t.priority_manual=true;   // priority_manual → the brain preserves this across syncs
+  RENDERED.overview=false; RENDERED.tasks=false; setView(STATE.view,true);
+  taskOptionsModal(id);
+  toast("Horizon set: "+PRIORITY[prio].label,"flag");
+  await writeTasksCol();
+}
+function snoozeAt(days){ const d=new Date(); d.setHours(9,0,0,0); d.setDate(d.getDate()+days); return d.toISOString(); }
+async function snoozeTask(id, when){
+  const t=findTaskById(id); if(!t) return;
+  t.snoozed_until = when==="next_week" ? snoozeAt(7) : snoozeAt(1);
+  closeModal(); RENDERED.overview=false; RENDERED.tasks=false; setView(STATE.view,true);
+  toast("Snoozed until "+fmtSnoozeLong(t.snoozed_until),"snooze");
+  await writeTasksCol();
+}
+async function snoozeTaskDate(id){
+  const inp=$("#snooze-date"), v=inp&&inp.value; if(!v){ toast("Pick a date first","edit"); return; }
+  const t=findTaskById(id); if(!t) return;
+  t.snoozed_until=new Date(v+"T09:00:00").toISOString();
+  closeModal(); RENDERED.overview=false; RENDERED.tasks=false; setView(STATE.view,true);
+  toast("Snoozed until "+fmtSnoozeLong(t.snoozed_until),"snooze");
+  await writeTasksCol();
+}
+async function unsnoozeTask(id){
+  const t=findTaskById(id); if(!t) return;
+  delete t.snoozed_until;
+  RENDERED.overview=false; RENDERED.tasks=false; setView(STATE.view,true);
+  taskOptionsModal(id);
+  toast("Un-snoozed — back on the board","alarm");
+  await writeTasksCol();
 }
 async function toggleTask(id){
   const cur = completedTasks().slice();
@@ -933,6 +1033,11 @@ document.addEventListener("click",(e)=>{
   }
   else if(el.dataset.act==="setup-expand"){ const id=el.dataset.id; STATE.setupExpanded[id]=!STATE.setupExpanded[id]; rerender("tasks"); }
   else if(el.dataset.act==="dismiss-conflict"){ dismissConflict(el.dataset.cid); }
+  else if(el.dataset.act==="task-options"){ taskOptionsModal(el.dataset.id); }
+  else if(el.dataset.act==="set-prio"){ setTaskPriority(el.dataset.id, el.dataset.prio); }
+  else if(el.dataset.act==="snooze"){ snoozeTask(el.dataset.id, el.dataset.when); }
+  else if(el.dataset.act==="snooze-date"){ snoozeTaskDate(el.dataset.id); }
+  else if(el.dataset.act==="unsnooze"){ unsnoozeTask(el.dataset.id); }
 });
 
 /* ───── SETTINGS: calendar visibility (user-owned, persisted to settings column) ───── */

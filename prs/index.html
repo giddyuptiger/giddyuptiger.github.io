@@ -477,8 +477,15 @@
     grid-template-columns: 1fr;
     gap: 14px;
   }
-  @media (min-width: 420px) {
-    .ne-dates { grid-template-columns: 1fr 1fr; gap: 16px; }
+  /* Let grid children shrink so native date inputs (esp. iOS Safari, which keeps a wide
+     intrinsic min-width) can never blow out their track and overlap the adjacent field. */
+  .ne-dates > * { min-width: 0; }
+  .ne-dates input { width: 100%; min-width: 0; box-sizing: border-box; }
+  /* Two columns only once the modal is comfortably wide enough for two date inputs;
+     phones (incl. Pro Max ~430px) stack cleanly with no overlap. minmax(0,1fr) — not a
+     bare 1fr — so a track can never be forced wider than its share (matches the other grids). */
+  @media (min-width: 480px) {
+    .ne-dates { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
   }
   /* The form rows themselves get a bit more vertical space than the global space-y-3. */
   .ne-form > * + * { margin-top: 16px; }
@@ -492,6 +499,10 @@
     width: 18px; height: 18px; flex: none;
     accent-color: #f2ca50; cursor: pointer;
   }
+  /* Read-only transcript-status mirror in the edit modal (the writable source is the
+     "Send transcript to Jeremy" checklist task). */
+  .ee-readonly { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .ee-readonly-hint { font-size: 11px; color: rgba(200, 198, 197, 0.6); line-height: 1.3; }
   /* Sponsor input modal row */
   .sponsor-input-row {
     background: #1c1b1b;
@@ -895,6 +906,13 @@
   var items = [];
   var sponsors = [];
   var pastEps = [];
+  // The "Send transcript to Jeremy" checklist task is the SINGLE source of truth for an
+  // episode's transcript status. It's identified by its role_group ("Transcript"); the seed
+  // creates exactly one item in that group. Checking it done flips prs_episodes.transcript_received
+  // (see toggleItem), which drives the "Transcript ✓" / "Transcript pending" badge. The edit
+  // modal only shows a read-only mirror of this — there is no separate writable checkbox.
+  function isTranscriptTask(it) { return !!it && it.role_group === "Transcript"; }
+  function transcriptTask() { return items.find(isTranscriptTask) || null; }
   // Per-section user-intent for expand/collapse. Map: group name -> bool.
   // Set when the user clicks a section summary; cleared when items inside
   // the section change (so the auto-rule re-applies on the next render).
@@ -2591,6 +2609,14 @@
     // Clear explicit user expand-state on this section so the auto-rule
     // re-applies (e.g., auto-collapse when the section transitions to 100%).
     if (item.role_group) delete sectionUserState[item.role_group];
+    // Single source of truth: the Transcript task drives the episode's transcript_received
+    // flag. Update the local episode state BEFORE render() so the badge flips immediately,
+    // then persist the flag alongside the item write below.
+    var isTr = isTranscriptTask(item);
+    if (isTr && ep) {
+      ep.transcript_received = newDone;
+      ep.transcript_received_at = newDone ? nowIso : null;
+    }
     render();
     sb.from("prs_checklist_items").update({
       done: newDone,
@@ -2598,15 +2624,12 @@
     }).eq("id", item.id).then(function (r) {
       if (r.error) { console.error(r.error); alert("Toggle failed: " + r.error.message); load(); }
     });
-    // Special side effect: the "Send transcript to Jeremy" task drives the episode's transcript_received flag.
-    if (item.role_group === "Transcript" && item.title === "Send transcript to Jeremy") {
-      var patch = {
+    if (isTr) {
+      sb.from("prs_episodes").update({
         transcript_received: newDone,
         transcript_received_at: newDone ? nowIso : null
-      };
-      sb.from("prs_episodes").update(patch).eq("id", ep.id).then(function (r) {
+      }).eq("id", ep.id).then(function (r) {
         if (r.error) console.error(r.error);
-        else if (ep) { ep.transcript_received = newDone; ep.transcript_received_at = patch.transcript_received_at; }
       });
     }
   }
@@ -2701,19 +2724,20 @@
     var showPremiere = (ep.status === "shipped") || !!ep.premiere_at;
     if (showPremiere) form.appendChild(field("Premiere / aired date", "premiere", "date", epDateVal(ep.premiere_at)));
 
-    // Transcript received toggle — flips prs_episodes.transcript_received, which drives
-    // the "Transcript ✓" / "Transcript pending" badge on the card + episode header.
-    var trWrap = el("div", "ee-toggle");
-    var trLbl = document.createElement("label");
-    trLbl.className = "ee-toggle-lbl";
-    trLbl.setAttribute("for", "ee-transcript");
-    var trBox = document.createElement("input");
-    trBox.type = "checkbox"; trBox.id = "ee-transcript"; trBox.name = "transcript";
-    trBox.checked = !!ep.transcript_received;
-    var trText = document.createElement("span");
-    trText.textContent = "Transcript received";
-    trLbl.appendChild(trBox); trLbl.appendChild(trText);
-    trWrap.appendChild(trLbl);
+    // Transcript status — READ-ONLY mirror of the "Send transcript to Jeremy" checklist task,
+    // which is the single source of truth. There is no writable checkbox here anymore; to change
+    // transcript status, check/uncheck that task in the episode checklist. We read the task's own
+    // done-state when available (it stays in lock-step with transcript_received), falling back to
+    // the episode flag.
+    var trTask = transcriptTask();
+    var trReceived = trTask ? !!trTask.done : !!ep.transcript_received;
+    var trWrap = el("div", "ee-readonly");
+    var trBadge = el("span", "pill " + (trReceived ? "tr-ok" : "tr-pending"));
+    trBadge.textContent = trReceived ? "Transcript ✓" : "Transcript pending";
+    var trHint = el("span", "ee-readonly-hint",
+      "Managed by the “Send transcript to Jeremy” checklist task");
+    trWrap.appendChild(trBadge);
+    trWrap.appendChild(trHint);
     form.appendChild(trWrap);
 
     var err = el("p", "text-[12px] text-error", ""); err.style.display = "none"; form.appendChild(err);
@@ -2746,12 +2770,8 @@
         var pv = form.querySelector('input[name="premiere"]').value;
         patch.premiere_at = pv ? new Date(pv + "T12:00:00").toISOString() : null;
       }
-      // Transcript received flag (+ timestamp), only written when it actually changed.
-      var trChecked = form.querySelector('input[name="transcript"]').checked;
-      if (trChecked !== !!ep.transcript_received) {
-        patch.transcript_received = trChecked;
-        patch.transcript_received_at = trChecked ? new Date().toISOString() : null;
-      }
+      // NOTE: transcript_received is intentionally NOT written here. It is owned solely by the
+      // "Send transcript to Jeremy" checklist task (see toggleItem); the modal shows a read-only mirror.
       save.disabled = true; save.textContent = "Saving…";
       sb.from("prs_episodes").update(patch).eq("id", ep.id).select().single().then(function (r) {
         if (r.error) { err.textContent = "Save failed: " + r.error.message; err.style.display = "block"; save.disabled = false; save.textContent = "Save"; return; }

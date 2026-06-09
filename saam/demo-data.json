@@ -1,0 +1,1003 @@
+{
+  "meta": {
+    "client": "Alex Rivera",
+    "role": "Photographer · Director · Composer",
+    "tagline": "filmmaker + soundmaker",
+    "location": "Lisbon, Portugal",
+    "lastUpdated": "2026-06-09T07:30:00",
+    "weather": "19° · clear"
+  },
+  "brief": "Three things actually need you today. The Meridian Coffee brand film is locked picture and waiting on your sign-off for the color pass, the Vela Records score has two cues still marked rough before Friday's mix, and Halcyon emailed overnight about moving the Tidewater shoot up a week. Everything else is moving on rails — Maestro chased two invoices, catalogued last night's ingest, and drafted three replies you can approve in a tap. (All names, projects, and figures here are fictional demo data.)",
+  "pulse": {
+    "needsYou": 3,
+    "inMotion": 5,
+    "shipped": 9
+  },
+  "overnight": [
+    {
+      "id": "o1",
+      "icon": "backup",
+      "text": "Ingested & backed up <b>1.4 TB</b> from the Tidewater night shoot.",
+      "tag": "Backup",
+      "time": "2:10 AM",
+      "detail": "Pulled both card sets off the field SSDs, verified checksums, and mirrored to the cloud vault and the studio NAS. Nothing failed verification.",
+      "stats": [
+        [
+          "Clips",
+          "612"
+        ],
+        [
+          "Verified",
+          "100%"
+        ],
+        [
+          "Mirrors",
+          "2"
+        ]
+      ],
+      "link": {
+        "type": "project",
+        "id": "p1",
+        "label": "Open Tidewater"
+      }
+    },
+    {
+      "id": "o2",
+      "icon": "forum",
+      "text": "Drafted <b>3 replies</b> sitting in your inbox for approval.",
+      "tag": "Inbox",
+      "time": "5:40 AM",
+      "detail": "A scheduling reply to Halcyon, a rate confirmation for Meridian, and a polite hold on a press request. Each is ready to read and send in one tap.",
+      "stats": [
+        [
+          "Drafted",
+          "3"
+        ],
+        [
+          "Tone",
+          "matched"
+        ]
+      ],
+      "link": {
+        "type": "inbox",
+        "id": "e1",
+        "label": "Go to inbox"
+      }
+    },
+    {
+      "id": "o3",
+      "icon": "request_quote",
+      "text": "Auto-chased <b>2 overdue invoices</b> (€7.2k).",
+      "tag": "Billing",
+      "time": "6:05 AM",
+      "detail": "Sent gentle second-notice reminders on the Meridian and Aperture invoices. Both reminders matched your usual wording; no payment links were touched.",
+      "stats": [
+        [
+          "Chased",
+          "2"
+        ],
+        [
+          "Value",
+          "€7.2k"
+        ]
+      ]
+    },
+    {
+      "id": "o4",
+      "icon": "graphic_eq",
+      "text": "Bounced rough stems for the <b>Nightjar EP</b> review.",
+      "tag": "Audio",
+      "time": "3:55 AM",
+      "detail": "Rendered the latest cue versions to reference MP3s and dropped them in the shared review folder for Vela. Two cues are still flagged rough.",
+      "stats": [
+        [
+          "Cues",
+          "6"
+        ],
+        [
+          "Rough",
+          "2"
+        ]
+      ],
+      "link": {
+        "type": "project",
+        "id": "p3",
+        "label": "Open the score"
+      }
+    },
+    {
+      "id": "o5",
+      "icon": "event_available",
+      "text": "Confirmed <b>Thursday's color session</b> and prepped the agenda.",
+      "tag": "Schedule",
+      "time": "6:20 AM",
+      "detail": "Held the room, sent calendar invites, and assembled a shot-by-shot note list from your picture-lock comments so the session runs tight.",
+      "stats": [
+        [
+          "Notes",
+          "11"
+        ],
+        [
+          "Room",
+          "held"
+        ]
+      ]
+    },
+    {
+      "id": "o6",
+      "icon": "workspace_premium",
+      "text": "Submitted <b>Tidewater</b> to two more festivals.",
+      "tag": "Festivals",
+      "time": "1:30 AM",
+      "detail": "Packaged the screener, stills, and director statement and submitted to two shorts programs whose deadlines hit this week.",
+      "stats": [
+        [
+          "Submitted",
+          "2"
+        ],
+        [
+          "Fees",
+          "auto-paid"
+        ]
+      ]
+    }
+  ],
+  "pipeline": [
+    {
+      "id": "p1",
+      "title": "Tidewater",
+      "client": "Halcyon Studios",
+      "type": "Short film",
+      "stage": "Shoot",
+      "state": "needs-you",
+      "progress": 42,
+      "due": "2026-06-18",
+      "note": "Coastal short — second shoot block this week.",
+      "summary": "A 14-minute coastal drama. Block one is in the can; Halcyon wants to pull block two forward by a week to catch the spring tides, which collides with the Meridian color session.",
+      "nextAction": "Decide whether to move the block-two shoot up to Jun 16 (see decision below).",
+      "decision": {
+        "prompt": "Halcyon asked to move block two from Jun 23 → Jun 16 for the tides. That overlaps the Meridian color pass.",
+        "options": [
+          {
+            "key": "approve",
+            "label": "Move it to Jun 16",
+            "note": "Maestro reshuffles the color session to the evening and warns the gaffer."
+          },
+          {
+            "key": "notes",
+            "label": "Keep Jun 23, send tide notes",
+            "note": "Hold the date; Maestro sends the DP a tide table as a fallback plan."
+          },
+          {
+            "key": "hold",
+            "label": "Ask for one more day to decide",
+            "note": "Maestro buys 24h and pulls a weather forecast for both options."
+          }
+        ]
+      },
+      "timeline": [
+        {
+          "stage": "Script & boards locked",
+          "note": "Final draft v6 approved.",
+          "status": "done"
+        },
+        {
+          "stage": "Block one shoot",
+          "note": "3 nights on the cliffs — wrapped.",
+          "status": "done"
+        },
+        {
+          "stage": "Block two shoot",
+          "note": "Tide-dependent; date in question.",
+          "status": "current"
+        },
+        {
+          "stage": "Edit",
+          "note": "Assembly starts once block two wraps.",
+          "status": "upcoming"
+        },
+        {
+          "stage": "Festival cut",
+          "note": "Targeting autumn shorts circuit.",
+          "status": "upcoming"
+        }
+      ],
+      "cues": [
+        {
+          "n": "SC1",
+          "title": "Cliff approach — dusk",
+          "len": "1:48",
+          "status": "cut"
+        },
+        {
+          "n": "SC2",
+          "title": "The boathouse",
+          "len": "2:30",
+          "status": "cut"
+        },
+        {
+          "n": "SC3",
+          "title": "Low tide walk",
+          "len": "3:05",
+          "status": "rough"
+        },
+        {
+          "n": "SC4",
+          "title": "Storm reversal",
+          "len": "2:12",
+          "status": "upcoming"
+        }
+      ],
+      "assets": [
+        {
+          "name": "Tidewater_blockone_selects.mov",
+          "kind": "video",
+          "meta": "4K · 38 GB"
+        },
+        {
+          "name": "Cliff_stills_contact.jpg",
+          "kind": "image",
+          "meta": "212 frames"
+        },
+        {
+          "name": "Field_recordings_night.wav",
+          "kind": "audio",
+          "meta": "6 takes"
+        },
+        {
+          "name": "Tidewater_shotlist_v3.pdf",
+          "kind": "doc",
+          "meta": "updated 2d ago"
+        }
+      ],
+      "team": [
+        {
+          "name": "Mara Quinn",
+          "role": "Producer"
+        },
+        {
+          "name": "Dev Olsen",
+          "role": "DP"
+        },
+        {
+          "name": "Priya Nadar",
+          "role": "1st AD"
+        },
+        {
+          "name": "Theo Banks",
+          "role": "Gaffer"
+        }
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "Meridian — Origins",
+      "client": "Meridian Coffee",
+      "type": "Brand film",
+      "stage": "Edit",
+      "state": "needs-you",
+      "progress": 78,
+      "due": "2026-06-12",
+      "note": "Picture locked — waiting on your color sign-off.",
+      "summary": "A 90-second origin film for Meridian's single-origin line. Picture is locked and the grade is built; it just needs your eyes before it goes to the agency.",
+      "nextAction": "Review the color pass and approve so Maestro can ship the delivery package.",
+      "timeline": [
+        {
+          "stage": "Shoot",
+          "note": "2 days, farm + roastery.",
+          "status": "done"
+        },
+        {
+          "stage": "Assembly",
+          "note": "Director's cut approved.",
+          "status": "done"
+        },
+        {
+          "stage": "Picture lock",
+          "note": "Agency signed off.",
+          "status": "done"
+        },
+        {
+          "stage": "Color",
+          "note": "Grade built — your sign-off pending.",
+          "status": "current"
+        },
+        {
+          "stage": "Deliver",
+          "note": "Specs ready for 4 placements.",
+          "status": "upcoming"
+        }
+      ],
+      "cues": [
+        {
+          "n": "01",
+          "title": "Cold open — the hillside",
+          "len": "0:12",
+          "status": "locked"
+        },
+        {
+          "n": "02",
+          "title": "Hands & harvest",
+          "len": "0:24",
+          "status": "locked"
+        },
+        {
+          "n": "03",
+          "title": "Roastery montage",
+          "len": "0:30",
+          "status": "mixing"
+        },
+        {
+          "n": "04",
+          "title": "Logo resolve",
+          "len": "0:08",
+          "status": "locked"
+        }
+      ],
+      "assets": [
+        {
+          "name": "Meridian_Origins_colorpass_v2.mov",
+          "kind": "video",
+          "meta": "ProRes · 11 GB"
+        },
+        {
+          "name": "Meridian_grade_notes.pdf",
+          "kind": "doc",
+          "meta": "7 notes"
+        },
+        {
+          "name": "Roastery_room_tone.wav",
+          "kind": "audio",
+          "meta": "clean"
+        }
+      ],
+      "team": [
+        {
+          "name": "Mara Quinn",
+          "role": "Producer"
+        },
+        {
+          "name": "Lena Cho",
+          "role": "Colorist"
+        },
+        {
+          "name": "Sam Iverson",
+          "role": "Agency lead"
+        }
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "Nightjar EP",
+      "client": "Vela Records",
+      "type": "Score",
+      "stage": "Score / Sound",
+      "state": "in-progress",
+      "progress": 64,
+      "due": "2026-06-13",
+      "note": "Six cues — two still rough before Friday's mix.",
+      "summary": "Original score for a five-track EP. Four cues are locked or mixing; two are still rough and need a pass before the Friday mix session at the studio.",
+      "nextAction": "Finish the two rough cues (SC3, SC5) so Friday's mix stays on schedule.",
+      "timeline": [
+        {
+          "stage": "Spotting session",
+          "note": "Themes agreed with the band.",
+          "status": "done"
+        },
+        {
+          "stage": "Sketches",
+          "note": "All six cues sketched.",
+          "status": "done"
+        },
+        {
+          "stage": "Production",
+          "note": "Four cues locked; two rough.",
+          "status": "current"
+        },
+        {
+          "stage": "Mix",
+          "note": "Booked Friday at the studio.",
+          "status": "upcoming"
+        },
+        {
+          "stage": "Master & deliver",
+          "note": "Stems to Vela next week.",
+          "status": "upcoming"
+        }
+      ],
+      "cues": [
+        {
+          "n": "01",
+          "title": "Nightjar (main theme)",
+          "len": "3:20",
+          "status": "locked"
+        },
+        {
+          "n": "02",
+          "title": "Streetlight",
+          "len": "2:55",
+          "status": "mixing"
+        },
+        {
+          "n": "03",
+          "title": "Undertow",
+          "len": "4:02",
+          "status": "rough"
+        },
+        {
+          "n": "04",
+          "title": "Paper lanterns",
+          "len": "3:11",
+          "status": "assembling"
+        },
+        {
+          "n": "05",
+          "title": "The long way home",
+          "len": "3:48",
+          "status": "rough"
+        },
+        {
+          "n": "06",
+          "title": "Dawn chorus (outro)",
+          "len": "2:30",
+          "status": "sketch"
+        }
+      ],
+      "assets": [
+        {
+          "name": "Nightjar_stems_rough.wav",
+          "kind": "audio",
+          "meta": "6 cues"
+        },
+        {
+          "name": "Nightjar_session.logicx",
+          "kind": "doc",
+          "meta": "backed up"
+        },
+        {
+          "name": "Band_reference_playlist.doc",
+          "kind": "doc",
+          "meta": "12 tracks"
+        }
+      ],
+      "team": [
+        {
+          "name": "Iris Vance",
+          "role": "A&R, Vela"
+        },
+        {
+          "name": "Ko Tanaka",
+          "role": "Mix engineer"
+        },
+        {
+          "name": "Alex Rivera",
+          "role": "Composer"
+        }
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "Aperture — Look Book",
+      "client": "Aperture Atelier",
+      "type": "Photography",
+      "stage": "Deliver",
+      "state": "done",
+      "progress": 100,
+      "due": "2026-06-05",
+      "note": "Delivered — gallery live, invoice sent.",
+      "summary": "A 24-image SS26 look book. Shot, retouched, and delivered; the private gallery is live and the final invoice has gone out.",
+      "nextAction": "Nothing — closed out. Maestro is monitoring the invoice for payment.",
+      "timeline": [
+        {
+          "stage": "Shoot",
+          "note": "Studio day — 9 looks.",
+          "status": "done"
+        },
+        {
+          "stage": "Select & retouch",
+          "note": "24 finals approved.",
+          "status": "done"
+        },
+        {
+          "stage": "Deliver",
+          "note": "Gallery + hi-res package sent.",
+          "status": "done"
+        }
+      ],
+      "cues": [
+        {
+          "n": "01",
+          "title": "Studio selects",
+          "len": "24 imgs",
+          "status": "locked"
+        },
+        {
+          "n": "02",
+          "title": "Retouch pass",
+          "len": "final",
+          "status": "locked"
+        }
+      ],
+      "assets": [
+        {
+          "name": "Aperture_SS26_finals.zip",
+          "kind": "image",
+          "meta": "24 · hi-res"
+        },
+        {
+          "name": "Aperture_gallery_link.doc",
+          "kind": "doc",
+          "meta": "password-set"
+        }
+      ],
+      "team": [
+        {
+          "name": "Noa Friedman",
+          "role": "Creative dir."
+        },
+        {
+          "name": "Alex Rivera",
+          "role": "Photographer"
+        }
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Solstice (spec)",
+      "client": "Self-initiated",
+      "type": "Concert film",
+      "stage": "Pre-Production",
+      "state": "in-progress",
+      "progress": 18,
+      "due": "2026-07-02",
+      "note": "Developing — venue and budget in flux.",
+      "summary": "A self-initiated concert film concept built around a single live take. In early development; scouting venues and sketching a lean budget.",
+      "nextAction": "Pick a longlist of three venues so Maestro can request availability and rates.",
+      "timeline": [
+        {
+          "stage": "Concept",
+          "note": "One-take treatment drafted.",
+          "status": "done"
+        },
+        {
+          "stage": "Venue scout",
+          "note": "Shortlisting now.",
+          "status": "current"
+        },
+        {
+          "stage": "Budget",
+          "note": "Rough numbers only.",
+          "status": "upcoming"
+        },
+        {
+          "stage": "Shoot",
+          "note": "TBD.",
+          "status": "upcoming"
+        }
+      ],
+      "cues": [
+        {
+          "n": "MV1",
+          "title": "Opening movement",
+          "len": "~6:00",
+          "status": "sketch"
+        },
+        {
+          "n": "MV2",
+          "title": "Interlude",
+          "len": "~3:00",
+          "status": "upcoming"
+        }
+      ],
+      "assets": [
+        {
+          "name": "Solstice_treatment.pdf",
+          "kind": "doc",
+          "meta": "draft"
+        },
+        {
+          "name": "Venue_scout_photos.jpg",
+          "kind": "image",
+          "meta": "3 sites"
+        }
+      ],
+      "team": [
+        {
+          "name": "Mara Quinn",
+          "role": "Producer"
+        },
+        {
+          "name": "Alex Rivera",
+          "role": "Director"
+        }
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Field Notes (doc)",
+      "client": "Greenline Trust",
+      "type": "Documentary",
+      "stage": "Edit",
+      "state": "in-progress",
+      "progress": 55,
+      "due": "2026-06-26",
+      "note": "Rough cut due to the funder this month.",
+      "summary": "A 20-minute conservation documentary for a non-profit. Footage is logged and the assembly is underway; a rough cut is due to the funder by month end.",
+      "nextAction": "Approve the rough-cut structure so the edit can move to fine cut.",
+      "timeline": [
+        {
+          "stage": "Interviews",
+          "note": "6 subjects filmed.",
+          "status": "done"
+        },
+        {
+          "stage": "Logging",
+          "note": "Auto-transcribed & tagged.",
+          "status": "done"
+        },
+        {
+          "stage": "Assembly",
+          "note": "Rough cut in progress.",
+          "status": "current"
+        },
+        {
+          "stage": "Fine cut",
+          "note": "After funder notes.",
+          "status": "upcoming"
+        },
+        {
+          "stage": "Deliver",
+          "note": "Web + festival versions.",
+          "status": "upcoming"
+        }
+      ],
+      "cues": [
+        {
+          "n": "01",
+          "title": "Cold open — the river",
+          "len": "1:30",
+          "status": "cut"
+        },
+        {
+          "n": "02",
+          "title": "Chapter one",
+          "len": "5:10",
+          "status": "rough"
+        },
+        {
+          "n": "03",
+          "title": "Chapter two",
+          "len": "4:40",
+          "status": "assembling"
+        }
+      ],
+      "assets": [
+        {
+          "name": "Fieldnotes_assembly_v2.mov",
+          "kind": "video",
+          "meta": "22 min"
+        },
+        {
+          "name": "Interview_transcripts.pdf",
+          "kind": "doc",
+          "meta": "searchable"
+        },
+        {
+          "name": "River_ambience.wav",
+          "kind": "audio",
+          "meta": "stereo"
+        }
+      ],
+      "team": [
+        {
+          "name": "Mara Quinn",
+          "role": "Producer"
+        },
+        {
+          "name": "Hugo Pratt",
+          "role": "Editor"
+        },
+        {
+          "name": "Greenline",
+          "role": "Funder"
+        }
+      ]
+    }
+  ],
+  "schedule": [
+    {
+      "id": "s1",
+      "day": "TUE",
+      "date": "Jun 9",
+      "time": "9:30 AM",
+      "end": "10:00 AM",
+      "title": "Morning brief with Maestro",
+      "place": "Studio",
+      "kind": "prep",
+      "today": true,
+      "project": "",
+      "detail": "Daily 30-minute review of what needs you, what moved overnight, and what's on rails.",
+      "attendees": [
+        "Alex Rivera",
+        "Maestro"
+      ],
+      "prep": "Pulled today's three decisions to the top and flagged the Tidewater tide question as time-sensitive."
+    },
+    {
+      "id": "s2",
+      "day": "TUE",
+      "date": "Jun 9",
+      "time": "2:00 PM",
+      "end": "3:30 PM",
+      "title": "Nightjar — cue work",
+      "place": "Home studio",
+      "kind": "score",
+      "today": true,
+      "project": "p3",
+      "detail": "Focused block to take SC3 and SC5 from rough to assembling before Friday's mix.",
+      "attendees": [
+        "Alex Rivera"
+      ],
+      "prep": "Opened the Logic session and loaded the band's reference playlist."
+    },
+    {
+      "id": "s3",
+      "day": "WED",
+      "date": "Jun 10",
+      "time": "11:00 AM",
+      "end": "12:00 PM",
+      "title": "Meridian agency check-in",
+      "place": "Video call",
+      "kind": "deliver",
+      "today": false,
+      "project": "p2",
+      "detail": "Walk the agency through the color pass and confirm delivery specs for four placements.",
+      "attendees": [
+        "Sam Iverson",
+        "Alex Rivera"
+      ],
+      "prep": "Built a one-page spec sheet and a side-by-side of the grade vs. the reference."
+    },
+    {
+      "id": "s4",
+      "day": "THU",
+      "date": "Jun 11",
+      "time": "10:00 AM",
+      "end": "1:00 PM",
+      "title": "Meridian color session",
+      "place": "Lena's suite",
+      "kind": "edit",
+      "today": false,
+      "project": "p2",
+      "detail": "Final grade review and sign-off with the colorist.",
+      "attendees": [
+        "Lena Cho",
+        "Alex Rivera"
+      ],
+      "prep": "Assembled an 11-note list from your picture-lock comments so the session runs tight."
+    },
+    {
+      "id": "s5",
+      "day": "FRI",
+      "date": "Jun 12",
+      "time": "1:00 PM",
+      "end": "6:00 PM",
+      "title": "Nightjar mix session",
+      "place": "Vela Studio B",
+      "kind": "score",
+      "today": false,
+      "project": "p3",
+      "detail": "Mix all six cues with the engineer; two need to be out of rough by start.",
+      "attendees": [
+        "Ko Tanaka",
+        "Alex Rivera"
+      ],
+      "prep": "Confirmed the room, prepped a session backup, and printed the cue sheet."
+    },
+    {
+      "id": "s6",
+      "day": "TUE",
+      "date": "Jun 16",
+      "time": "5:00 PM",
+      "end": "11:00 PM",
+      "title": "Tidewater block two (tentative)",
+      "place": "Coast — Cabo cliffs",
+      "kind": "shoot",
+      "today": false,
+      "project": "p1",
+      "detail": "Proposed pulled-forward shoot night, pending your decision on the tide schedule.",
+      "attendees": [
+        "Dev Olsen",
+        "Mara Quinn"
+      ],
+      "prep": "Holding crew soft-booked; Maestro will confirm or release once you decide."
+    }
+  ],
+  "inbox": [
+    {
+      "id": "e1",
+      "from": "Mara Quinn",
+      "org": "Halcyon Studios",
+      "subject": "Can we move Tidewater block two up a week?",
+      "category": "Client",
+      "priority": "high",
+      "time": "6:02 AM",
+      "action": "Reply drafted — needs approval",
+      "preview": "The tide tables look much better the week of the 16th…",
+      "body": "Hi Alex,\n\nThe tide tables look much better the week of the 16th than the 23rd — we'd get a proper low tide for the boathouse walk. I know it's tight against your Meridian work. Could we move block two up a week? Totally understand if the color session can't shift.\n\nMara",
+      "draft": "Hi Mara,\n\nThanks — I'd been eyeing those same tides. The 16th can work if we shoot the evening; I can move my Meridian color review to that morning. Let's lock the 16th, call at 5pm. I'll have Maestro send the updated crew call and a tide-timed shot order today.\n\nAlex",
+      "thread": [
+        {
+          "from": "Mara Quinn",
+          "when": "yesterday",
+          "text": "Block one looked gorgeous in dailies."
+        },
+        {
+          "from": "Alex Rivera",
+          "when": "yesterday",
+          "text": "Agreed — the cliff approach is the film."
+        }
+      ]
+    },
+    {
+      "id": "e2",
+      "from": "Sam Iverson",
+      "org": "Meridian Coffee",
+      "subject": "Confirming the day rate + delivery specs",
+      "category": "Client",
+      "priority": "normal",
+      "time": "5:48 AM",
+      "action": "Reply drafted — needs approval",
+      "preview": "Just need the rate in writing for our PO…",
+      "body": "Alex — loved the cut. Finance needs the day rate in writing to cut the PO, and can you confirm the four delivery specs (broadcast, social 9:16, social 1:1, web)? Thanks!",
+      "draft": "Hi Sam,\n\nConfirming the agreed day rate of €3,800 and the four deliverables: 16:9 broadcast (ProRes), 9:16 social, 1:1 social, and a web-optimized H.264. I'll deliver all four within 48h of color sign-off.\n\nBest,\nAlex",
+      "thread": [
+        {
+          "from": "Sam Iverson",
+          "when": "2 days ago",
+          "text": "Agency's thrilled with the assembly."
+        }
+      ]
+    },
+    {
+      "id": "e3",
+      "from": "Jess Okoro",
+      "org": "Frame Lines (podcast)",
+      "subject": "Guest spot on the show?",
+      "category": "Press",
+      "priority": "low",
+      "time": "4:15 AM",
+      "action": "Polite hold drafted",
+      "preview": "We'd love to have you on to talk about the one-take concept…",
+      "body": "Hi Alex, big fan of your work. We'd love to have you on Frame Lines to talk about the Solstice one-take concept and your photo-to-film path. Any time in July?",
+      "draft": "Hi Jess,\n\nThank you — I'd enjoy that. July is tight while Solstice is still in development, but I'd love to do it once there's something concrete to show. Can I reach back out in early August to find a date?\n\nWarmly,\nAlex",
+      "thread": []
+    },
+    {
+      "id": "e4",
+      "from": "Aperture Atelier",
+      "org": "Aperture",
+      "subject": "Invoice #2041 — received, thank you!",
+      "category": "Admin",
+      "priority": "low",
+      "time": "1:20 AM",
+      "action": "No reply needed — filed",
+      "preview": "Payment is scheduled for the 11th…",
+      "body": "Hi Alex, the look book is stunning and the team is thrilled. Payment for invoice #2041 is scheduled for the 11th. Thanks for the quick turnaround!",
+      "draft": "Hi — wonderful, thank you for letting me know, and so glad the team is happy with the look book. Talk soon!\n\nAlex",
+      "thread": [
+        {
+          "from": "Maestro",
+          "when": "overnight",
+          "text": "Filed under paid-pending; will confirm when funds land."
+        }
+      ]
+    },
+    {
+      "id": "e5",
+      "from": "Open Frame Festival",
+      "org": "Submissions",
+      "subject": "Tidewater — submission received",
+      "category": "Opportunity",
+      "priority": "normal",
+      "time": "1:31 AM",
+      "action": "FYI — auto-submitted overnight",
+      "preview": "Your shorts submission is confirmed for the spring deadline…",
+      "body": "This confirms your submission of \"Tidewater\" to the Open Frame shorts program. Notifications go out in late August. Good luck!",
+      "draft": "(No reply needed — Maestro submitted this on your behalf and logged the confirmation.)",
+      "thread": []
+    }
+  ],
+  "deliverables": [
+    {
+      "id": "d1",
+      "name": "Meridian — Origins (4 cuts)",
+      "project": "p2",
+      "due": "Jun 12",
+      "progress": 88,
+      "state": "needs-you",
+      "format": "ProRes + social specs",
+      "detail": "Four placement cuts built and waiting on your color sign-off before the package ships to the agency.",
+      "asset": "Meridian_Origins_colorpass_v2.mov"
+    },
+    {
+      "id": "d2",
+      "name": "Nightjar EP — stems",
+      "project": "p3",
+      "due": "Jun 16",
+      "progress": 64,
+      "state": "in-progress",
+      "format": "WAV stems + master",
+      "detail": "Six cues to mix Friday, then master and deliver stems to Vela early next week.",
+      "asset": "Nightjar_stems_rough.wav"
+    },
+    {
+      "id": "d3",
+      "name": "Tidewater — festival screener",
+      "project": "p1",
+      "due": "Jun 30",
+      "progress": 30,
+      "state": "in-progress",
+      "format": "H.264 screener + stills",
+      "detail": "Screener can't finish until block two wraps; stills and director statement are already packaged.",
+      "asset": "Tidewater_blockone_selects.mov"
+    },
+    {
+      "id": "d4",
+      "name": "Aperture SS26 — look book",
+      "project": "p4",
+      "due": "Jun 5",
+      "progress": 100,
+      "state": "done",
+      "format": "Hi-res gallery + zip",
+      "detail": "Delivered and live. Private gallery shared with the atelier; final invoice issued.",
+      "asset": "Aperture_SS26_finals.zip"
+    }
+  ],
+  "analytics": {
+    "time": [
+      {
+        "label": "Shooting",
+        "pct": 34,
+        "color": "#f2ca50"
+      },
+      {
+        "label": "Editing",
+        "pct": 28,
+        "color": "#7aa2f7"
+      },
+      {
+        "label": "Scoring",
+        "pct": 22,
+        "color": "#9ece6a"
+      },
+      {
+        "label": "Admin / client",
+        "pct": 16,
+        "color": "#bb9af7"
+      }
+    ],
+    "festivals": {
+      "won": 7,
+      "pending": 4,
+      "submitted": 11
+    },
+    "footageTB": 4.6,
+    "footageCatalogued": 92,
+    "revenue": {
+      "billedQTD": 48200,
+      "outstanding": 7200,
+      "currency": "EUR"
+    }
+  },
+  "curious": [
+    {
+      "title": "Your golden hour is shrinking",
+      "blurb": "Lisbon's usable evening light drops ~6 minutes a week through July — Maestro can auto-shift outdoor calls to match."
+    },
+    {
+      "title": "Tidewater's quiet pattern",
+      "blurb": "Your locked cuts average 2.3s longer per shot than your last short. Intentional, or worth a look in the edit?"
+    }
+  ]
+}

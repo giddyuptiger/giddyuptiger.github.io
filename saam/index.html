@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b0b0b">
-<title>Maestro · Saam Gabbay — Creative Operations</title>
-<meta name="description" content="A live, interactive demo of Maestro — the AI manager that runs the operational layer of a creative practice. Personalized for filmmaker + soundmaker Saam Gabbay.">
+<title>Maestro · Live Demo — Creative Operations</title>
+<meta name="description" content="A live, interactive demo of Maestro — the AI manager that runs the operational layer of a creative practice. Illustrative sample data for a fictional creative studio.">
 <meta name="robots" content="noindex, nofollow">
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -392,8 +392,8 @@ function renderOverview(){
   H += '<div class="grid lg:grid-cols-[1.55fr_1fr] gap-5 mb-7">';
   H += '<div class="rise rounded-2xl gold-edge bg-surface-container/70 p-6 sm:p-7">'+
        '<div class="flex items-center justify-between mb-3"><span class="text-[11px] font-bold tracking-[0.22em] text-primary uppercase">Maestro · Morning Brief</span><span class="text-[11px] font-mono text-on-surface-variant/60">'+new Date(d.meta.lastUpdated).toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"}).toUpperCase()+'</span></div>'+
-       '<h1 class="text-[26px] sm:text-[31px] font-extrabold tracking-tight leading-[1.1] mb-1">Good morning, <span class="text-primary">Saam</span>.</h1>'+
-       '<p class="text-[12.5px] text-on-surface-variant/80 mb-4 font-medium">Photographer · Director · Composer — <span class="italic">filmmaker + soundmaker</span></p>'+
+       '<h1 class="text-[26px] sm:text-[31px] font-extrabold tracking-tight leading-[1.1] mb-1">Good morning, <span class="text-primary">'+esc((d.meta.client||"there").split(" ")[0])+'</span>.</h1>'+
+       '<p class="text-[12.5px] text-on-surface-variant/80 mb-4 font-medium">'+esc(d.meta.role||"")+' — <span class="italic">'+esc(d.meta.tagline||"")+'</span></p>'+
        '<p class="text-[15px] sm:text-[16px] leading-relaxed text-on-surface/90 max-w-2xl">'+esc(d.brief)+'</p>'+
        '<div class="mt-6 grid sm:grid-cols-3 gap-2.5">';
   needs.slice(0,3).forEach(function(x){ var dl=dueLabel(x.due);
@@ -558,8 +558,8 @@ function statCard(icon,big,sub){
 
 function footerHTML(){
   return '<footer class="pt-8 pb-6 text-center space-y-2"><p class="text-[11px] tracking-[0.25em] text-primary/60 font-bold">MAESTRO</p>'+
-    '<p class="text-[12px] text-on-surface-variant/55 max-w-xl mx-auto leading-relaxed">Interactive demo — the operational layer an AI manager maintains for a creative practice. Illustrative sample data for <span class="text-on-surface-variant">Saam Gabbay</span>. No live connectors; nothing sends.</p>'+
-    '<p class="text-[11px] text-on-surface-variant/40">Renders from <code class="bg-surface-container px-1.5 py-0.5 rounded text-primary/70">maestro-status.json</code> · demo only</p></footer>';
+    '<p class="text-[12px] text-on-surface-variant/55 max-w-xl mx-auto leading-relaxed">Interactive demo — the operational layer an AI manager maintains for a creative practice. Illustrative, fictional sample data — not a real person. No live connectors; nothing sends.</p>'+
+    '<p class="text-[11px] text-on-surface-variant/40">Renders from <code class="bg-surface-container px-1.5 py-0.5 rounded text-primary/70">demo-data.json</code> · demo only</p></footer>';
 }
 
 /* ───────── donut + count-up ───────── */
@@ -611,8 +611,8 @@ document.addEventListener("click", function(ev){
   if(act==="decision"){
     STATE.decided[el.dataset.id]=el.dataset.key;
     var p=proj(el.dataset.id);
-    var msg = el.dataset.key==="approve" ? "Approved — BMW delivery package shipped to the agency (demo)."
-            : el.dataset.key==="notes" ? "Note routed to Company 3 — Maestro will hold delivery (demo)."
+    var msg = el.dataset.key==="approve" ? "Approved — delivery package shipped to the agency (demo)."
+            : el.dataset.key==="notes" ? "Note routed to the client — Maestro will hold delivery (demo)."
             : "Locked: “"+el.dataset.label+"”. Maestro will stage the next step (demo).";
     toast(msg);
     projectModal(p); // re-render modal to show selection
@@ -654,7 +654,7 @@ function boot(d){
 function fail(msg){
   $("#boot").innerHTML='<span class="material-symbols-outlined text-[34px] text-on-error-container">error</span><p class="mt-3">'+esc(msg)+'</p><p class="text-[12px] mt-1 text-on-surface-variant/50">Serve this folder over HTTP (it loads maestro-status.json).</p>';
 }
-fetch("maestro-status.json?t="+Date.now(),{cache:"no-store"})
+fetch("demo-data.json?t="+Date.now(),{cache:"no-store"})
   .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
   .then(boot)
   .catch(function(e){ fail("Couldn’t load the status data ("+e.message+")."); });

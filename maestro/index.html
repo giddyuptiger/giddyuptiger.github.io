@@ -249,6 +249,36 @@ function eventsByDay(){ const m={}; eventsAll().forEach(e=>{ const k=dateKey(e.s
 function upcoming(days,filter){ const map=eventsByDay(), out=[], base=new Date(todayKey()+"T00:00:00");
   for(let i=0;i<days;i++){ const d=new Date(base); d.setDate(d.getDate()+i); const k=dateKey(d.toISOString());
     if(map[k]){ let evs=map[k]; if(filter&&filter!=="all") evs=evs.filter(e=>e.calendar===filter); if(evs.length) out.push({key:k,events:evs}); } } return out; }
+/* ───── Travel detection (robust, tag-independent) ─────
+   The brain/calendar sync writes most events with kind:"default" (flights are NOT reliably
+   tagged kind:"travel"), so filtering on kind alone makes "Next travel" go empty even when
+   trips exist. We derive travel from kind OR a title/location heuristic (flight numbers,
+   airport names, IATA-style hops) so a sync that drops the tag can't wipe the widget. */
+const TRAVEL_RE = /\bflight\b|✈|airport|\bairline\b|\bdepart|\barriv|\bnonstop\b|\blayover\b|\bterminal\b|\bgate\b|\b[A-Z]{3}\s*(?:→|->|to|–|-)\s*[A-Z]{3}\b/i;
+function isTravel(e){
+  if(!e) return false;
+  if(e.kind==="travel"||e.kind==="stay"||e.kind==="flight") return true;
+  return TRAVEL_RE.test(((e.title||"")+" "+(e.location||"")));
+}
+// Earliest upcoming travel event (today onward), read from the calendar — survives any sync
+// because it's derived live from events, not stored.
+function nextTravelEvent(){
+  const base=new Date(todayKey()+"T00:00:00");
+  return eventsAll().filter(isTravel)
+    .filter(e=>{ const d=new Date(dateKey(e.start)+"T00:00:00"); return !isNaN(d) && d>=base; })
+    .sort((a,b)=>startMs(a)-startMs(b))[0] || null;
+}
+// A short "where" label for a travel event: prefer a from→to route parsed from the title,
+// else the first line of the location, else the title.
+function travelWhere(e){
+  const t=String(e.title||"");
+  let m=t.match(/from\s+([A-Za-z][\w.\- ]*?)\s+to\s+([A-Za-z][\w.\- ]+)/i);
+  if(m) return m[1].trim()+" → "+m[2].trim();
+  m=t.match(/\bto\s+([A-Za-z][\w.\- ]+)/i);
+  if(m) return "→ "+m[1].trim();
+  if(e.location) return String(e.location).split("\n")[0].trim();
+  return t;
+}
 function dismissedConflicts(){ return (DATA.settings && DATA.settings.dismissedConflicts) || []; }
 function conflictId(a,b){ return "cf:"+[String(a.id),String(b.id)].sort().join("__"); }   // stable, order-independent
 function detectConflicts(){ const map=eventsByDay(), out=[], dis=dismissedConflicts();
@@ -276,6 +306,36 @@ function closeModal(){ const m=$("#modal"); m.classList.remove("open"); m.setAtt
     if(dy>110 && startScroll<=0){ closeModal(); } else { panel.style.transform=""; }
   });
 })();
+/* ───── Swipe a task row LEFT → open the snooze sheet (Gmail-style). Pointer-based so it works
+   for both touch and mouse-drag. A short click-guard swallows the trailing click so opening the
+   sheet doesn't immediately get closed by the synthesized click hitting the modal backdrop. ───── */
+let SWIPE_GUARD_UNTIL=0;
+(function initTaskSwipe(){
+  let row=null, swipe=null, hint=null, startX=0, startY=0, dx=0, active=false, decided=false, horizontal=false, id=null;
+  const THRESH=64, MAX=104;
+  function paint(){ if(swipe) swipe.style.transform = dx?("translateX("+dx+"px)"):""; if(hint) hint.style.opacity = String(Math.min(1, Math.max(0,-dx)/THRESH)); }
+  function reset(animate){ if(swipe){ swipe.style.transition=animate?"transform .2s cubic-bezier(.16,1,.3,1)":""; } dx=0; paint(); row=swipe=hint=null; active=false; decided=false; horizontal=false; id=null; }
+  document.addEventListener("pointerdown",(e)=>{
+    if(e.pointerType==="mouse" && e.button!==0) return;
+    const r=e.target.closest("[data-task-row]"); if(!r) return;
+    row=r; swipe=r.querySelector(".task-swipe"); hint=r.querySelector(".task-swipe-hint"); id=r.dataset.id;
+    startX=e.clientX; startY=e.clientY; dx=0; active=true; decided=false; horizontal=false;
+    if(swipe) swipe.style.transition="";
+  });
+  document.addEventListener("pointermove",(e)=>{
+    if(!active||!swipe) return;
+    const mx=e.clientX-startX, my=e.clientY-startY;
+    if(!decided){ if(Math.abs(mx)<6 && Math.abs(my)<6) return; decided=true; horizontal=Math.abs(mx)>Math.abs(my); if(!horizontal){ active=false; reset(true); return; } }
+    if(mx<0){ dx=Math.max(mx,-MAX); paint(); if(e.cancelable) e.preventDefault(); }
+    else { dx=0; paint(); }
+  },{passive:false});
+  function end(){ if(!active||!swipe){ active=false; return; } const trigger=dx<=-THRESH; const tid=id; reset(true); if(trigger){ SWIPE_GUARD_UNTIL=Date.now()+450; snoozeSheet(tid); } }
+  document.addEventListener("pointerup",end);
+  document.addEventListener("pointercancel",()=>{ if(active) reset(true); });
+})();
+// Capture-phase: swallow the one trailing click after a swipe so it can't hit the modal backdrop
+// (which would instantly close the snooze sheet) or fire an underlying button.
+document.addEventListener("click",(e)=>{ if(Date.now()<SWIPE_GUARD_UNTIL){ SWIPE_GUARD_UNTIL=0; e.preventDefault(); e.stopPropagation(); } }, true);
 function mhead(title,sub){ return '<div class="sticky top-0 bg-[#141313]/95 backdrop-blur px-5 sm:px-6 pt-3 pb-3 flex items-start justify-between gap-3 border-b hairline z-10"><div class="min-w-0"><h2 class="text-[19px] font-extrabold tracking-tight text-on-surface">'+title+'</h2>'+(sub?'<p class="text-[12px] text-on-surface-variant/70">'+sub+'</p>':'')+'</div><button class="mclose pressable flex-shrink-0 w-9 h-9 rounded-full bg-surface-container-high hover:bg-surface-variant flex items-center justify-center text-on-surface-variant" data-act="close-modal" aria-label="Close"><span class="material-symbols-outlined text-[20px]">close</span></button></div>'; }
 
 /* ───── event modal (with write affordances) ───── */
@@ -380,7 +440,7 @@ function renderOverview(){
   const conflicts=detectConflicts();
   const base=new Date(tkey+"T00:00:00"); const wend=new Date(base); wend.setDate(wend.getDate()+7);
   const weekCount=eventsAll().filter(e=>{ const dk=new Date(dateKey(e.start)+"T00:00:00"); return dk>=base && dk<wend; }).length;
-  const nextTravel=eventsAll().filter(e=>e.kind==="travel" && new Date(dateKey(e.start)+"T00:00:00")>=base).sort((a,b)=>startMs(a)-startMs(b))[0];
+  const nextTravel=nextTravelEvent();   // tag-independent; derived live from the calendar
   const todayTimed=today.filter(e=>!e.allDay);
   const current=todayTimed.find(e=> new Date(e.start)<=NOW && (!e.end||new Date(e.end)>=NOW));
   const next=todayTimed.find(e=> new Date(e.start)>NOW) || (current?null:todayTimed[0]);
@@ -391,16 +451,12 @@ function renderOverview(){
   let H="";
   const sampleBadge = d.meta&&d.meta.sample ? '<span class="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded-full ml-2">Sample</span>' : '';
 
-  // ── compact header: greeting + date + at-a-glance stat chips ──
+  // ── compact header: greeting + date (calendar counters removed per Jeremy) ──
   H += '<div class="rise flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-5">'+
     '<div><div class="flex items-center mb-0.5"><span class="text-[11px] font-bold tracking-[0.22em] text-primary uppercase">Maestro · Today</span>'+sampleBadge+'</div>'+
     '<h1 class="text-[23px] sm:text-[27px] font-extrabold tracking-tight leading-tight">'+greeting()+', <span class="text-primary">'+esc((d.meta&&d.meta.name||"there").split(" ")[0])+'</span>.</h1>'+
     '<p class="text-[11.5px] text-on-surface-variant/60 font-mono mt-0.5">'+fmtDayLabel(tkey).toUpperCase()+'</p></div>'+
-    '<div class="flex gap-2 flex-wrap">'+
-      statChip(today.length,"today","today")+ statChip(weekCount,"this week","date_range")+
-      statChip(conflicts.length,conflicts.length===1?"conflict":"conflicts","warning",conflicts.length?"text-on-error-container":"text-green")+
-      statChip(nextTravel?fmtShort(nextTravel.start):"—","next travel","flight")+
-    '</div></div>';
+    '</div>';
 
   // ── now / next (the single most useful glance) ──
   if(focusEvent){
@@ -410,17 +466,32 @@ function renderOverview(){
       '<span class="text-[13px] font-mono text-on-surface-variant/70 flex-shrink-0">'+(focusEvent.allDay?"all day":fmtTime(focusEvent.start)+(focusEvent.end?"–"+fmtTime(focusEvent.end):""))+'</span></div>';
   }
 
-  // ── lead content: Today's plan + Next tasks, side by side ──
+  // ── Next travel (date + location), derived live from the calendar so a sync can't blank it ──
+  if(nextTravel){
+    H += '<button data-act="open-event" data-id="'+esc(nextTravel.id)+'" class="rise mb-5 w-full text-left rounded-2xl border border-primary/25 bg-primary/[0.05] p-4 flex items-center gap-3 hover:border-primary/40 pressable" style="animation-delay:.05s">'+
+      '<span class="w-11 h-11 rounded-xl bg-primary/12 flex items-center justify-center flex-shrink-0 text-primary"><span class="material-symbols-outlined text-[24px]">flight</span></span>'+
+      '<div class="min-w-0 flex-1"><p class="text-[10.5px] font-bold tracking-widest text-primary uppercase">Next travel</p>'+
+      '<p class="text-[15px] font-bold text-on-surface truncate">'+esc(travelWhere(nextTravel))+'</p>'+
+      '<p class="text-[12px] text-on-surface-variant/60 truncate">'+esc(nextTravel.title)+'</p></div>'+
+      '<span class="text-right flex-shrink-0"><span class="block text-[13px] font-bold text-primary">'+esc(fmtDayLabel(dateKey(nextTravel.start)))+'</span>'+(!nextTravel.allDay?'<span class="block text-[11px] font-mono text-on-surface-variant/55">'+esc(fmtTime(nextTravel.start))+'</span>':'')+'</span></button>';
+  } else {
+    H += '<div class="rise mb-5 rounded-2xl border hairline bg-surface-container-low/60 p-4 flex items-center gap-3" style="animation-delay:.05s">'+
+      '<span class="w-11 h-11 rounded-xl bg-surface-container-high flex items-center justify-center flex-shrink-0 text-on-surface-variant/60"><span class="material-symbols-outlined text-[24px]">flight</span></span>'+
+      '<div class="min-w-0 flex-1"><p class="text-[10.5px] font-bold tracking-widest text-on-surface-variant/60 uppercase">Next travel</p>'+
+      '<p class="text-[13px] text-on-surface-variant/55">No upcoming trips on your calendar.</p></div></div>';
+  }
+
+  // ── lead content: Next tasks FIRST, then Today's plan (order per Jeremy) ──
   H += '<div class="grid lg:grid-cols-2 gap-5 mb-5">';
   H += '<div class="rise rounded-2xl border hairline bg-surface-container-low/60 p-4 sm:p-5" style="animation-delay:.08s">'+
-    '<div class="flex items-center justify-between mb-3"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase flex items-center gap-2"><span class="material-symbols-outlined text-[18px]">event_note</span>Today’s plan</h2><button data-act="add-focus" class="pressable text-[11px] font-semibold text-primary flex items-center gap-1 hover:gap-1.5 transition-all"><span class="material-symbols-outlined text-[16px]">add</span>Focus block</button></div>'+
-    '<div class="space-y-0.5">'+
-    (today.length ? today.map(e=>eventRow(e,{highlight:e===focusEvent})).join("") : '<p class="text-[13px] text-on-surface-variant/55 px-2 py-4 flex items-center gap-2"><span class="material-symbols-outlined text-green text-[18px]">check_circle</span>Nothing scheduled today — open space.</p>')+
-    '</div></div>';
-  H += '<div class="rise rounded-2xl border hairline bg-surface-container-low/60 p-4 sm:p-5" style="animation-delay:.12s">'+
     '<div class="flex items-center justify-between mb-3"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase flex items-center gap-2"><span class="material-symbols-outlined text-[18px]">checklist</span>Next tasks</h2><a href="#tasks" data-act="nav" data-view="tasks" class="text-[11px] text-primary font-semibold">All tasks →</a></div>'+
     '<div class="space-y-0.5">'+
     (nextTasks.length ? nextTasks.map(taskRow).join("") : '<p class="text-[13px] text-on-surface-variant/55 px-2 py-4 flex items-center gap-2"><span class="material-symbols-outlined text-green text-[18px]">task_alt</span>All caught up.</p>')+
+    '</div></div>';
+  H += '<div class="rise rounded-2xl border hairline bg-surface-container-low/60 p-4 sm:p-5" style="animation-delay:.12s">'+
+    '<div class="flex items-center justify-between mb-3"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase flex items-center gap-2"><span class="material-symbols-outlined text-[18px]">event_note</span>Today’s plan</h2><button data-act="add-focus" class="pressable text-[11px] font-semibold text-primary flex items-center gap-1 hover:gap-1.5 transition-all"><span class="material-symbols-outlined text-[16px]">add</span>Focus block</button></div>'+
+    '<div class="space-y-0.5">'+
+    (today.length ? today.map(e=>eventRow(e,{highlight:e===focusEvent})).join("") : '<p class="text-[13px] text-on-surface-variant/55 px-2 py-4 flex items-center gap-2"><span class="material-symbols-outlined text-green text-[18px]">check_circle</span>Nothing scheduled today — open space.</p>')+
     '</div></div>';
   H += '</div>';
 
@@ -463,7 +534,7 @@ function renderWeek(){
   $("#view-week").innerHTML=H;
 }
 function renderTravel(){
-  const travel=eventsAll().filter(e=>e.kind==="travel"||e.kind==="stay").sort((a,b)=>startMs(a)-startMs(b));
+  const travel=eventsAll().filter(isTravel).sort((a,b)=>startMs(a)-startMs(b));
   let H='<div class="rise"><div class="mb-4 px-1"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Travel</h2><p class="text-[12px] text-on-surface-variant/60 mt-0.5">Flights and stays across your calendars.</p></div><div class="max-w-2xl space-y-3">';
   if(!travel.length) H += '<p class="text-[13px] text-on-surface-variant/50">No travel on the calendar.</p>';
   travel.forEach(e=>{ H += '<button data-act="open-event" data-id="'+esc(e.id)+'" class="pressable w-full text-left flex items-center gap-4 rounded-2xl border hairline bg-surface-container-low/50 hover:border-primary/30 p-4"><span class="w-1.5 h-10 rounded-full" style="background:'+calColor(e.calendar)+'"></span><span class="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary flex-shrink-0"><span class="material-symbols-outlined">flight</span></span><div class="min-w-0 flex-1"><p class="text-[14px] font-semibold text-on-surface">'+esc(e.title)+'</p>'+(e.location?'<p class="text-[12px] text-on-surface-variant/60">'+esc(e.location)+'</p>':'')+'</div><span class="text-[12px] font-mono text-on-surface-variant/70 flex-shrink-0">'+fmtShort(e.start)+'</span></button>'; });
@@ -572,10 +643,20 @@ function taskRow(t){
     '<div class="flex items-center gap-2 mt-1 '+(done?"opacity-50":"")+'">'+tag+(t.source==="drive"?'<span class="text-[10px] text-on-surface-variant/40">· from Drive</span>':'')+'</div></'+(clickable?'button':'div')+'>';
   // Priority horizon badge — tap to set horizon / snooze (the clear per-task control).
   const prio=taskPriority(t), pm=pmeta(prio), snz=taskSnoozed(t);
-  const badge=!done?'<button data-act="task-options" data-id="'+esc(t.id)+'" class="pressable flex-shrink-0 mt-0.5 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full border '+pm.badge+' hover:brightness-110" title="Set priority / snooze" aria-label="Set priority or snooze">'+pm.label+'</button>':'';
+  const badge=!done?'<button data-act="task-options" data-id="'+esc(t.id)+'" class="pressable flex-shrink-0 mt-0.5 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full border '+pm.badge+' hover:brightness-110" title="Set priority" aria-label="Set priority">'+pm.label+'</button>':'';
+  // 2-minute task marker — a quick win you can knock out fast. Lightweight green badge so they're
+  // easy to spot/batch. two_min is a user-owned override (like priority/snooze) preserved across syncs.
+  const twoMin=!!(t&&t.two_min);
+  const twoMinBadge=(!done && twoMin)?'<span class="flex-shrink-0 mt-0.5 inline-flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full border border-green/35 bg-green/12 text-green" title="Quick 2-minute task"><span class="material-symbols-outlined text-[13px]">bolt</span>2-min</span>':'';
   const snzPill=(!done && snz)?'<span class="flex-shrink-0 mt-0.5 inline-flex items-center gap-1 text-[10px] font-semibold text-on-surface-variant/55 px-1.5 py-1" title="Snoozed"><span class="material-symbols-outlined text-[14px]">snooze</span>'+esc(fmtSnooze(t.snoozed_until))+'</span>':'';
   const respond='<button data-act="task-respond" data-id="'+esc(t.id)+'" class="pressable flex-shrink-0 mt-0.5 inline-flex items-center gap-1 rounded-full border border-primary/35 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary hover:bg-primary/20 transition-colors" title="Tell Claude to change this task" aria-label="Tell Claude about this task"><span class="material-symbols-outlined text-[15px]">forum</span>Tell&nbsp;Claude</button>';
-  return '<div class="flex items-start gap-2.5 rounded-xl px-3 py-2.5 hover:bg-surface-container/40 transition-colors">'+check+body+snzPill+badge+respond+'</div>';
+  // Wrapped for swipe-left → snooze: a hidden "Snooze" hint sits behind; the inner .task-swipe
+  // layer translates left under the finger (see initTaskSwipe). touch-action:pan-y keeps vertical
+  // scrolling native while we own the horizontal drag.
+  return '<div class="relative rounded-xl" data-task-row data-id="'+esc(t.id)+'">'+
+    '<div class="task-swipe-hint absolute inset-y-0 right-0 flex items-center gap-1.5 pr-5 text-primary pointer-events-none" style="opacity:0"><span class="material-symbols-outlined text-[20px]">snooze</span><span class="text-[11.5px] font-bold uppercase tracking-wide">Snooze</span></div>'+
+    '<div class="task-swipe flex items-start gap-2.5 rounded-xl px-3 py-2.5 hover:bg-surface-container/40 transition-colors" style="touch-action:pan-y">'+check+body+twoMinBadge+snzPill+badge+respond+'</div>'+
+  '</div>';
 }
 /* ───── Setup / Needs-you checklist (one-time onboarding actions) ───── */
 var SETUP_ITEMS = [
@@ -688,21 +769,39 @@ function renderTasks(){
 /* ───── Task options: set time horizon + snooze (the per-task control) ───── */
 function taskOptionsModal(taskId){
   const t=(DATA.tasks||[]).find(x=>String(x.id)===String(taskId)); if(!t) return;
-  const cur=taskPriority(t), snz=taskSnoozed(t);
-  let h=mhead("Priority &amp; snooze", esc(t.title));
+  const cur=taskPriority(t);
+  let h=mhead("Priority", esc(t.title));
   h+='<div class="px-5 sm:px-6 py-5 space-y-5">';
   h+='<div><p class="text-[11px] font-bold tracking-widest text-on-surface-variant/70 uppercase mb-2">Time horizon</p>'+
      '<div class="grid grid-cols-2 gap-2">'+PRIORITY_ORDER.map(k=>{ const pm=PRIORITY[k], on=k===cur;
        return '<button data-act="set-prio" data-id="'+esc(taskId)+'" data-prio="'+k+'" class="pressable text-[12.5px] font-bold py-2.5 rounded-xl border '+(on?pm.badge+' ring-2 ring-inset ring-current':"bg-surface-container/50 text-on-surface-variant/75 border-outline-variant hover:border-primary/40")+'">'+pm.label+'</button>'; }).join("")+'</div></div>';
-  h+='<div><p class="text-[11px] font-bold tracking-widest text-on-surface-variant/70 uppercase mb-2">Snooze</p>';
-  if(snz) h+='<div class="rounded-xl border border-primary/25 bg-primary/[0.05] px-3.5 py-2.5 mb-2.5 flex items-center justify-between gap-2"><span class="text-[12.5px] text-on-surface flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px] text-primary">snooze</span>Snoozed until '+esc(fmtSnoozeLong(t.snoozed_until))+'</span><button data-act="unsnooze" data-id="'+esc(taskId)+'" class="pressable text-[12px] font-bold text-primary hover:brightness-110">Un-snooze</button></div>';
-  h+='<p class="text-[11.5px] text-on-surface-variant/55 mb-2.5">Snoozed tasks hide from the active board until the date, then come back automatically.</p>'+
-     '<div class="flex flex-wrap gap-2 mb-2.5">'+
-       '<button data-act="snooze" data-id="'+esc(taskId)+'" data-when="tomorrow" class="pressable text-[12.5px] font-semibold px-3.5 py-2 rounded-xl border border-outline-variant bg-surface-container/50 hover:border-primary/40">Tomorrow</button>'+
-       '<button data-act="snooze" data-id="'+esc(taskId)+'" data-when="next_week" class="pressable text-[12.5px] font-semibold px-3.5 py-2 rounded-xl border border-outline-variant bg-surface-container/50 hover:border-primary/40">Next week</button>'+
-     '</div>'+
-     '<div class="flex items-center gap-2"><input type="date" id="snooze-date" class="flex-1 bg-surface-container-lowest/80 border hairline rounded-xl px-3 py-2 text-[13px] text-on-surface focus:border-primary/50"><button data-act="snooze-date" data-id="'+esc(taskId)+'" class="pressable text-[12.5px] font-bold bg-primary text-on-primary px-3.5 py-2 rounded-xl hover:brightness-110">Set date</button></div>';
-  h+='</div></div>';
+  // 2-minute task toggle — mark a quick win. Stored as user-owned two_min flag (survives sync).
+  const tm=!!t.two_min;
+  h+='<div><p class="text-[11px] font-bold tracking-widest text-on-surface-variant/70 uppercase mb-2">Quick win</p>'+
+     '<button data-act="toggle-twomin" data-id="'+esc(taskId)+'" class="pressable w-full flex items-center justify-between gap-2 rounded-xl border '+(tm?"border-green/40 bg-green/[0.08]":"border-outline-variant bg-surface-container/50 hover:border-primary/40")+' px-3.5 py-3">'+
+       '<span class="flex items-center gap-2 text-[13px] font-semibold '+(tm?"text-green":"text-on-surface")+'"><span class="material-symbols-outlined text-[18px]'+(tm?" ms-fill":"")+'">bolt</span>2-minute task</span>'+
+       '<span class="material-symbols-outlined text-[22px] '+(tm?"text-green ms-fill":"text-on-surface-variant/40")+'">'+(tm?"toggle_on":"toggle_off")+'</span>'+
+     '</button>'+
+     '<p class="text-[11.5px] text-on-surface-variant/55 mt-2">Flag a quick win you can knock out in ~2 minutes — shows a <b class="text-green">2-min</b> badge so you can spot and batch them.</p></div>';
+  h+='<p class="text-[11px] text-on-surface-variant/45 flex items-center gap-1.5"><span class="material-symbols-outlined text-[15px]">swipe_left</span>Swipe a task left to snooze it.</p>';
+  h+='</div>';
+  openModal(h);
+}
+/* ───── Snooze sheet — Gmail-style quick presets, opened by swiping a task row left ───── */
+function snoozeSheet(taskId){
+  const t=findTaskById(taskId); if(!t) return; const snz=taskSnoozed(t);
+  let h=mhead("Snooze", esc(t.title));
+  h+='<div class="px-5 sm:px-6 py-5 space-y-4">';
+  if(snz) h+='<div class="rounded-xl border border-primary/25 bg-primary/[0.05] px-3.5 py-2.5 flex items-center justify-between gap-2"><span class="text-[12.5px] text-on-surface flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px] text-primary">snooze</span>Snoozed until '+esc(fmtSnoozeLong(t.snoozed_until))+'</span><button data-act="unsnooze" data-id="'+esc(taskId)+'" class="pressable text-[12px] font-bold text-primary hover:brightness-110">Un-snooze</button></div>';
+  h+='<p class="text-[11.5px] text-on-surface-variant/55">Hides from the active board until then, then comes back automatically.</p>';
+  const opt=(when,icon,label,sub)=>'<button data-act="snooze" data-id="'+esc(taskId)+'" data-when="'+when+'" class="pressable w-full flex items-center gap-3 rounded-xl border border-outline-variant bg-surface-container/50 hover:border-primary/40 px-3.5 py-3 text-left"><span class="material-symbols-outlined text-[20px] text-primary">'+icon+'</span><span class="flex-1"><span class="block text-[13.5px] font-semibold text-on-surface">'+label+'</span><span class="block text-[11px] text-on-surface-variant/55">'+sub+'</span></span></button>';
+  h+='<div class="space-y-2">'+
+       opt("later_today","wb_twilight","Later today","In about 3 hours")+
+       opt("tomorrow","wb_sunny","Tomorrow","~9:00 AM")+
+       opt("next_week","next_week","Next week","Monday ~9:00 AM")+
+     '</div>';
+  h+='<div class="flex items-center gap-2 pt-1"><input type="date" id="snooze-date" class="flex-1 bg-surface-container-lowest/80 border hairline rounded-xl px-3 py-2 text-[13px] text-on-surface focus:border-primary/50"><button data-act="snooze-date" data-id="'+esc(taskId)+'" class="pressable text-[12.5px] font-semibold border border-outline-variant bg-surface-container/50 hover:border-primary/40 px-3.5 py-2 rounded-xl">Pick a date…</button></div>';
+  h+='</div>';
   openModal(h);
 }
 function findTaskById(id){ return (DATA.tasks||[]).find(x=>String(x.id)===String(id)); }
@@ -715,15 +814,19 @@ async function writeTasksCol(){
 async function setTaskPriority(id, prio){
   if(!PRIORITY[prio]) return; const t=findTaskById(id); if(!t) return;
   t.priority=prio; t.priority_manual=true;   // priority_manual → the brain preserves this across syncs
+  closeModal();                              // apply + dismiss in one action (no extra confirm tap)
   RENDERED.overview=false; RENDERED.tasks=false; setView(STATE.view,true);
-  taskOptionsModal(id);
   toast("Horizon set: "+PRIORITY[prio].label,"flag");
   await writeTasksCol();
 }
+// Snooze targets. later_today = ~3h out; tomorrow = next morning 9am; next_week = next Monday 9am.
 function snoozeAt(days){ const d=new Date(); d.setHours(9,0,0,0); d.setDate(d.getDate()+days); return d.toISOString(); }
+function snoozeLaterToday(){ const d=new Date(); d.setHours(d.getHours()+3,0,0,0); return d.toISOString(); }
+function snoozeNextMonday(){ const d=new Date(); d.setHours(9,0,0,0); const dow=d.getDay(); const add=((8-dow)%7)||7; d.setDate(d.getDate()+add); return d.toISOString(); }
+function snoozeWhen(when){ return when==="later_today"?snoozeLaterToday() : when==="next_week"?snoozeNextMonday() : snoozeAt(1); }
 async function snoozeTask(id, when){
   const t=findTaskById(id); if(!t) return;
-  t.snoozed_until = when==="next_week" ? snoozeAt(7) : snoozeAt(1);
+  t.snoozed_until = snoozeWhen(when);
   closeModal(); RENDERED.overview=false; RENDERED.tasks=false; setView(STATE.view,true);
   toast("Snoozed until "+fmtSnoozeLong(t.snoozed_until),"snooze");
   await writeTasksCol();
@@ -739,9 +842,17 @@ async function snoozeTaskDate(id){
 async function unsnoozeTask(id){
   const t=findTaskById(id); if(!t) return;
   delete t.snoozed_until;
+  closeModal(); RENDERED.overview=false; RENDERED.tasks=false; setView(STATE.view,true);
+  toast("Un-snoozed — back on the board","alarm");
+  await writeTasksCol();
+}
+async function toggleTwoMin(id){
+  const t=findTaskById(id); if(!t) return;
+  const on = !t.two_min;
+  if(on) t.two_min=true; else delete t.two_min;   // user-owned override; brain sync preserves two_min
   RENDERED.overview=false; RENDERED.tasks=false; setView(STATE.view,true);
   taskOptionsModal(id);
-  toast("Un-snoozed — back on the board","alarm");
+  toast(on?"Marked as a 2-minute task":"Removed the 2-min marker","bolt");
   await writeTasksCol();
 }
 async function toggleTask(id){
@@ -806,8 +917,7 @@ function renderInbox(){
     '<div class="rounded-2xl border border-primary/25 bg-primary/[0.04] p-3 sm:p-4 mb-5">'+
       '<label for="inbox-compose" class="block text-[11px] font-bold tracking-widest text-primary uppercase mb-2">New message</label>'+
       '<textarea id="inbox-compose" rows="3" class="w-full bg-surface-container-lowest/80 border hairline rounded-xl px-3.5 py-2.5 text-[14px] text-on-surface focus:border-primary/50 transition-colors resize-y" placeholder="Tell Dispatch what to do or tweak…"></textarea>'+
-      '<div class="flex items-center justify-between gap-2 mt-2.5">'+
-        '<button data-act="ask-claude" class="pressable inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-on-surface-variant/75 hover:text-primary"><span class="material-symbols-outlined text-[18px]">smart_toy</span>Ask Claude now</button>'+
+      '<div class="flex items-center justify-end gap-2 mt-2.5">'+
         '<button data-act="inbox-send" class="pressable inline-flex items-center gap-2 bg-primary text-on-primary font-bold text-[13.5px] px-4 py-2 rounded-xl hover:brightness-110"><span class="material-symbols-outlined text-[18px]">send</span>Send to Dispatch</button>'+
       '</div></div>'+
     '<h3 class="text-[11px] font-bold tracking-widest text-on-surface-variant/70 uppercase mb-2 px-1">Sent ('+INBOX.length+')</h3>'+
@@ -828,13 +938,6 @@ async function sendInbox(body, taskId){
   toast("Sent to Dispatch — Pending","send");
   return true;
 }
-function askClaudeNow(prefill){
-  const msg = prefill || "check Maestro";
-  try{ if(navigator.clipboard) navigator.clipboard.writeText(msg); }catch(_e){}
-  let opened=null;
-  try{ opened = window.open("https://claude.ai/new?q="+encodeURIComponent(msg), "_blank", "noopener"); }catch(_e){}
-  toast(opened ? ("Opening Claude — “"+msg+"” copied to paste") : ("Copied “"+msg+"” — paste it to Claude/Dispatch"), "content_copy");
-}
 function respondTaskModal(taskId){
   const title=taskTitleById(taskId)||"this task";
   let h=mhead("Tell Claude","Ask Dispatch to change this task — or open Claude directly");
@@ -842,8 +945,6 @@ function respondTaskModal(taskId){
     '<div class="rounded-xl border hairline bg-surface-container/40 px-3.5 py-2.5"><p class="text-[10.5px] text-on-surface-variant/50 uppercase tracking-widest font-bold mb-0.5">Task</p><p class="text-[13.5px] text-on-surface">'+esc(title)+'</p></div>'+
     '<textarea id="task-respond-box" rows="4" class="w-full bg-surface-container-lowest/80 border hairline rounded-xl px-3.5 py-2.5 text-[14px] text-on-surface focus:border-primary/50 resize-y" placeholder="e.g. push this to next week / mark it done / here’s the info you needed…"></textarea>'+
     '<button data-act="task-respond-send" data-id="'+esc(taskId)+'" class="pressable w-full flex items-center justify-center gap-2 bg-primary text-on-primary font-bold text-[13.5px] py-2.5 rounded-xl hover:brightness-110"><span class="material-symbols-outlined text-[18px]">send</span>Send to Dispatch</button>'+
-    '<div class="flex items-center gap-3 text-[10.5px] font-semibold uppercase tracking-widest text-on-surface-variant/35"><span class="flex-1 border-t border-outline-variant/20"></span>or<span class="flex-1 border-t border-outline-variant/20"></span></div>'+
-    '<button data-act="task-ask-claude" data-id="'+esc(taskId)+'" class="pressable w-full flex items-center justify-center gap-2 rounded-xl border border-primary/35 bg-primary/10 text-primary font-semibold text-[13px] py-2.5 hover:bg-primary/20"><span class="material-symbols-outlined text-[18px]">smart_toy</span>Ask Claude now</button>'+
     '</div>';
   openModal(h);
 }
@@ -1035,6 +1136,7 @@ document.addEventListener("click",(e)=>{
   else if(el.dataset.act==="dismiss-conflict"){ dismissConflict(el.dataset.cid); }
   else if(el.dataset.act==="task-options"){ taskOptionsModal(el.dataset.id); }
   else if(el.dataset.act==="set-prio"){ setTaskPriority(el.dataset.id, el.dataset.prio); }
+  else if(el.dataset.act==="toggle-twomin"){ toggleTwoMin(el.dataset.id); }
   else if(el.dataset.act==="snooze"){ snoozeTask(el.dataset.id, el.dataset.when); }
   else if(el.dataset.act==="snooze-date"){ snoozeTaskDate(el.dataset.id); }
   else if(el.dataset.act==="unsnooze"){ unsnoozeTask(el.dataset.id); }
@@ -1089,13 +1191,20 @@ function showSkeleton(name){
 }
 function setView(name, force){
   if(["overview","projects","tasks","week","travel","routines","inbox"].indexOf(name)<0) name="overview";
+  // Scroll discipline: a genuine NAVIGATION (switching views, or any unforced call from the
+  // hashchange handler) jumps to the top. An in-place RE-RENDER of the view you're already on
+  // (force=true, same view — e.g. checking a task off, snooze, set-priority, a realtime data
+  // refresh) must PRESERVE scroll position so the page doesn't jump back to the top.
+  const sameView = (STATE.view===name);
+  const keepScroll = !!force && sameView;
+  const y = window.scrollY;
   STATE.view=name;
   const fn={overview:renderOverview,projects:renderProjects,tasks:renderTasks,week:renderWeek,travel:renderTravel,routines:renderRoutines,inbox:renderInbox}[name];
   if(!RENDERED[name]||force){ fn(); RENDERED[name]=true; }
   $$(".view").forEach(v=>v.classList.toggle("active", v.id==="view-"+name));
   $$(".tab").forEach(t=>t.dataset.active = t.dataset.view===name?"1":"0");
   $$(".bnav").forEach(t=>t.dataset.active = t.dataset.view===name?"1":"0");
-  window.scrollTo({top:0});
+  if(keepScroll) window.scrollTo({top:y}); else window.scrollTo({top:0});
 }
 function rerender(name){ RENDERED[name]=false; if(STATE.view===name) setView(name,true); }
 
@@ -1108,11 +1217,9 @@ document.addEventListener("click", async (e)=>{
   if(act==="open-event"){ const ev=(DATA.events||[]).find(x=>String(x.id)===el.dataset.id); if(ev) eventModal(ev); return; }
   if(act==="logout"){ signOut(); return; }
   if(act==="sync-now"){ liveSync({}); return; }
-  if(act==="ask-claude"){ askClaudeNow("check Maestro"); return; }
   if(act==="inbox-send"){ const t=$("#inbox-compose"); const v=t?t.value:""; sendInbox(v).then(ok=>{ if(ok && t) t.value=""; }); return; }
   if(act==="task-respond"){ respondTaskModal(el.dataset.id); return; }
   if(act==="task-respond-send"){ const t=$("#task-respond-box"); const v=t?t.value:""; sendInbox(v, el.dataset.id).then(ok=>{ if(ok) closeModal(); }); return; }
-  if(act==="task-ask-claude"){ const tt=taskTitleById(el.dataset.id); closeModal(); askClaudeNow(tt?("In Maestro, update this task: "+tt):"check Maestro"); return; }
   if(act==="connect-google"){ connectGoogle(); return; }
   if(act==="cal-filter"){ STATE.calFilter=el.dataset.cal; rerender("week"); return; }
   if(act==="open-pending"){ pendingModal(); return; }

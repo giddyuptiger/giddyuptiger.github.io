@@ -466,19 +466,15 @@ function renderOverview(){
       '<span class="text-[13px] font-mono text-on-surface-variant/70 flex-shrink-0">'+(focusEvent.allDay?"all day":fmtTime(focusEvent.start)+(focusEvent.end?"–"+fmtTime(focusEvent.end):""))+'</span></div>';
   }
 
-  // ── Next travel (date + location), derived live from the calendar so a sync can't blank it ──
+  // ── Next travel — compact: ONLY destination + date (e.g. "Jun 17 · LAX → ANC"). Derived live
+  //    from the calendar so a sync can't blank it. Stays tappable to open the underlying event. ──
   if(nextTravel){
-    H += '<button data-act="open-event" data-id="'+esc(nextTravel.id)+'" class="rise mb-5 w-full text-left rounded-2xl border border-primary/25 bg-primary/[0.05] p-4 flex items-center gap-3 hover:border-primary/40 pressable" style="animation-delay:.05s">'+
-      '<span class="w-11 h-11 rounded-xl bg-primary/12 flex items-center justify-center flex-shrink-0 text-primary"><span class="material-symbols-outlined text-[24px]">flight</span></span>'+
-      '<div class="min-w-0 flex-1"><p class="text-[10.5px] font-bold tracking-widest text-primary uppercase">Next travel</p>'+
-      '<p class="text-[15px] font-bold text-on-surface truncate">'+esc(travelWhere(nextTravel))+'</p>'+
-      '<p class="text-[12px] text-on-surface-variant/60 truncate">'+esc(nextTravel.title)+'</p></div>'+
-      '<span class="text-right flex-shrink-0"><span class="block text-[13px] font-bold text-primary">'+esc(fmtDayLabel(dateKey(nextTravel.start)))+'</span>'+(!nextTravel.allDay?'<span class="block text-[11px] font-mono text-on-surface-variant/55">'+esc(fmtTime(nextTravel.start))+'</span>':'')+'</span></button>';
+    H += '<div class="rise mb-5" style="animation-delay:.05s"><button data-act="open-event" data-id="'+esc(nextTravel.id)+'" title="Next travel" class="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/[0.06] px-3.5 py-1.5 hover:border-primary/40 pressable max-w-full">'+
+      '<span class="text-[12.5px] font-bold text-primary flex-shrink-0">'+esc(fmtDayLabel(dateKey(nextTravel.start)))+'</span>'+
+      '<span class="text-on-surface-variant/35 flex-shrink-0">·</span>'+
+      '<span class="text-[12.5px] font-semibold text-on-surface truncate">'+esc(travelWhere(nextTravel))+'</span></button></div>';
   } else {
-    H += '<div class="rise mb-5 rounded-2xl border hairline bg-surface-container-low/60 p-4 flex items-center gap-3" style="animation-delay:.05s">'+
-      '<span class="w-11 h-11 rounded-xl bg-surface-container-high flex items-center justify-center flex-shrink-0 text-on-surface-variant/60"><span class="material-symbols-outlined text-[24px]">flight</span></span>'+
-      '<div class="min-w-0 flex-1"><p class="text-[10.5px] font-bold tracking-widest text-on-surface-variant/60 uppercase">Next travel</p>'+
-      '<p class="text-[13px] text-on-surface-variant/55">No upcoming trips on your calendar.</p></div></div>';
+    H += '<div class="rise mb-5" style="animation-delay:.05s"><span class="inline-flex items-center gap-1.5 text-[11.5px] text-on-surface-variant/45"><span class="material-symbols-outlined text-[15px]">flight</span>No upcoming trips</span></div>';
   }
 
   // ── lead content: Next tasks FIRST, then Today's plan (order per Jeremy) ──
@@ -749,7 +745,10 @@ function renderTasks(){
   const done=ts.filter(t=>taskDone(t.id));
   const groups={asap:[],this_week:[],this_month:[],someday:[]};
   active.forEach(t=>{ (groups[taskPriority(t)]||groups.someday).push(t); });
-  let H='<div class="rise"><div class="mb-4 px-1"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Tasks</h2><p class="text-[12px] text-on-surface-variant/60 mt-0.5">Grouped by time horizon — tap a task’s badge to change its horizon or snooze it. Check-offs and horizons survive every sync.</p></div><div class="max-w-2xl space-y-5">';
+  // Float 2-minute tasks to the TOP of their own priority section (stable sort → only the
+  // within-section order changes; cross-section ordering by horizon is untouched).
+  PRIORITY_ORDER.forEach(k=>{ groups[k].sort((a,b)=>(b&&b.two_min?1:0)-(a&&a.two_min?1:0)); });
+  let H='<div class="rise"><div class="mb-4 px-1 flex items-start justify-between gap-3"><div><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Tasks</h2><p class="text-[12px] text-on-surface-variant/60 mt-0.5">Grouped by time horizon — tap a task’s badge to change its horizon or snooze it. Check-offs and horizons survive every sync.</p></div><button data-act="add-task" class="pressable flex-shrink-0 inline-flex items-center gap-1.5 bg-primary text-on-primary font-bold text-[12.5px] px-3.5 py-2 rounded-xl hover:brightness-110" title="Add a task" aria-label="Add a task"><span class="material-symbols-outlined text-[18px]">add</span>Add task</button></div><div class="max-w-2xl space-y-5">';
   H+= renderSetupGroup();
   PRIORITY_ORDER.forEach(key=>{
     const arr=groups[key]; if(!arr.length) return; const pm=PRIORITY[key];
@@ -855,6 +854,66 @@ async function toggleTwoMin(id){
   toast(on?"Marked as a 2-minute task":"Removed the 2-min marker","bolt");
   await writeTasksCol();
 }
+/* ───── ADD TASK — create a task in-app and write it straight into maestro_dashboard.tasks ─────
+   Same write path the app uses for every task mutation (writeTasksCol). priority_manual:true so
+   the brain treats the horizon as user-owned and won't reshuffle it on the next sync. ───── */
+function addTaskModal(){
+  const projects=(DATA.projects||[]);
+  let h=mhead("Add task","Create a task — it lands on your board right away");
+  h+='<div class="px-5 sm:px-6 py-5 space-y-5">';
+  // Name (required)
+  h+='<div><label for="add-task-name" class="block text-[11px] font-bold tracking-widest text-on-surface-variant/70 uppercase mb-2">Task</label>'+
+     '<input id="add-task-name" type="text" autocomplete="off" class="w-full bg-surface-container-lowest/80 border hairline rounded-xl px-3.5 py-2.5 text-[14px] text-on-surface focus:border-primary/50 transition-colors" placeholder="What needs doing?"></div>';
+  // Project (optional — populated from existing projects)
+  h+='<div><label for="add-task-project" class="block text-[11px] font-bold tracking-widest text-on-surface-variant/70 uppercase mb-2">Project</label>'+
+     '<select id="add-task-project" class="w-full bg-surface-container-lowest/80 border hairline rounded-xl px-3.5 py-2.5 text-[14px] text-on-surface focus:border-primary/50 transition-colors">'+
+       '<option value="">No project</option>'+
+       projects.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.name)+'</option>').join("")+
+     '</select></div>';
+  // Priority horizon — same button grid as the per-task control; default This Week
+  h+='<div><p class="text-[11px] font-bold tracking-widest text-on-surface-variant/70 uppercase mb-2">Time horizon</p>'+
+     '<div class="grid grid-cols-2 gap-2" id="add-task-prio">'+PRIORITY_ORDER.map(k=>{ const pm=PRIORITY[k], on=(k==="this_week");
+       return '<button type="button" data-act="add-task-prio" data-prio="'+k+'" data-on="'+(on?"1":"0")+'" class="pressable text-[12.5px] font-bold py-2.5 rounded-xl border '+(on?pm.badge+' ring-2 ring-inset ring-current':"bg-surface-container/50 text-on-surface-variant/75 border-outline-variant hover:border-primary/40")+'">'+pm.label+'</button>'; }).join("")+'</div></div>';
+  // 2-minute toggle
+  h+='<button type="button" data-act="add-task-twomin" data-on="0" class="pressable w-full flex items-center justify-between gap-2 rounded-xl border border-outline-variant bg-surface-container/50 hover:border-primary/40 px-3.5 py-3">'+
+       '<span class="add-tm-label flex items-center gap-2 text-[13px] font-semibold text-on-surface"><span class="material-symbols-outlined text-[18px]">bolt</span>2-minute task</span>'+
+       '<span class="add-tm-track relative inline-flex h-[22px] w-[38px] flex-shrink-0 rounded-full transition-colors bg-surface-variant"><span class="absolute top-[2px] h-[18px] w-[18px] rounded-full bg-white transition-all left-[2px]"></span></span>'+
+     '</button>';
+  // Save
+  h+='<button data-act="add-task-save" class="pressable w-full flex items-center justify-center gap-2 bg-primary text-on-primary font-bold text-[13.5px] py-2.5 rounded-xl hover:brightness-110"><span class="material-symbols-outlined text-[18px]">add_task</span>Add task</button>';
+  h+='</div>';
+  openModal(h);
+  setTimeout(()=>{ const n=$("#add-task-name"); if(n) n.focus(); },60);
+}
+function selectAddTaskPrio(el){
+  const wrap=el.closest("#add-task-prio"); if(!wrap) return;
+  $$("button[data-act='add-task-prio']",wrap).forEach(b=>{ b.dataset.on="0";
+    b.className="pressable text-[12.5px] font-bold py-2.5 rounded-xl border bg-surface-container/50 text-on-surface-variant/75 border-outline-variant hover:border-primary/40"; });
+  const pm=PRIORITY[el.dataset.prio]||PRIORITY.someday; el.dataset.on="1";
+  el.className="pressable text-[12.5px] font-bold py-2.5 rounded-xl border "+pm.badge+" ring-2 ring-inset ring-current";
+}
+function toggleAddTaskTwoMin(el){
+  const on = el.dataset.on!=="1"; el.dataset.on = on?"1":"0";
+  el.className="pressable w-full flex items-center justify-between gap-2 rounded-xl border px-3.5 py-3 "+(on?"border-green/40 bg-green/[0.08]":"border-outline-variant bg-surface-container/50 hover:border-primary/40");
+  const lbl=$(".add-tm-label",el); if(lbl) lbl.className="add-tm-label flex items-center gap-2 text-[13px] font-semibold "+(on?"text-green":"text-on-surface");
+  const track=$(".add-tm-track",el); if(track){ track.className="add-tm-track relative inline-flex h-[22px] w-[38px] flex-shrink-0 rounded-full transition-colors "+(on?"bg-primary":"bg-surface-variant"); const knob=track.querySelector("span"); if(knob) knob.className="absolute top-[2px] h-[18px] w-[18px] rounded-full bg-white transition-all "+(on?"left-[18px]":"left-[2px]"); }
+}
+async function saveNewTask(){
+  const nm=$("#add-task-name"); const name=(nm&&nm.value||"").trim();
+  if(!name){ toast("Enter a task name first","edit"); if(nm) nm.focus(); return; }
+  if(!USER_ID){ toast("Sign in first","lock"); return; }
+  const sel=$("#add-task-project"); const pid=sel?sel.value:""; const proj=pid?projById(pid):null;
+  const prioBtn=$("#add-task-prio button[data-on='1']"); const prio=(prioBtn&&prioBtn.dataset.prio) || "this_week";
+  const tmBtn=$("button[data-act='add-task-twomin']"); const two_min=!!(tmBtn&&tmBtn.dataset.on==="1");
+  const task={ id:"t_"+Date.now().toString(36)+Math.random().toString(36).slice(2,6), title:name, priority:prio, priority_manual:true, source:"maestro" };
+  if(two_min) task.two_min=true;
+  if(proj){ task.projectId=proj.id; task.project=proj.name; if(proj.icon) task.icon=proj.icon; }
+  DATA.tasks = DATA.tasks || []; DATA.tasks.unshift(task);
+  closeModal();
+  RENDERED.overview=false; RENDERED.tasks=false; setView("tasks",true);   // show it in its section now
+  toast("Task added","add_task");
+  await writeTasksCol();
+}
 async function toggleTask(id){
   const cur = completedTasks().slice();
   const i = cur.indexOf(id);
@@ -887,7 +946,41 @@ const INBOX_STATUS = {
 };
 function inboxStat(s){ return INBOX_STATUS[s] || INBOX_STATUS["new"]; }
 function inboxPendingCount(){ return INBOX.filter(m=>m.status==="new"||m.status==="processing").length; }
-function updateInboxBadge(){ const n=inboxPendingCount(), b=$("#inbox-badge"); if(b){ b.textContent=n; b.classList.toggle("hidden", n===0); } }
+// Unread incoming replies — a Dispatch reply Jeremy hasn't viewed yet. "Seen" is a user-owned
+// set of inbox ids persisted in settings, so the badge survives reload and clears for good.
+function seenReplyIds(){ return (DATA && DATA.settings && DATA.settings.seenReplies) || []; }
+function unreadReplyCount(){ const seen=new Set(seenReplyIds().map(String)); return INBOX.filter(m=>m.reply && !seen.has(String(m.id))).length; }
+function updateInboxBadge(){
+  const b=$("#inbox-badge"); if(!b) return;
+  const unread=unreadReplyCount();
+  if(unread>0){
+    // RED badge — an incoming reply from Claude Jeremy hasn't seen. Takes priority over pending.
+    b.textContent = unread>9 ? "9+" : String(unread);
+    b.classList.remove("hidden","bg-primary","text-on-primary");
+    b.classList.add("bg-error-container","text-on-error-container");
+    return;
+  }
+  // No unread replies → fall back to the gold pending indicator (outgoing, still in flight).
+  b.classList.remove("bg-error-container","text-on-error-container");
+  b.classList.add("bg-primary","text-on-primary");
+  const n=inboxPendingCount(); b.textContent=String(n); b.classList.toggle("hidden", n===0);
+}
+// Mark every currently-replied message as seen → clears the red badge. Pruned to live ids.
+async function markRepliesSeen(){
+  if(!USER_ID) return;
+  const replyIds=INBOX.filter(m=>m.reply).map(m=>String(m.id));
+  if(!replyIds.length){ updateInboxBadge(); return; }
+  DATA.settings = DATA.settings || {};
+  const seen=new Set((DATA.settings.seenReplies||[]).map(String));
+  let changed=false;
+  replyIds.forEach(id=>{ if(!seen.has(id)){ seen.add(id); changed=true; } });
+  if(!changed){ updateInboxBadge(); return; }
+  const live=new Set(INBOX.map(m=>String(m.id)));
+  DATA.settings.seenReplies=[...seen].filter(id=>live.has(id));
+  updateInboxBadge();
+  const { error } = await sb.from("maestro_dashboard").update({ settings: DATA.settings }).eq("user_id", USER_ID);
+  if(error) console.warn("seen replies save:", error.message);
+}
 function taskTitleById(id){ const t=((DATA&&DATA.tasks)||[]).find(x=>String(x.id)===String(id)); return t?t.title:null; }
 async function loadInbox(){
   if(!USER_ID) return;
@@ -1140,6 +1233,10 @@ document.addEventListener("click",(e)=>{
   else if(el.dataset.act==="snooze"){ snoozeTask(el.dataset.id, el.dataset.when); }
   else if(el.dataset.act==="snooze-date"){ snoozeTaskDate(el.dataset.id); }
   else if(el.dataset.act==="unsnooze"){ unsnoozeTask(el.dataset.id); }
+  else if(el.dataset.act==="add-task"){ addTaskModal(); }
+  else if(el.dataset.act==="add-task-prio"){ selectAddTaskPrio(el); }
+  else if(el.dataset.act==="add-task-twomin"){ toggleAddTaskTwoMin(el); }
+  else if(el.dataset.act==="add-task-save"){ saveNewTask(); }
 });
 
 /* ───── SETTINGS: calendar visibility (user-owned, persisted to settings column) ───── */
@@ -1204,6 +1301,7 @@ function setView(name, force){
   $$(".view").forEach(v=>v.classList.toggle("active", v.id==="view-"+name));
   $$(".tab").forEach(t=>t.dataset.active = t.dataset.view===name?"1":"0");
   $$(".bnav").forEach(t=>t.dataset.active = t.dataset.view===name?"1":"0");
+  if(name==="inbox") markRepliesSeen();   // viewing the inbox clears the unread-reply badge
   if(keepScroll) window.scrollTo({top:y}); else window.scrollTo({top:0});
 }
 function rerender(name){ RENDERED[name]=false; if(STATE.view===name) setView(name,true); }

@@ -720,9 +720,14 @@
 
   // Role-group order (top to bottom on the per-episode view).
   // Transcript and Sponsorship come first so they surface on every new episode.
+  // "Sponsor Verification" is a Jerry-owned group that holds one auto-generated
+  // task per sponsor ("Confirm "<name>" is added to the episode"). It sits right
+  // below Sponsorship so Josh's entries and Jerry's verify tasks read top-to-bottom.
+  var SPONSOR_VERIFY_GROUP = "Sponsor Verification";
   var ROLE_GROUPS = [
     "Transcript",
     "Sponsorship",
+    "Sponsor Verification",
     "Editorial",
     "Metadata & Upload",
     "Ads & Marketing",
@@ -733,6 +738,7 @@
   var ROLE_ICONS = {
     "Transcript": "subject",
     "Sponsorship": "handshake",
+    "Sponsor Verification": "fact_check",
     "Editorial": "edit_note",
     "Metadata & Upload": "cloud_upload",
     "Ads & Marketing": "campaign",
@@ -747,6 +753,7 @@
     "Editorial": "Jerry",
     "Metadata & Upload": "Jerry",
     "Sponsorship": "Josh",
+    "Sponsor Verification": "Jerry",
     "Ads & Marketing": "Jeremy",
     "Social & Clips": "Juniper",
     "Launch Day": "Everyone",
@@ -839,7 +846,7 @@
     { role_group: "Transcript", title: "Upload Transcript to Drive", sort_order: 1,
       instructions_md: "Once the episode is shot, upload the raw transcript file to Drive (and let Jeremy know) so he can run it through the PRS SOP and generate the production sheet (titles, description, chapters, ad copy, clips, comment seeds).\n\nChecking this box flips transcript_received on the episode and unblocks the metadata + ads + clips work below." },
     { role_group: "Sponsorship", title: "Input Sponsors", sort_order: 2,
-      instructions_md: "Enter every sponsor placement in this episode. Each sponsor becomes a separate \"Cut into show\" row below for Jerry to verify the read survived the edit.\n\nClick the task to open the input form. Fields per sponsor: name, slot (mid-roll / organic / pre-roll), timestamp (optional), notes (optional).\n\nThis task auto-completes once one or more sponsors are entered." },
+      instructions_md: "Enter every sponsor placement in this episode. Click the task to open the input form — enter each sponsor as a **name** plus optional **notes**, and use \"Add another sponsor\" for multiple.\n\nOn save, each sponsor is listed in this Sponsorship section **and** gets its own task in Jerry's **Sponsor Verification** group (\"Confirm \\\"<name>\\\" is added to the episode\") so Jerry checks each read actually made the cut.\n\nThis task auto-completes once one or more sponsors are entered." },
 
     { role_group: "Editorial", title: "Apply compliance trims", sort_order: 10,
       instructions_md: "Fill in from this episode's production sheet — any 🔴 compliance trims (suicide-method language, banned-word triggers, child-safety adjacency)." },
@@ -1073,12 +1080,11 @@
   // Counts for a given role-group, including sponsor "Cut into show" rows
   // for the Sponsorship section.
   function groupCounts(group, groupItems) {
+    // Sponsors are a displayed list under Sponsorship, not tasks themselves.
+    // Verification progress is tracked by the real per-sponsor tasks in the
+    // Jerry-owned "Sponsor Verification" group (counted via groupItems there).
     var total = groupItems.length;
     var done = groupItems.filter(function (it) { return it.done; }).length;
-    if (group === "Sponsorship") {
-      total += sponsors.length;
-      done += sponsors.filter(function (s) { return !!s.cut_into_show; }).length;
-    }
     return { total: total, done: done };
   }
   // Whether a section should render expanded. Respects explicit user
@@ -1122,13 +1128,10 @@
     }
   }
   function setProgress() {
-    // Count both checklist items and sponsor "cut into show" rows.
-    var totalItems = items.length;
-    var doneItems = items.filter(function (it) { return it.done; }).length;
-    var totalSp = sponsors.length;
-    var doneSp = sponsors.filter(function (s) { return !!s.cut_into_show; }).length;
-    var total = totalItems + totalSp;
-    var done = doneItems + doneSp;
+    // Sponsor verification is now tracked as real tasks in the "Sponsor Verification"
+    // group, so it is already part of `items` — no separate sponsor counting needed.
+    var total = items.length;
+    var done = items.filter(function (it) { return it.done; }).length;
     var pct = total > 0 ? Math.round(done * 100 / total) : 0;
     var p = document.getElementById("progress");
     p.innerHTML = "";
@@ -1901,12 +1904,8 @@
   // Per-episode: overall progress bar (prominent, in content)
   // ============================================================
   function renderEpProgress(content) {
-    var totalItems = items.length;
-    var doneItems = items.filter(function (it) { return it.done; }).length;
-    var totalSp = sponsors.length;
-    var doneSp = sponsors.filter(function (s) { return !!s.cut_into_show; }).length;
-    var total = totalItems + totalSp;
-    var done = doneItems + doneSp;
+    var total = items.length;
+    var done = items.filter(function (it) { return it.done; }).length;
     if (!total) return;
     var pct = Math.round(done * 100 / total);
     var block = el("section", "ep-progress");
@@ -2246,7 +2245,7 @@
     html(card, "h3", null, "Add sponsors");
 
     html(card, "p", "text-[12px] text-secondary mb-3",
-      "One row per sponsor placement. Each one becomes a \"Cut into show\" task for Jerry below.");
+      "One row per sponsor. Each saved sponsor is listed in the Sponsorship section and gets its own verification task in Jerry's checklist.");
 
     var rowsWrap = el("div", "space-y-3");
     card.appendChild(rowsWrap);
@@ -2268,41 +2267,17 @@
       nameWrap.appendChild(nameInp);
       row.appendChild(nameWrap);
 
-      var slotWrap = document.createElement("div");
-      var slotLbl = el("label", null, "Slot"); slotWrap.appendChild(slotLbl);
-      var slotInp = document.createElement("input");
-      slotInp.type = "text"; slotInp.name = "slot";
-      slotInp.setAttribute("list", "sponsor-slots");
-      slotInp.placeholder = "mid-roll / organic / pre-roll";
-      slotWrap.appendChild(slotInp);
-      row.appendChild(slotWrap);
-
-      var tsWrap = document.createElement("div");
-      var tsLbl = el("label", null, "Timestamp"); tsWrap.appendChild(tsLbl);
-      var tsInp = document.createElement("input");
-      tsInp.type = "text"; tsInp.name = "ts";
-      tsInp.placeholder = "e.g., ~29:03";
-      tsWrap.appendChild(tsInp);
-      row.appendChild(tsWrap);
-
       var notesWrap = el("div", "full");
       var notesLbl = el("label", null, "Notes"); notesWrap.appendChild(notesLbl);
       var notesTa = document.createElement("textarea");
       notesTa.name = "notes"; notesTa.rows = 2;
-      notesTa.placeholder = "Optional — script anchor, discount code, etc.";
+      notesTa.placeholder = "Optional — slot, timestamp, discount code, script anchor, etc.";
+      if (prefill && prefill.notes) notesTa.value = prefill.notes;
       notesWrap.appendChild(notesTa);
       row.appendChild(notesWrap);
 
       rowsWrap.appendChild(row);
     }
-
-    // Datalist for slot suggestions (shared across rows)
-    var dl = document.createElement("datalist");
-    dl.id = "sponsor-slots";
-    SPONSOR_SLOTS.forEach(function (s) {
-      var o = document.createElement("option"); o.value = s; dl.appendChild(o);
-    });
-    card.appendChild(dl);
 
     // Always start with at least one empty row
     addRow();
@@ -2325,27 +2300,40 @@
     save.addEventListener("click", function () {
       err.style.display = "none";
       var rows = Array.from(rowsWrap.querySelectorAll(".sponsor-input-row"));
-      var payload = [];
+      var entered = [];
+      var seen = {};
       rows.forEach(function (r) {
         var name = r.querySelector('input[name="name"]').value.trim();
         if (!name) return;
-        payload.push({
-          episode_id: ep.id,
+        var key = name.toLowerCase();
+        if (seen[key]) return;            // de-dup within this submission
+        seen[key] = true;
+        entered.push({
           name: name,
-          slot: r.querySelector('input[name="slot"]').value.trim() || null,
-          timestamp: r.querySelector('input[name="ts"]').value.trim() || null,
-          notes: r.querySelector('textarea[name="notes"]').value.trim() || null,
-          entered_by: "Josh",
-          cut_into_show: false
+          notes: r.querySelector('textarea[name="notes"]').value.trim() || null
         });
       });
-      if (!payload.length) {
+      if (!entered.length) {
         err.textContent = "Enter at least one sponsor name.";
         err.style.display = "block";
         return;
       }
+      // Idempotent: skip any name already saved on this episode (case-insensitive).
+      var existingNames = {};
+      sponsors.forEach(function (s) { existingNames[(s.name || "").trim().toLowerCase()] = true; });
+      var fresh = entered.filter(function (e) { return !existingNames[e.name.toLowerCase()]; });
+
       save.disabled = true; save.textContent = "Saving…";
-      sb.from("prs_sponsors").insert(payload).then(function (r) {
+
+      // Insert only the new sponsors. If everything entered already exists we still
+      // reconcile verify-tasks below (self-heal) so nothing is silently missing.
+      var insertProm = fresh.length
+        ? sb.from("prs_sponsors").insert(fresh.map(function (e) {
+            return { episode_id: ep.id, name: e.name, notes: e.notes, entered_by: "Josh", cut_into_show: false };
+          }))
+        : Promise.resolve({ error: null });
+
+      insertProm.then(function (r) {
         if (r.error) {
           err.textContent = "Save failed: " + r.error.message;
           err.style.display = "block";
@@ -2353,7 +2341,13 @@
           return;
         }
         closeModal();
-        loadSponsors().then(function () { autoCompleteInputSponsors(); render(); });
+        // Reload sponsors → mark Input Sponsors done → create any missing per-sponsor
+        // verify tasks in Jerry's group → reload items → render. Everything shows at once.
+        loadSponsors()
+          .then(function () { return autoCompleteInputSponsors(); })
+          .then(function () { return syncSponsorVerifyTasks(); })
+          .then(function () { return loadItems(); })
+          .then(function () { render(); });
       });
     });
     actions.appendChild(save);
@@ -2363,16 +2357,58 @@
     root.appendChild(bd);
   }
 
+  // Deterministic verify-task title for a sponsor — used both to create the task
+  // and to detect (idempotently) whether it already exists.
+  function sponsorVerifyTitle(name) {
+    return 'Confirm "' + name + '" is added to the episode';
+  }
+
+  // Ensure every sponsor on this episode has exactly one verification task in the
+  // Jerry-owned "Sponsor Verification" group. Idempotent: only inserts the tasks
+  // that are missing, so re-saving or adding more sponsors never duplicates.
+  function syncSponsorVerifyTasks() {
+    if (!ep || !sponsors.length) return Promise.resolve();
+    var existing = {};
+    var maxSort = 0;
+    items.forEach(function (it) {
+      if (it.role_group === SPONSOR_VERIFY_GROUP) {
+        existing[(it.title || "").trim().toLowerCase()] = true;
+        if (typeof it.sort_order === "number" && it.sort_order > maxSort) maxSort = it.sort_order;
+      }
+    });
+    var toInsert = [];
+    sponsors.forEach(function (s) {
+      var title = sponsorVerifyTitle(s.name);
+      var key = title.trim().toLowerCase();
+      if (existing[key]) return;
+      existing[key] = true;             // guard against same-named sponsors in one pass
+      maxSort += 1;
+      toInsert.push({
+        episode_id: ep.id,
+        role_group: SPONSOR_VERIFY_GROUP,
+        title: title,
+        instructions_md: "Auto-created from the Sponsorship section. Confirm the sponsor **" +
+          s.name + "** is actually placed in this episode." + (s.notes ? "\n\n" + s.notes : ""),
+        sort_order: maxSort,
+        done: false
+      });
+    });
+    if (!toInsert.length) return Promise.resolve();
+    return sb.from("prs_checklist_items").insert(toInsert).then(function (r) {
+      if (r.error) console.error("verify-task insert failed:", r.error);
+    });
+  }
+
   // Auto-complete the "Input Sponsors" task once ≥1 sponsor is entered.
   function autoCompleteInputSponsors() {
-    if (!sponsors.length) return;
+    if (!sponsors.length) return Promise.resolve();
     var inp = items.find(function (it) {
       return it.role_group === "Sponsorship" && it.title === "Input Sponsors";
     });
-    if (!inp || inp.done) return;
+    if (!inp || inp.done) return Promise.resolve();
     var nowIso = new Date().toISOString();
     inp.done = true; inp.done_at = nowIso;
-    sb.from("prs_checklist_items").update({ done: true, done_at: nowIso }).eq("id", inp.id).then(function (r) {
+    return sb.from("prs_checklist_items").update({ done: true, done_at: nowIso }).eq("id", inp.id).then(function (r) {
       if (r.error) console.error(r.error);
     });
   }
@@ -2434,41 +2470,25 @@
     return row;
   }
   function renderSponsorRow(s) {
-    var row = document.createElement("details");
-    row.className = "sponsor-row";
+    var row = el("div", "sponsor-row");
 
-    var cbWrap = el("label", "flex-shrink-0 cursor-pointer flex items-center pt-0.5");
-    cbWrap.addEventListener("click", function (e) { e.stopPropagation(); });
-    var cb = document.createElement("input");
-    cb.type = "checkbox"; cb.className = "cb"; cb.checked = !!s.cut_into_show;
-    cb.addEventListener("change", function () { toggleSponsorCut(s); });
-    cbWrap.appendChild(cb);
-    row.appendChild(cbWrap);
+    // Leading handshake glyph keeps the row visually aligned with the checkbox
+    // column of the checklist items above it.
+    var lead = el("span", "flex-shrink-0 pt-0.5");
+    lead.appendChild(icon("handshake", "text-primary/70 text-[18px]"));
+    row.appendChild(lead);
 
     var body = el("div", "body");
     var nameRow = el("div", "flex items-center gap-2 flex-wrap");
-    var nameSpan = el("span", "name" + (s.cut_into_show ? " cut" : ""), s.name);
+    var nameSpan = el("span", "name", s.name);
     nameRow.appendChild(nameSpan);
-    var jerry = el("span", "row-owner-chip", "Jerry");
-    nameRow.appendChild(jerry);
+    var via = el("span", "row-owner-chip", s.entered_by || "Josh");
+    nameRow.appendChild(via);
     body.appendChild(nameRow);
 
-    // Subtitle: slot · timestamp · cut-into-show meta
+    // Subtitle: points at the matching Jerry verification task.
     var sub = el("div", "sub");
-    if (s.slot) {
-      var sl = el("span"); sl.textContent = s.slot; sub.appendChild(sl);
-    }
-    if (s.timestamp) {
-      if (s.slot) html(sub, "span", "sep", "·");
-      var ts = el("span"); ts.textContent = s.timestamp; sub.appendChild(ts);
-    }
-    if (!s.cut_into_show) {
-      if (s.slot || s.timestamp) html(sub, "span", "sep", "·");
-      var status = el("span"); status.textContent = "Cut into show — not yet verified"; sub.appendChild(status);
-    } else if (s.cut_at) {
-      if (s.slot || s.timestamp) html(sub, "span", "sep", "·");
-      var ok = el("span"); ok.textContent = "Verified in cut · " + shortDate(s.cut_at); sub.appendChild(ok);
-    }
+    var status = el("span"); status.textContent = "Verification task created for Jerry"; sub.appendChild(status);
     body.appendChild(sub);
 
     if (s.notes) {
@@ -2633,25 +2653,19 @@
       });
     }
   }
-  function toggleSponsorCut(s) {
-    var newCut = !s.cut_into_show;
-    var nowIso = new Date().toISOString();
-    s.cut_into_show = newCut;
-    s.cut_at = newCut ? nowIso : null;
-    delete sectionUserState["Sponsorship"];
-    render();
-    sb.from("prs_sponsors").update({
-      cut_into_show: newCut,
-      cut_at: newCut ? nowIso : null
-    }).eq("id", s.id).then(function (r) {
-      if (r.error) { console.error(r.error); alert("Toggle failed: " + r.error.message); loadSponsors().then(render); }
-    });
-  }
   function deleteSponsor(s) {
-    if (!confirm("Delete this sponsor?\n\n" + s.name)) return;
+    if (!confirm("Delete this sponsor?\n\n" + s.name +
+      "\n\nThis also removes its verification task from Jerry's checklist.")) return;
     sb.from("prs_sponsors").delete().eq("id", s.id).then(function (r) {
-      if (r.error) alert("Delete failed: " + r.error.message);
-      else loadSponsors().then(render);
+      if (r.error) { alert("Delete failed: " + r.error.message); return; }
+      // Remove the matching per-sponsor verify task so the two stay in sync.
+      sb.from("prs_checklist_items").delete()
+        .eq("episode_id", ep.id)
+        .eq("role_group", SPONSOR_VERIFY_GROUP)
+        .eq("title", sponsorVerifyTitle(s.name))
+        .then(function () {
+          Promise.all([loadSponsors(), loadItems()]).then(render);
+        });
     });
   }
   function addItem(group) {
@@ -2925,9 +2939,12 @@
       ep = r.data;
       Promise.all([loadItems(), loadSponsors(), loadPastEpisodes()]).then(function () {
         // If there are sponsors but the Input Sponsors task is still pending, fix it.
+        // Also backfill any missing per-sponsor verify tasks (idempotent self-heal for
+        // episodes whose sponsors were entered before this flow existed).
         autoCompleteInputSponsors();
         render();
         subscribeRealtime();
+        syncSponsorVerifyTasks().then(function () { loadItems().then(render); });
       });
     });
   }

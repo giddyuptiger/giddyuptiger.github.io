@@ -868,7 +868,7 @@ function addTaskModal(){
   h+='<div><label for="add-task-project" class="block text-[11px] font-bold tracking-widest text-on-surface-variant/70 uppercase mb-2">Project</label>'+
      '<select id="add-task-project" class="w-full bg-surface-container-lowest/80 border hairline rounded-xl px-3.5 py-2.5 text-[14px] text-on-surface focus:border-primary/50 transition-colors">'+
        '<option value="">No project</option>'+
-       projects.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.name)+'</option>').join("")+
+       projects.map(p=>'<option value="'+esc(p.id)+'"'+(/^personal$/i.test(String(p.name||"").trim())?' selected':'')+'>'+esc(p.name)+'</option>').join("")+
      '</select></div>';
   // Priority horizon — same button grid as the per-task control; default This Week
   h+='<div><p class="text-[11px] font-bold tracking-widest text-on-surface-variant/70 uppercase mb-2">Time horizon</p>'+

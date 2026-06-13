@@ -1041,6 +1041,7 @@ async function loadRuns(){
   try{
     const { data, error } = await sb.from("maestro_runs")
       .select("id,title,status,steps_total,steps_done,current_step,started_at,updated_at,finished_at,eta_seconds,source")
+      .eq("user_id", USER_ID)               // explicit owner scope (matches realtime filter); RLS is the real boundary, this is defense-in-depth so another user's runs can never surface even if a policy regresses
       .order("started_at",{ascending:false}).limit(60);
     if(error) return;                       // RLS / transient — keep last known, no regression
     RUNS = data || [];

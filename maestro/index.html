@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0b0b0b">
+<meta name="theme-color" content="#16181B">
 <title>Maestro</title>
 <meta name="description" content="Maestro — your private operating layer.">
 <meta name="robots" content="noindex, nofollow">
@@ -14,17 +14,17 @@
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
 <script>
   tailwind.config = { darkMode:"class", theme:{ extend:{
-    colors:{ "primary":"#f2ca50","primary-container":"#d4af37","on-primary":"#3c2f00","secondary":"#c8c6c5",
-      "on-surface":"#e5e2e1","on-surface-variant":"#d0c5af","surface":"#0e0e0e","background":"#0b0b0b",
-      "surface-container":"#1a1919","surface-container-low":"#151414","surface-container-lowest":"#0a0a0a",
-      "surface-container-high":"#262525","surface-variant":"#353534","outline":"#99907c","outline-variant":"#3a3527",
+    colors:{ "primary":"#C5E45C","primary-container":"#B2D247","on-primary":"#15171A","secondary":"#9BA1A6",
+      "on-surface":"#F2F4F1","on-surface-variant":"#9BA1A6","surface":"#1E2125","background":"#16181B",
+      "surface-container":"#1E2125","surface-container-low":"#1A1C20","surface-container-lowest":"#131518",
+      "surface-container-high":"#262A2F","surface-variant":"#2E333A","outline":"#3A4047","outline-variant":"#2E333A",
       "blue":"#7aa2f7","green":"#9ece6a","error-container":"#93000a","on-error-container":"#ffdad6" },
     fontFamily:{ "sans":["Inter","system-ui","sans-serif"],"mono":["JetBrains Mono","ui-monospace","monospace"] } } } };
 </script>
 <style>
-  html,body{ background-color:#0b0b0b; }
-  body{ font-family:'Inter',sans-serif; color:#e5e2e1; -webkit-font-smoothing:antialiased; min-height:100dvh;
-    background-image: radial-gradient(1200px 600px at 12% -8%, rgba(242,202,80,0.07), transparent 60%), radial-gradient(900px 500px at 100% 0%, rgba(122,162,247,0.05), transparent 55%);
+  html,body{ background-color:#16181B; }
+  body{ font-family:'Inter',sans-serif; color:#F2F4F1; -webkit-font-smoothing:antialiased; min-height:100dvh;
+    background-image: radial-gradient(1200px 600px at 12% -8%, rgba(197,228,92,0.07), transparent 60%), radial-gradient(900px 500px at 100% 0%, rgba(122,162,247,0.05), transparent 55%);
     background-attachment:fixed; }
   body::after{ content:""; position:fixed; inset:0; pointer-events:none; z-index:1; opacity:.035;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
@@ -33,26 +33,26 @@
   .pulse-dot{ animation:pulseFade 2.4s cubic-bezier(.4,0,.6,1) infinite; } @keyframes pulseFade{0%,100%{opacity:1}50%{opacity:.35}}
   .rise{ opacity:0; transform:translateY(10px); animation:rise .5s cubic-bezier(.16,1,.3,1) forwards; } @keyframes rise{to{opacity:1;transform:none}}
   .run-indet{ animation:runPulse 1.2s ease-in-out infinite; } @keyframes runPulse{0%,100%{opacity:.45}50%{opacity:1}}
-  .gold-edge{ box-shadow:inset 0 0 0 1px rgba(242,202,80,0.22), 0 24px 60px -30px rgba(0,0,0,0.9); }
-  .hairline{ border-color:rgba(154,144,124,0.16); }
-  .tab{ position:relative; transition:color .2s; } .tab[data-active="1"]{ color:#f2ca50; }
-  .tab[data-active="1"]::after{ content:""; position:absolute; left:8px; right:8px; bottom:-13px; height:2px; background:#f2ca50; border-radius:2px; }
-  .bnav[data-active="1"]{ color:#f2ca50; } .bnav[data-active="1"] .material-symbols-outlined{ font-variation-settings:'FILL' 1; }
+  .accent-edge{ box-shadow:inset 0 0 0 1px rgba(197,228,92,0.22), 0 24px 60px -30px rgba(0,0,0,0.9); }
+  .hairline{ border-color:rgba(155,161,166,0.16); }
+  .tab{ position:relative; transition:color .2s; } .tab[data-active="1"]{ color:#C5E45C; }
+  .tab[data-active="1"]::after{ content:""; position:absolute; left:8px; right:8px; bottom:-13px; height:2px; background:#C5E45C; border-radius:2px; }
+  .bnav[data-active="1"]{ color:#C5E45C; } .bnav[data-active="1"] .material-symbols-outlined{ font-variation-settings:'FILL' 1; }
   .view{ display:none; } .view.active{ display:block; animation:viewIn .35s cubic-bezier(.16,1,.3,1); } @keyframes viewIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
   #modal{ position:fixed; inset:0; z-index:80; display:flex; align-items:flex-end; justify-content:center; opacity:0; pointer-events:none; transition:opacity .25s; }
   @media(min-width:640px){ #modal{ align-items:center; padding:24px; } }
   #modal.open{ opacity:1; pointer-events:auto; }
   #modal-backdrop{ position:absolute; inset:0; background:rgba(0,0,0,.66); backdrop-filter:blur(6px); }
-  #modal-panel{ position:relative; width:100%; max-width:560px; max-height:92dvh; overflow-y:auto; background:#141313; border:1px solid rgba(154,144,124,0.22); border-radius:22px 22px 0 0; transform:translateY(40px); transition:transform .3s cubic-bezier(.16,1,.3,1); }
+  #modal-panel{ position:relative; width:100%; max-width:560px; max-height:92dvh; overflow-y:auto; background:#262A2F; border:1px solid rgba(155,161,166,0.22); border-radius:22px 22px 0 0; transform:translateY(40px); transition:transform .3s cubic-bezier(.16,1,.3,1); }
   @media(min-width:640px){ #modal-panel{ border-radius:22px; transform:translateY(16px) scale(.98); } }
   #modal.open #modal-panel{ transform:none; }
-  .modal-grip{ width:38px; height:4px; border-radius:4px; background:#3a3527; margin:10px auto 0; } @media(min-width:640px){ .modal-grip{ display:none; } }
+  .modal-grip{ width:38px; height:4px; border-radius:4px; background:#2E333A; margin:10px auto 0; } @media(min-width:640px){ .modal-grip{ display:none; } }
   .pressable{ transition:transform .12s ease, background-color .2s, border-color .2s; } .pressable:active{ transform:scale(.985); }
   #toasts{ position:fixed; left:0; right:0; bottom:84px; z-index:90; display:flex; flex-direction:column; align-items:center; gap:8px; pointer-events:none; padding:0 16px; }
   @media(min-width:640px){ #toasts{ bottom:24px; } }
-  .toast{ pointer-events:auto; max-width:460px; background:#1f1e1d; border:1px solid rgba(242,202,80,0.28); color:#e5e2e1; padding:11px 15px; border-radius:13px; font-size:13.5px; display:flex; align-items:center; gap:10px; box-shadow:0 14px 40px -14px rgba(0,0,0,.9); transform:translateY(16px); opacity:0; transition:all .3s cubic-bezier(.16,1,.3,1); }
+  .toast{ pointer-events:auto; max-width:460px; background:#262A2F; border:1px solid rgba(197,228,92,0.28); color:#F2F4F1; padding:11px 15px; border-radius:13px; font-size:13.5px; display:flex; align-items:center; gap:10px; box-shadow:0 14px 40px -14px rgba(0,0,0,.9); transform:translateY(16px); opacity:0; transition:all .3s cubic-bezier(.16,1,.3,1); }
   .toast.show{ transform:none; opacity:1; }
-  ::-webkit-scrollbar{ height:8px; width:8px; } ::-webkit-scrollbar-thumb{ background:#2a2a2a; border-radius:8px; }
+  ::-webkit-scrollbar{ height:8px; width:8px; } ::-webkit-scrollbar-thumb{ background:#2E333A; border-radius:8px; }
   input:focus{ outline:none; }
   @media (prefers-reduced-motion: reduce){ *{animation-duration:.001ms !important; transition-duration:.001ms !important;} }
 </style>
@@ -67,7 +67,7 @@
       <h1 class="text-[22px] font-extrabold tracking-tight text-primary">MAESTRO</h1>
       <p class="text-[12px] tracking-[0.2em] text-on-surface-variant/60 uppercase mt-1">Your private operating layer</p>
     </div>
-    <form id="login-form" class="rounded-2xl gold-edge bg-surface-container/70 p-6 space-y-3.5">
+    <form id="login-form" class="rounded-2xl accent-edge bg-surface-container/70 p-6 space-y-3.5">
       <div>
         <label class="block text-[11px] font-bold tracking-widest text-on-surface-variant/70 uppercase mb-1.5">Email</label>
         <input id="email" type="email" autocomplete="username" inputmode="email" required
@@ -100,7 +100,7 @@
       <h1 class="text-[22px] font-extrabold tracking-tight text-primary">Reset your password</h1>
       <p class="text-[12.5px] text-on-surface-variant/60 mt-1 text-center max-w-[18rem]">We’ll email you a secure link to set a new one.</p>
     </div>
-    <form id="forgot-form" class="rounded-2xl gold-edge bg-surface-container/70 p-6 space-y-3.5">
+    <form id="forgot-form" class="rounded-2xl accent-edge bg-surface-container/70 p-6 space-y-3.5">
       <div>
         <label class="block text-[11px] font-bold tracking-widest text-on-surface-variant/70 uppercase mb-1.5">Email</label>
         <input id="forgot-email" type="email" autocomplete="username" inputmode="email" required
@@ -124,7 +124,7 @@
       <h1 class="text-[22px] font-extrabold tracking-tight text-primary">Set a new password</h1>
       <p class="text-[12.5px] text-on-surface-variant/60 mt-1 text-center max-w-[18rem]">Choose a new password for your account.</p>
     </div>
-    <form id="reset-form" class="rounded-2xl gold-edge bg-surface-container/70 p-6 space-y-3.5">
+    <form id="reset-form" class="rounded-2xl accent-edge bg-surface-container/70 p-6 space-y-3.5">
       <div>
         <label class="block text-[11px] font-bold tracking-widest text-on-surface-variant/70 uppercase mb-1.5">New password</label>
         <input id="reset-pw" type="password" autocomplete="new-password" required minlength="6"
@@ -336,7 +336,7 @@ let SWIPE_GUARD_UNTIL=0;
 // Capture-phase: swallow the one trailing click after a swipe so it can't hit the modal backdrop
 // (which would instantly close the snooze sheet) or fire an underlying button.
 document.addEventListener("click",(e)=>{ if(Date.now()<SWIPE_GUARD_UNTIL){ SWIPE_GUARD_UNTIL=0; e.preventDefault(); e.stopPropagation(); } }, true);
-function mhead(title,sub){ return '<div class="sticky top-0 bg-[#141313]/95 backdrop-blur px-5 sm:px-6 pt-3 pb-3 flex items-start justify-between gap-3 border-b hairline z-10"><div class="min-w-0"><h2 class="text-[19px] font-extrabold tracking-tight text-on-surface">'+title+'</h2>'+(sub?'<p class="text-[12px] text-on-surface-variant/70">'+sub+'</p>':'')+'</div><button class="mclose pressable flex-shrink-0 w-9 h-9 rounded-full bg-surface-container-high hover:bg-surface-variant flex items-center justify-center text-on-surface-variant" data-act="close-modal" aria-label="Close"><span class="material-symbols-outlined text-[20px]">close</span></button></div>'; }
+function mhead(title,sub){ return '<div class="sticky top-0 bg-[#262A2F]/95 backdrop-blur px-5 sm:px-6 pt-3 pb-3 flex items-start justify-between gap-3 border-b hairline z-10"><div class="min-w-0"><h2 class="text-[19px] font-extrabold tracking-tight text-on-surface">'+title+'</h2>'+(sub?'<p class="text-[12px] text-on-surface-variant/70">'+sub+'</p>':'')+'</div><button class="mclose pressable flex-shrink-0 w-9 h-9 rounded-full bg-surface-container-high hover:bg-surface-variant flex items-center justify-center text-on-surface-variant" data-act="close-modal" aria-label="Close"><span class="material-symbols-outlined text-[20px]">close</span></button></div>'; }
 
 /* ───── event modal (with write affordances) ───── */
 function eventModal(e){
@@ -460,7 +460,7 @@ function renderOverview(){
 
   // ── now / next (the single most useful glance) ──
   if(focusEvent){
-    H += '<div class="rise mb-5 rounded-2xl gold-edge bg-surface-container/70 p-4 flex items-center gap-3" style="animation-delay:.04s">'+
+    H += '<div class="rise mb-5 rounded-2xl accent-edge bg-surface-container/70 p-4 flex items-center gap-3" style="animation-delay:.04s">'+
       '<span class="w-11 h-11 rounded-xl bg-primary/12 flex items-center justify-center flex-shrink-0" style="color:'+calColor(focusEvent.calendar)+'"><span class="material-symbols-outlined text-[24px]">'+kindOf(focusEvent).icon+'</span></span>'+
       '<div class="min-w-0 flex-1"><p class="text-[10.5px] font-bold tracking-widest text-primary uppercase">'+(current?"Happening now":"Up next")+'</p><p class="text-[16px] font-bold text-on-surface truncate">'+esc(focusEvent.title)+'</p>'+(focusEvent.location&&focusEvent.location!=="—"?'<p class="text-[12px] text-on-surface-variant/60 truncate">'+esc(focusEvent.location)+'</p>':'')+'</div>'+
       '<span class="text-[13px] font-mono text-on-surface-variant/70 flex-shrink-0">'+(focusEvent.allDay?"all day":fmtTime(focusEvent.start)+(focusEvent.end?"–"+fmtTime(focusEvent.end):""))+'</span></div>';
@@ -947,7 +947,7 @@ function updateInboxBadge(){
     b.classList.add("bg-error-container","text-on-error-container");
     return;
   }
-  // No unread replies → fall back to the gold pending indicator (outgoing, still in flight).
+  // No unread replies → fall back to the accent pending indicator (outgoing, still in flight).
   b.classList.remove("bg-error-container","text-on-error-container");
   b.classList.add("bg-primary","text-on-primary");
   const n=inboxPendingCount(); b.textContent=String(n); b.classList.toggle("hidden", n===0);
@@ -1083,7 +1083,7 @@ function runCardHTML(r){
   const pct=runPct(r);
   const isDone=r.status==="done", isErr=r.status==="error";
   const indeterminate=(pct===null && !isDone && !isErr);
-  const barColor=isErr? "#ef5350" : (isDone? "#36c275" : "#f2ca50");
+  const barColor=isErr? "#ef5350" : (isDone? "#36c275" : "#C5E45C");
   const pill = isDone ? '<span class="text-[10px] font-bold uppercase tracking-wider text-green bg-green/10 px-2 py-0.5 rounded-full">Done</span>'
              : isErr  ? '<span class="text-[10px] font-bold uppercase tracking-wider text-on-error-container bg-error-container/30 px-2 py-0.5 rounded-full">Error</span>'
              : r.status==="queued" ? '<span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 bg-surface-container-high px-2 py-0.5 rounded-full">Queued</span>'

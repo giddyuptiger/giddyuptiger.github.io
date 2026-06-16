@@ -496,6 +496,8 @@ function renderOverview(){
     '<p class="text-[11.5px] text-on-surface-variant/60 font-mono mt-0.5">'+fmtDayLabel(tkey).toUpperCase()+'</p></div>'+
     '</div>';
 
+  H += northStarBanner();
+
   // ── now / next (the single most useful glance) ──
   if(focusEvent){
     H += '<div class="rise mb-5 rounded-2xl accent-edge bg-surface-container/70 p-4 flex items-center gap-3" style="animation-delay:.04s">'+
@@ -597,11 +599,119 @@ function pstate(s){ return PSTATE[s] || { label:s||"", pill:"bg-surface-containe
 function linkLabel(u){ return String(u||"").replace(/^https?:\/\//,"").replace(/\/$/,""); }
 function projById(id){ return (DATA.projects||[]).find(p=>p.id===id); }
 
+/* ───── GOALS — SMART goal, blocker, progress bar per project + the annual North Star.
+   Seeded by the brain into the projects column; surfaced on every card and editable in-app.
+   Edits write straight back to the projects/settings columns under the user's own RLS, the
+   same write path tasks use (writeTasksCol), so Jeremy can edit goals from the project list. ───── */
+function gnum(v){ const n=parseFloat(v); return isFinite(n)?n:null; }
+function hasGoalTarget(p){ return gnum(p&&p.goal_target)!=null; }
+function goalPct(p){ const t=gnum(p&&p.goal_target); if(t==null||t<=0) return null; const c=gnum(p&&p.goal_current)||0; return Math.max(0,Math.min(100,Math.round(c/t*100))); }
+function blockerActive(p){ const b=String(p&&p.blocker||"").trim(); return !!b && !/^none\b/i.test(b); }
+function goalProgressBar(p,big){
+  if(!hasGoalTarget(p)) return "";
+  const pct=goalPct(p), t=gnum(p.goal_target), c=gnum(p.goal_current)||0, u=p.goal_unit?(" "+esc(p.goal_unit)):"";
+  return '<div class="'+(big?"mb-1":"mb-2")+'">'+
+    '<div class="flex items-center justify-between mb-1 gap-2"><span class="text-[10px] font-mono text-on-surface-variant/60 truncate">'+esc(String(c))+' / '+esc(String(t))+u+'</span><span class="text-[10px] font-mono text-primary flex-shrink-0">'+pct+'%</span></div>'+
+    '<div class="h-1.5 rounded-full bg-surface-container-high overflow-hidden"><div class="h-full rounded-full bg-primary" style="width:'+pct+'%"></div></div></div>';
+}
+function blockerChipHTML(p){
+  if(blockerActive(p)) return '<span class="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-on-error-container/30 bg-error-container/15 text-on-error-container/90 max-w-full"><span class="material-symbols-outlined text-[12px] flex-shrink-0">block</span><span class="truncate">'+esc(p.blocker)+'</span></span>';
+  return '<span class="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-green/30 bg-green/10 text-green"><span class="material-symbols-outlined text-[12px]">check_circle</span>No blockers</span>';
+}
+function goalCardHTML(p){
+  let out='';
+  if(p&&p.smart_goal) out+='<div class="flex items-start gap-1.5 mb-2"><span class="material-symbols-outlined text-[14px] text-primary/80 flex-shrink-0 mt-[1px]">flag</span><p class="text-[11.5px] text-on-surface-variant/75 leading-snug line-clamp-2">'+esc(p.smart_goal)+'</p></div>';
+  out+=goalProgressBar(p,false);
+  if(p&&(p.smart_goal||p.blocker||hasGoalTarget(p))) out+='<div class="mb-2.5 flex min-w-0">'+blockerChipHTML(p)+'</div>';
+  return out;
+}
+function goalModalSection(p){
+  let h='<div class="rounded-xl border hairline bg-surface-container/40 p-4 space-y-3">';
+  h+='<div class="flex items-center justify-between gap-2"><span class="text-[11px] font-bold tracking-widest text-primary uppercase flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px]">flag</span>Goal &amp; blocker</span>'+
+     '<button data-act="edit-goal" data-id="'+esc(p.id)+'" class="pressable inline-flex items-center gap-1 text-[11.5px] font-semibold text-primary hover:brightness-110"><span class="material-symbols-outlined text-[15px]">edit</span>Edit</button></div>';
+  if(p.smart_goal) h+='<p class="text-[13px] text-on-surface/85 leading-snug">'+esc(p.smart_goal)+'</p>';
+  else h+='<p class="text-[12.5px] text-on-surface-variant/50">No SMART goal yet — tap Edit to add one.</p>';
+  if(hasGoalTarget(p)) h+=goalProgressBar(p,true);
+  h+='<div class="flex items-start gap-2 pt-0.5"><span class="material-symbols-outlined text-[15px] '+(blockerActive(p)?"text-on-error-container/80":"text-green")+' flex-shrink-0 mt-[1px]">'+(blockerActive(p)?"block":"check_circle")+'</span><p class="text-[12.5px] '+(blockerActive(p)?"text-on-surface/80":"text-green")+' leading-snug">'+(blockerActive(p)?esc(p.blocker):"No blockers")+'</p></div>';
+  h+='</div>';
+  return h;
+}
+function goalFieldInput(id,label,val,type,ph){ return '<div><label for="'+id+'" class="block text-[11px] font-bold tracking-widest text-on-surface-variant/70 uppercase mb-2">'+esc(label)+'</label><input id="'+id+'" type="'+(type||"text")+'" value="'+esc(val)+'" autocomplete="off" placeholder="'+esc(ph||"")+'" class="w-full bg-surface-container-lowest/80 border hairline rounded-xl px-3 py-2.5 text-[14px] text-on-surface focus:border-primary/50 transition-colors"></div>'; }
+function goalFieldArea(id,label,val,ph){ return '<div><label for="'+id+'" class="block text-[11px] font-bold tracking-widest text-on-surface-variant/70 uppercase mb-2">'+esc(label)+'</label><textarea id="'+id+'" rows="3" placeholder="'+esc(ph||"")+'" class="w-full bg-surface-container-lowest/80 border hairline rounded-xl px-3 py-2.5 text-[14px] text-on-surface leading-snug focus:border-primary/50 transition-colors resize-y">'+esc(val)+'</textarea></div>'; }
+function goalEditModal(p){
+  let h=mhead("Edit goal", esc(p.name));
+  h+='<div class="px-5 sm:px-6 py-5 space-y-4">';
+  h+=goalFieldArea("goal-smart","SMART goal", p.smart_goal||"", "What does done look like, by when?");
+  h+=goalFieldArea("goal-blocker","Blocker", p.blocker||"", "What is in the way? (leave blank or “None” if clear)");
+  h+='<div class="grid grid-cols-3 gap-3">'+
+       goalFieldInput("goal-current","Current", p.goal_current!=null?String(p.goal_current):"", "number","0")+
+       goalFieldInput("goal-target","Target", p.goal_target!=null?String(p.goal_target):"", "number","—")+
+       goalFieldInput("goal-unit","Unit", p.goal_unit||"", "text","users")+
+     '</div>';
+  h+='<p class="text-[11px] text-on-surface-variant/45 flex items-center gap-1.5"><span class="material-symbols-outlined text-[15px]">cloud_done</span>Saved to your account — edit goals &amp; blockers right from the project list.</p>';
+  h+='<button data-act="goal-save" data-id="'+esc(p.id)+'" class="pressable w-full flex items-center justify-center gap-2 bg-primary text-on-primary font-bold text-[13.5px] py-2.5 rounded-xl hover:brightness-110"><span class="material-symbols-outlined text-[18px]">save</span>Save goal</button>';
+  h+='</div>';
+  openModal(h);
+  setTimeout(()=>{ const n=$("#goal-smart"); if(n) n.focus(); },60);
+}
+async function writeProjectsCol(){
+  const { error } = await sb.from("maestro_dashboard").update({ projects: DATA.projects }).eq("user_id", USER_ID);
+  if(error){ toast("Couldn’t save: "+error.message,"error"); }
+}
+async function saveGoalEdit(id){
+  const p=projById(id); if(!p) return;
+  if(!USER_ID){ toast("Sign in first","lock"); return; }
+  const g=$("#goal-smart"), b=$("#goal-blocker"), t=$("#goal-target"), c=$("#goal-current"), u=$("#goal-unit");
+  p.smart_goal=(g&&g.value||"").trim();
+  p.blocker=(b&&b.value||"").trim();
+  const tv=(t&&t.value||"").trim(), cv=(c&&c.value||"").trim(), uv=(u&&u.value||"").trim();
+  if(tv===""){ delete p.goal_target; } else { const n=parseFloat(tv); p.goal_target=isFinite(n)?n:tv; }
+  if(cv===""){ delete p.goal_current; } else { const n=parseFloat(cv); p.goal_current=isFinite(n)?n:cv; }
+  if(uv==="") delete p.goal_unit; else p.goal_unit=uv;
+  closeModal(); RENDERED.projects=false; RENDERED.overview=false; setView(STATE.view,true);
+  toast("Goal saved","flag");
+  await writeProjectsCol();
+}
+/* North Star — the annual guiding goal, stored in settings.northStar ({text, year}); editable banner. */
+function northStarData(){ const ns=DATA&&DATA.settings&&DATA.settings.northStar; if(!ns) return null; return (typeof ns==="string")?{text:ns}:ns; }
+function northStarBanner(){
+  const ns=northStarData();
+  const txt = ns&&ns.text ? esc(ns.text) : '<span class="text-on-surface-variant/45">Set your annual North Star — your one guiding goal for the year.</span>';
+  const yr = ns&&ns.year ? ' · '+esc(String(ns.year)) : '';
+  return '<div class="rise mb-5 rounded-2xl border border-primary/30 bg-primary/[0.06] p-4 flex items-start gap-3" style="animation-delay:.03s">'+
+    '<span class="material-symbols-outlined text-primary text-[22px] flex-shrink-0 mt-[1px] ms-fill">star</span>'+
+    '<div class="min-w-0 flex-1"><p class="text-[10.5px] font-bold tracking-widest text-primary uppercase mb-0.5">North Star'+yr+'</p>'+
+    '<p class="text-[13px] text-on-surface/85 leading-snug">'+txt+'</p></div>'+
+    '<button data-act="edit-northstar" title="Edit North Star" aria-label="Edit North Star" class="pressable flex-shrink-0 w-8 h-8 rounded-full bg-surface-container-high hover:bg-surface-variant flex items-center justify-center text-on-surface-variant/70 hover:text-primary"><span class="material-symbols-outlined text-[18px]">edit</span></button></div>';
+}
+function northStarModal(){
+  const ns=northStarData()||{};
+  let h=mhead("North Star","Your one guiding goal for the year");
+  h+='<div class="px-5 sm:px-6 py-5 space-y-4">';
+  h+=goalFieldInput("ns-year","Year", ns.year!=null?String(ns.year):String(new Date().getFullYear()), "number","2026");
+  h+=goalFieldArea("ns-text","North Star", ns.text||"", "e.g. Cross 1,000 paying users across the portfolio and close on a home.");
+  h+='<button data-act="ns-save" class="pressable w-full flex items-center justify-center gap-2 bg-primary text-on-primary font-bold text-[13.5px] py-2.5 rounded-xl hover:brightness-110"><span class="material-symbols-outlined text-[18px]">save</span>Save North Star</button>';
+  h+='</div>';
+  openModal(h);
+  setTimeout(()=>{ const n=$("#ns-text"); if(n) n.focus(); },60);
+}
+async function saveNorthStar(){
+  if(!USER_ID){ toast("Sign in first","lock"); return; }
+  const t=$("#ns-text"), y=$("#ns-year");
+  const text=(t&&t.value||"").trim(); const yr=parseInt(y&&y.value,10);
+  DATA.settings=DATA.settings||{};
+  DATA.settings.northStar={ text:text, year:isFinite(yr)?yr:new Date().getFullYear() };
+  closeModal(); RENDERED.overview=false; setView(STATE.view,true);
+  toast("North Star saved","star");
+  const { error } = await sb.from("maestro_dashboard").update({ settings: DATA.settings }).eq("user_id", USER_ID);
+  if(error){ toast("Couldn’t save: "+error.message,"error"); }
+}
 function projectCard(p){
   const st=pstate(p.state);
   return '<button data-act="open-project" data-id="'+esc(p.id)+'" class="pressable text-left w-full rounded-xl bg-surface-container/80 border hairline p-3.5 hover:border-primary/35 group">'+
     '<div class="flex items-start justify-between gap-2 mb-1"><h4 class="text-[14.5px] font-bold text-on-surface leading-tight">'+esc(p.name)+'</h4><span class="w-2 h-2 rounded-full '+st.dot+' mt-1.5 flex-shrink-0"></span></div>'+
     (p.shortStatus?'<p class="text-[12px] text-on-surface-variant/65 leading-snug mb-2.5 line-clamp-2">'+esc(p.shortStatus)+'</p>':'<div class="mb-2.5"></div>')+
+    goalCardHTML(p)+
     '<div class="flex items-center justify-between gap-2"><span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border '+st.pill+'">'+st.label+'</span>'+
     '<span class="text-[10.5px] font-mono '+(/asap/i.test(p.urgency)?"text-on-error-container":"text-on-surface-variant/45")+' flex items-center gap-1 group-hover:text-primary transition-colors">'+(p.urgency?esc(p.urgency)+' ':'')+(p.url?'<span class="material-symbols-outlined text-[15px]">link</span>':'')+'<span class="material-symbols-outlined text-[15px]">chevron_right</span></span></div></button>';
 }
@@ -616,6 +726,7 @@ function projectModal(p){
     const allDone=linked.every(t=>taskDone(t.id)), ids=linked.map(t=>t.id).join(",");
     h+='<button data-act="mark-task" data-ids="'+esc(ids)+'" data-pid="'+esc(p.id)+'" data-done="'+(allDone?"1":"0")+'" class="pressable w-full flex items-center justify-center gap-2 font-bold text-[13.5px] py-2.5 rounded-xl '+(allDone?"bg-surface-container-high text-on-surface hover:bg-surface-variant":"bg-primary text-on-primary hover:brightness-110")+'"><span class="material-symbols-outlined text-[18px]'+(allDone?" text-green ms-fill":"")+'">'+(allDone?"undo":"check_circle")+'</span>'+(allDone?"Done ✓ — mark not done":"Mark done")+'</button>';
   }
+  h+=goalModalSection(p);
   if(p.note) h+='<p class="text-[14px] leading-relaxed text-on-surface/85">'+esc(p.note)+'</p>';
   if(p.nextStep) h+='<div class="rounded-xl border border-primary/25 bg-primary/5 p-4"><div class="flex items-center gap-2 mb-1"><span class="material-symbols-outlined text-primary text-[18px]">bolt</span><span class="text-[11px] font-bold tracking-widest text-primary uppercase">Next action</span></div><p class="text-[13.5px] text-on-surface/90 leading-snug">'+esc(p.nextStep)+'</p></div>';
   if(p.url) h+='<a href="'+esc(p.url)+'" target="_blank" rel="noopener" class="pressable w-full flex items-center gap-3 rounded-xl border hairline bg-surface-container/40 hover:border-primary/30 px-4 py-3"><span class="material-symbols-outlined text-primary text-[20px]">open_in_new</span><span class="text-[13px] text-on-surface flex-1 truncate">'+esc(linkLabel(p.url))+'</span><span class="material-symbols-outlined text-on-surface-variant/40 text-[18px]">arrow_outward</span></a>';
@@ -1264,6 +1375,10 @@ document.addEventListener("click",(e)=>{
   const el=e.target.closest("[data-act]"); if(!el) return;
   if(el.dataset.act==="open-project"){ const p=projById(el.dataset.id); if(p) projectModal(p); }
   else if(el.dataset.act==="proj-filter"){ STATE.projFilter=el.dataset.key; rerender("projects"); }
+  else if(el.dataset.act==="edit-goal"){ const p=projById(el.dataset.id); if(p) goalEditModal(p); }
+  else if(el.dataset.act==="goal-save"){ saveGoalEdit(el.dataset.id); }
+  else if(el.dataset.act==="edit-northstar"){ northStarModal(); }
+  else if(el.dataset.act==="ns-save"){ saveNorthStar(); }
   else if(el.dataset.act==="open-settings"){ settingsModal(); }
   else if(el.dataset.act==="toggle-cal"){ toggleCalendar(el.dataset.cal); }
   else if(el.dataset.act==="toggle-task"){ toggleTask(el.dataset.id); }

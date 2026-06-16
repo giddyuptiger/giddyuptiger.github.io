@@ -168,7 +168,6 @@
         <a href="#projects" data-act="nav" data-view="projects" class="tab pressable">Projects</a>
         <a href="#tasks" data-act="nav" data-view="tasks" class="tab pressable">Tasks</a>
         <a href="#week" data-act="nav" data-view="week" class="tab pressable">Week</a>
-        <a href="#travel" data-act="nav" data-view="travel" class="tab pressable">Travel</a>
         <a href="#notes" data-act="nav" data-view="notes" class="tab pressable">Notes</a>
         <a href="#inbox" data-act="nav" data-view="inbox" class="tab pressable">Inbox</a>
       </nav>
@@ -198,7 +197,6 @@
     <a href="#projects" data-act="nav" data-view="projects" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">dashboard</span>Projects</a>
     <a href="#tasks" data-act="nav" data-view="tasks" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">checklist</span>Tasks</a>
     <a href="#week" data-act="nav" data-view="week" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">calendar_month</span>Week</a>
-    <a href="#travel" data-act="nav" data-view="travel" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">flight</span>Travel</a>
     <a href="#notes" data-act="nav" data-view="notes" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">menu_book</span>Notes</a>
   </nav>
 </div>
@@ -222,7 +220,7 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON, { auth:{ persistSession:tru
 const $ = (s,r)=> (r||document).querySelector(s);
 const $$ = (s,r)=> Array.from((r||document).querySelectorAll(s));
 const esc = s => (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-let DATA=null, NOW=new Date(), STATE={ view:"overview", calFilter:"all", setupExpanded:{}, noteSel:null, noteOpen:{} }, RENDERED={}, PENDING=[], USER_ID=null;
+let DATA=null, NOW=new Date(), STATE={ view:"overview", calFilter:"all", setupExpanded:{}, noteSel:null, noteOpen:{}, tripOpen:{}, showPastTrips:false }, RENDERED={}, PENDING=[], USER_ID=null;
 let RUNS=[], RUNS_TIMER=null;
 let DOCS=null, DOCS_LOADING=false;   // Notes vault (maestro_docs) — lazy-loaded, RLS-scoped to the owner
 
@@ -288,6 +286,54 @@ function travelWhere(e){
   if(e.location) return String(e.location).split("\n")[0].trim();
   return t;
 }
+/* ───── Trip grouping ─────
+   The travel page is one card per TRIP, not one row per event. We cluster the travel
+   events (isTravel) into trips: events whose dates are contiguous or overlapping (gap ≤2
+   days between one leg's end and the next leg's start) collapse into a single trip. Each
+   trip's range is the earliest start → latest end of its events, and its title is the most
+   representative destination/location among the grouped events (a roundtrip's stays beat the
+   IATA hop labels). Derived live from the calendar — survives any sync, like nextTravelEvent. */
+const ROUTE_RE=/^[A-Za-z]{3}\s*(?:→|->|–|-|to)\s*[A-Za-z]{3}$/;
+function endMsOf(e){ const d=new Date(e.end||e.start); return isNaN(d)?startMs(e):d.getTime(); }
+// A place label used both for grouping titles and as the trip's display destination.
+function tripDest(e){
+  if(e.location){ const loc=String(e.location).split("\n")[0].trim();
+    if(loc && !ROUTE_RE.test(loc)) return loc.replace(/\s*,\s*(USA|US|United States)$/i,""); }
+  const t=String(e.title||"");
+  let m=t.match(/\bto\s+([A-Za-z][\w.\-' ]+)/i); if(m) return m[1].trim().replace(/[.,]+$/,"");
+  m=t.match(/(?:→|->)\s*([A-Za-z][\w.\-' ]+)/); if(m) return m[1].trim();
+  return t.replace(/^(?:flight|trip)\b[:\s-]*/i,"").trim() || t;
+}
+function fmtTripRange(startKey,endKey){
+  const s=new Date(startKey+"T12:00:00"), e=new Date(endKey+"T12:00:00");
+  if(isNaN(s)||isNaN(e)) return startKey;
+  const mo=d=>d.toLocaleDateString(undefined,{month:"short"});
+  if(startKey===endKey) return mo(s)+" "+s.getDate();
+  if(s.getMonth()===e.getMonth() && s.getFullYear()===e.getFullYear()) return mo(s)+" "+s.getDate()+" – "+e.getDate();
+  return mo(s)+" "+s.getDate()+" – "+mo(e)+" "+e.getDate();
+}
+// Cluster travel events into trips. Returns [{events,startKey,endKey,dest,id,startMs,endMs}] sorted soonest first.
+function buildTrips(){
+  const evs=eventsAll().filter(isTravel).slice().sort((a,b)=>startMs(a)-startMs(b));
+  const GAP=2*864e5, trips=[];
+  evs.forEach(e=>{ const s=startMs(e), en=endMsOf(e), cur=trips[trips.length-1];
+    if(cur && s-cur.endMs<=GAP){ cur.events.push(e); if(en>cur.endMs) cur.endMs=en; }
+    else trips.push({events:[e], startMs:s, endMs:en}); });
+  trips.forEach((t,i)=>{
+    let startKey=null,endKey=null;
+    t.events.forEach(e=>{ const sk=dateKey(e.start), ek=dateKey(e.end||e.start);
+      if(!startKey||sk<startKey) startKey=sk; if(!endKey||ek>endKey) endKey=ek; });
+    t.startKey=startKey; t.endKey=endKey;
+    const counts={}; let best=null,bestN=0;
+    t.events.forEach(e=>{ const d=tripDest(e); if(!d) return; counts[d]=(counts[d]||0)+1;
+      if(counts[d]>bestN || (counts[d]===bestN && (!best||d.length>best.length))){ best=d; bestN=counts[d]; } });
+    t.dest=best||tripDest(t.events[0])||"Trip";
+    t.id="trip:"+startKey+":"+i;
+  });
+  return trips;
+}
+// The next upcoming trip (ends today or later); null if none.
+function nextTrip(){ const tk=todayKey(); return buildTrips().filter(t=>t.endKey>=tk).sort((a,b)=>a.startMs-b.startMs)[0]||null; }
 function dismissedConflicts(){ return (DATA.settings && DATA.settings.dismissedConflicts) || []; }
 function conflictId(a,b){ return "cf:"+[String(a.id),String(b.id)].sort().join("__"); }   // stable, order-independent
 function detectConflicts(){ const map=eventsByDay(), out=[], dis=dismissedConflicts();
@@ -478,7 +524,7 @@ function renderOverview(){
   const conflicts=detectConflicts();
   const base=new Date(tkey+"T00:00:00"); const wend=new Date(base); wend.setDate(wend.getDate()+7);
   const weekCount=eventsAll().filter(e=>{ const dk=new Date(dateKey(e.start)+"T00:00:00"); return dk>=base && dk<wend; }).length;
-  const nextTravel=nextTravelEvent();   // tag-independent; derived live from the calendar
+  const upcomingTrip=nextTrip();   // next consolidated trip; derived live from the calendar
   const todayTimed=today.filter(e=>!e.allDay);
   const current=todayTimed.find(e=> new Date(e.start)<=NOW && (!e.end||new Date(e.end)>=NOW));
   const next=todayTimed.find(e=> new Date(e.start)>NOW) || (current?null:todayTimed[0]);
@@ -506,13 +552,16 @@ function renderOverview(){
       '<span class="text-[13px] font-mono text-on-surface-variant/70 flex-shrink-0">'+(focusEvent.allDay?"all day":fmtTime(focusEvent.start)+(focusEvent.end?"–"+fmtTime(focusEvent.end):""))+'</span></div>';
   }
 
-  // ── Next travel — compact: ONLY destination + date (e.g. "Jun 17 · LAX → ANC"). Derived live
-  //    from the calendar so a sync can't blank it. Stays tappable to open the underlying event. ──
-  if(nextTravel){
-    H += '<div class="rise mb-5" style="animation-delay:.05s"><button data-act="open-event" data-id="'+esc(nextTravel.id)+'" title="Next travel" class="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/[0.06] px-3.5 py-1.5 hover:border-primary/40 pressable max-w-full">'+
-      '<span class="text-[12.5px] font-bold text-primary flex-shrink-0">'+esc(fmtDayLabel(dateKey(nextTravel.start)))+'</span>'+
+  // ── Upcoming travel — the next TRIP as destination + date range (e.g. "Alaska · Jun 17 – 29").
+  //    Derived live from the calendar so a sync can't blank it. Tapping opens the Travel view
+  //    (it's no longer a top-level tab — this widget is the way in). ──
+  if(upcomingTrip){
+    H += '<div class="rise mb-5" style="animation-delay:.05s"><button data-act="nav" data-view="travel" title="Upcoming travel — view trips" class="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/[0.06] px-3.5 py-1.5 hover:border-primary/40 pressable max-w-full">'+
+      '<span class="material-symbols-outlined text-primary text-[15px] flex-shrink-0">flight</span>'+
+      '<span class="text-[12.5px] font-semibold text-on-surface truncate">'+esc(upcomingTrip.dest)+'</span>'+
       '<span class="text-on-surface-variant/35 flex-shrink-0">·</span>'+
-      '<span class="text-[12.5px] font-semibold text-on-surface truncate">'+esc(travelWhere(nextTravel))+'</span></button></div>';
+      '<span class="text-[12.5px] font-bold text-primary flex-shrink-0">'+esc(fmtTripRange(upcomingTrip.startKey, upcomingTrip.endKey))+'</span>'+
+      '<span class="material-symbols-outlined text-on-surface-variant/40 text-[16px] flex-shrink-0">chevron_right</span></button></div>';
   } else {
     H += '<div class="rise mb-5" style="animation-delay:.05s"><span class="inline-flex items-center gap-1.5 text-[11.5px] text-on-surface-variant/45"><span class="material-symbols-outlined text-[15px]">flight</span>No upcoming trips</span></div>';
   }
@@ -571,12 +620,49 @@ function renderWeek(){
   H += '</div>'+footerHTML()+'</div>';
   $("#view-week").innerHTML=H;
 }
+// One summary card per trip: destination + date range. Tapping expands to the underlying
+// flights/stays (each still opens its event modal). Upcoming first; past trips behind a toggle.
+function tripCard(t){
+  const open=!!STATE.tripOpen[t.id];
+  const n=t.events.length, sub=fmtTripRange(t.startKey,t.endKey)+(n>1?' · '+n+' items':'');
+  let H='<div class="rounded-2xl border hairline bg-surface-container-low/50 overflow-hidden'+(open?' border-primary/30':'')+'">';
+  H+='<button data-act="toggle-trip" data-trip="'+esc(t.id)+'" aria-expanded="'+open+'" class="pressable w-full text-left flex items-center gap-4 p-4 hover:bg-primary/[0.03]">'+
+    '<span class="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary flex-shrink-0"><span class="material-symbols-outlined">flight</span></span>'+
+    '<div class="min-w-0 flex-1"><p class="text-[15px] font-bold text-on-surface truncate">'+esc(t.dest)+'</p>'+
+    '<p class="text-[12.5px] text-on-surface-variant/65 mt-0.5">'+esc(sub)+'</p></div>'+
+    '<span class="material-symbols-outlined text-on-surface-variant/40 text-[20px] flex-shrink-0 transition-transform" style="'+(open?'transform:rotate(180deg)':'')+'">expand_more</span></button>';
+  if(open){
+    H+='<div class="px-3 pb-3 pt-0 space-y-1.5">';
+    t.events.slice().sort((a,b)=>startMs(a)-startMs(b)).forEach(e=>{
+      H+='<button data-act="open-event" data-id="'+esc(e.id)+'" class="pressable w-full text-left flex items-center gap-3 rounded-xl border hairline bg-surface-container/40 hover:border-primary/30 px-3 py-2.5">'+
+        '<span class="w-1.5 h-8 rounded-full flex-shrink-0" style="background:'+calColor(e.calendar)+'"></span>'+
+        '<div class="min-w-0 flex-1"><p class="text-[13px] font-semibold text-on-surface truncate">'+esc(e.title)+'</p>'+(e.location?'<p class="text-[11.5px] text-on-surface-variant/60 truncate">'+esc(e.location)+'</p>':'')+'</div>'+
+        '<span class="text-[11.5px] font-mono text-on-surface-variant/70 flex-shrink-0">'+fmtShort(e.start)+'</span></button>';
+    });
+    H+='</div>';
+  }
+  H+='</div>';
+  return H;
+}
 function renderTravel(){
-  const travel=eventsAll().filter(isTravel).sort((a,b)=>startMs(a)-startMs(b));
-  let H='<div class="rise"><div class="mb-4 px-1"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Travel</h2><p class="text-[12px] text-on-surface-variant/60 mt-0.5">Flights and stays across your calendars.</p></div><div class="space-y-3">';
-  if(!travel.length) H += '<p class="text-[13px] text-on-surface-variant/50">No travel on the calendar.</p>';
-  travel.forEach(e=>{ H += '<button data-act="open-event" data-id="'+esc(e.id)+'" class="pressable w-full text-left flex items-center gap-4 rounded-2xl border hairline bg-surface-container-low/50 hover:border-primary/30 p-4"><span class="w-1.5 h-10 rounded-full" style="background:'+calColor(e.calendar)+'"></span><span class="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary flex-shrink-0"><span class="material-symbols-outlined">flight</span></span><div class="min-w-0 flex-1"><p class="text-[14px] font-semibold text-on-surface">'+esc(e.title)+'</p>'+(e.location?'<p class="text-[12px] text-on-surface-variant/60">'+esc(e.location)+'</p>':'')+'</div><span class="text-[12px] font-mono text-on-surface-variant/70 flex-shrink-0">'+fmtShort(e.start)+'</span></button>'; });
-  H += '</div>'+footerHTML()+'</div>';
+  const tk=todayKey(), trips=buildTrips();
+  const upcoming=trips.filter(t=>t.endKey>=tk).sort((a,b)=>a.startMs-b.startMs);
+  const past=trips.filter(t=>t.endKey<tk).sort((a,b)=>b.startMs-a.startMs);
+  let H='<div class="rise">';
+  // Back affordance — Travel is reached by drilling in from Overview, not a tab.
+  H+='<button data-act="nav" data-view="overview" class="pressable inline-flex items-center gap-1 text-[12.5px] font-semibold text-primary mb-3 hover:gap-1.5 transition-all"><span class="material-symbols-outlined text-[18px]">arrow_back</span>Overview</button>';
+  H+='<div class="mb-4 px-1"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Trips</h2><p class="text-[12px] text-on-surface-variant/60 mt-0.5">One card per trip — destination and dates, across your calendars.</p></div>';
+  H+='<div class="space-y-3">';
+  if(!upcoming.length && !past.length) H += '<p class="text-[13px] text-on-surface-variant/50">No travel on the calendar.</p>';
+  if(upcoming.length) H += upcoming.map(tripCard).join("");
+  else if(past.length) H += '<p class="text-[13px] text-on-surface-variant/50">No upcoming trips.</p>';
+  H+='</div>';
+  if(past.length){
+    H+='<div class="mt-5"><button data-act="toggle-past-trips" aria-expanded="'+STATE.showPastTrips+'" class="pressable inline-flex items-center gap-1.5 text-[11.5px] font-bold tracking-[0.18em] uppercase text-on-surface-variant/55 hover:text-primary"><span class="material-symbols-outlined text-[16px] transition-transform" style="'+(STATE.showPastTrips?'transform:rotate(180deg)':'')+'">expand_more</span>Past trips ('+past.length+')</button>';
+    if(STATE.showPastTrips) H+='<div class="space-y-3 mt-3 opacity-75">'+past.map(tripCard).join("")+'</div>';
+    H+='</div>';
+  }
+  H += footerHTML()+'</div>';
   $("#view-travel").innerHTML=H;
 }
 /* ───── PROJECTS + TASKS (real data from the auth-gated Supabase row, brain-written from Drive) ───── */
@@ -1749,6 +1835,8 @@ document.addEventListener("click", async (e)=>{
   const el=e.target.closest("[data-act]"); if(!el) return;
   const act=el.dataset.act;
   if(act==="nav"){ e.preventDefault(); location.hash="#"+el.dataset.view; return; }
+  if(act==="toggle-trip"){ const k=el.dataset.trip; STATE.tripOpen[k]=!STATE.tripOpen[k]; rerender("travel"); return; }
+  if(act==="toggle-past-trips"){ STATE.showPastTrips=!STATE.showPastTrips; rerender("travel"); return; }
   if(act==="close-modal"){ closeModal(); return; }
   if(act==="open-event"){ const ev=(DATA.events||[]).find(x=>String(x.id)===el.dataset.id); if(ev) eventModal(ev); return; }
   if(act==="logout"){ signOut(); return; }

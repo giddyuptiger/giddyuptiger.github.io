@@ -560,7 +560,7 @@ function renderWeek(){
   const groups=upcoming(8, STATE.calFilter);
   let H='<div class="rise"><div class="mb-3 px-1"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">The week ahead</h2><p class="text-[12px] text-on-surface-variant/60 mt-0.5">All calendars · tap an event to reschedule, add prep, or cancel.</p></div>';
   H += calLegendFilter();
-  H += '<div class="max-w-3xl space-y-4">';
+  H += '<div class="space-y-4">';   // width comes from the shared <main> container — no per-view cap
   if(!groups.length) H += '<p class="text-[13px] text-on-surface-variant/50">Nothing'+(STATE.calFilter!=="all"?' on “'+esc(STATE.calFilter)+'”':'')+' this week.</p>';
   groups.forEach(g=>{ const isToday=g.key===todayKey();
     H += '<div class="rounded-2xl border '+(isToday?"border-primary/30 bg-primary/5":"hairline bg-surface-container-low/50")+' p-4"><div class="flex items-center gap-2 mb-2 px-1"><span class="text-[12px] font-bold '+(isToday?"text-primary":"text-on-surface")+'">'+fmtDayLabel(g.key)+'</span>'+(isToday?'<span class="text-[10px] font-bold text-primary uppercase tracking-wider">Today</span>':'')+'<span class="ml-auto text-[10px] font-mono text-on-surface-variant/40">'+g.events.length+'</span></div>'+g.events.map(e=>eventRow(e)).join("")+'</div>';
@@ -570,7 +570,7 @@ function renderWeek(){
 }
 function renderTravel(){
   const travel=eventsAll().filter(isTravel).sort((a,b)=>startMs(a)-startMs(b));
-  let H='<div class="rise"><div class="mb-4 px-1"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Travel</h2><p class="text-[12px] text-on-surface-variant/60 mt-0.5">Flights and stays across your calendars.</p></div><div class="max-w-2xl space-y-3">';
+  let H='<div class="rise"><div class="mb-4 px-1"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Travel</h2><p class="text-[12px] text-on-surface-variant/60 mt-0.5">Flights and stays across your calendars.</p></div><div class="space-y-3">';
   if(!travel.length) H += '<p class="text-[13px] text-on-surface-variant/50">No travel on the calendar.</p>';
   travel.forEach(e=>{ H += '<button data-act="open-event" data-id="'+esc(e.id)+'" class="pressable w-full text-left flex items-center gap-4 rounded-2xl border hairline bg-surface-container-low/50 hover:border-primary/30 p-4"><span class="w-1.5 h-10 rounded-full" style="background:'+calColor(e.calendar)+'"></span><span class="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary flex-shrink-0"><span class="material-symbols-outlined">flight</span></span><div class="min-w-0 flex-1"><p class="text-[14px] font-semibold text-on-surface">'+esc(e.title)+'</p>'+(e.location?'<p class="text-[12px] text-on-surface-variant/60">'+esc(e.location)+'</p>':'')+'</div><span class="text-[12px] font-mono text-on-surface-variant/70 flex-shrink-0">'+fmtShort(e.start)+'</span></button>'; });
   H += '</div>'+footerHTML()+'</div>';
@@ -963,7 +963,7 @@ function renderTasks(){
   // Float 2-minute tasks to the TOP of their own priority section (stable sort → only the
   // within-section order changes; cross-section ordering by horizon is untouched).
   PRIORITY_ORDER.forEach(k=>{ groups[k].sort((a,b)=>(b&&b.two_min?1:0)-(a&&a.two_min?1:0)); });
-  let H='<div class="rise"><div class="mb-4 px-1 flex items-start justify-between gap-3"><div><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Tasks</h2><p class="text-[12px] text-on-surface-variant/60 mt-0.5">Grouped by time horizon — tap a task’s badge to change its horizon or snooze it. Check-offs and horizons survive every sync.</p></div><button data-act="add-task" class="pressable flex-shrink-0 inline-flex items-center gap-1.5 bg-primary text-on-primary font-bold text-[12.5px] px-3.5 py-2 rounded-xl hover:brightness-110" title="Add a task" aria-label="Add a task"><span class="material-symbols-outlined text-[18px]">add</span>Add task</button></div><div class="max-w-2xl space-y-5">';
+  let H='<div class="rise"><div class="mb-4 px-1 flex items-start justify-between gap-3"><div><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Tasks</h2><p class="text-[12px] text-on-surface-variant/60 mt-0.5">Grouped by time horizon — tap a task’s badge to change its horizon or snooze it. Check-offs and horizons survive every sync.</p></div><button data-act="add-task" class="pressable flex-shrink-0 inline-flex items-center gap-1.5 bg-primary text-on-primary font-bold text-[12.5px] px-3.5 py-2 rounded-xl hover:brightness-110" title="Add a task" aria-label="Add a task"><span class="material-symbols-outlined text-[18px]">add</span>Add task</button></div><div class="space-y-5">';
   if(!setupDismissed()) H+= renderSetupGroup();   // gone for good once all setup items were completed
   PRIORITY_ORDER.forEach(key=>{
     const arr=groups[key]; if(!arr.length) return; const pm=PRIORITY[key];
@@ -1221,7 +1221,7 @@ function inboxCard(m){
   return h+'</div>';
 }
 function renderInbox(){
-  let H='<div class="rise max-w-2xl">'+
+  let H='<div class="rise">'+
     '<div class="mb-4 px-1"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Inbox</h2>'+
     '<p class="text-[12px] text-on-surface-variant/60 mt-0.5">Message Dispatch (Claude) straight from Maestro. Your note lands in the queue; the reply shows up here.</p></div>'+
     '<div class="rounded-2xl border border-primary/25 bg-primary/[0.04] p-3 sm:p-4 mb-5">'+
@@ -1680,7 +1680,7 @@ function renderNotes(){
   // Lazy-load on first visit.
   if(DOCS===null){
     if(!DOCS_LOADING) loadDocs();
-    $("#view-notes").innerHTML='<div class="rise max-w-2xl"><div class="mb-4 px-1"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Notes</h2></div><div class="rounded-2xl border hairline bg-surface-container-low/60 p-6 flex items-center gap-3 text-on-surface-variant/70"><span class="material-symbols-outlined animate-spin text-primary">progress_activity</span><span class="text-[13px]">Loading your vault…</span></div></div>';
+    $("#view-notes").innerHTML='<div class="rise"><div class="mb-4 px-1"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Notes</h2></div><div class="rounded-2xl border hairline bg-surface-container-low/60 p-6 flex items-center gap-3 text-on-surface-variant/70"><span class="material-symbols-outlined animate-spin text-primary">progress_activity</span><span class="text-[13px]">Loading your vault…</span></div></div>';
     return;
   }
   let H='<div class="rise"><div class="mb-3 px-1 flex items-end justify-between gap-3"><div><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Notes</h2><p class="text-[12px] text-on-surface-variant/60 mt-0.5">Your CLAUDE vault — '+DOCS.length+' doc'+(DOCS.length===1?"":"s")+', read-only.</p></div></div>';
@@ -1718,7 +1718,7 @@ function showSkeleton(name){
   $$(".tab").forEach(t=>t.dataset.active = t.dataset.view===name?"1":"0");
   $$(".bnav").forEach(t=>t.dataset.active = t.dataset.view===name?"1":"0");
   var card='<div class="rounded-2xl border hairline bg-surface-container-low/60 p-4"><div class="h-4 w-2/3 rounded bg-surface-container-high animate-pulse mb-2.5"></div><div class="h-3 w-1/3 rounded bg-surface-container-high/70 animate-pulse"></div></div>';
-  $("#view-"+name).innerHTML='<div class="space-y-4 max-w-2xl"><div class="h-7 w-44 rounded bg-surface-container-high animate-pulse mb-1"></div>'+card+card+card+card+'</div>';
+  $("#view-"+name).innerHTML='<div class="space-y-4"><div class="h-7 w-44 rounded bg-surface-container-high animate-pulse mb-1"></div>'+card+card+card+card+'</div>';
 }
 function setView(name, force){
   if(["overview","projects","tasks","week","travel","notes","inbox"].indexOf(name)<0) name="overview";

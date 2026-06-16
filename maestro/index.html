@@ -622,13 +622,40 @@ function goalModalSection(p){
   h+='</div>';
   return h;
 }
+/* ───── NEXT ACTION — a real, specific next step (never filler). Uses the manual override
+   (p.nextStep) when set; otherwise auto-surfaces the project's top-priority OPEN task so it
+   always points at concrete work. Editable from the same goal / next-action editor. ───── */
+function projectOpenTasks(p){ return (DATA.tasks||[]).filter(t=> t.projectId===p.id && !taskDone(t.id) && !taskSnoozed(t)); }
+function autoNextAction(p){ const ts=projectOpenTasks(p); if(!ts.length) return null; return ts.slice().sort((a,b)=>pmeta(taskPriority(a)).order-pmeta(taskPriority(b)).order)[0]; }
+function nextActionSection(p){
+  const override=String(p.nextStep||"").trim();
+  const task=override?null:autoNextAction(p);
+  const text=override||(task?task.title:"");
+  let h='<div class="rounded-xl border border-primary/25 bg-primary/5 p-4">';
+  h+='<div class="flex items-center justify-between gap-2 mb-1">'+
+     '<span class="text-[11px] font-bold tracking-widest text-primary uppercase flex items-center gap-1.5"><span class="material-symbols-outlined text-primary text-[16px]">bolt</span>Next action</span>'+
+     '<button data-act="edit-goal" data-id="'+esc(p.id)+'" class="pressable inline-flex items-center gap-1 text-[11.5px] font-semibold text-primary hover:brightness-110"><span class="material-symbols-outlined text-[15px]">edit</span>Edit</button></div>';
+  if(text){
+    h+='<p class="text-[13.5px] text-on-surface/90 leading-snug">'+esc(text)+'</p>';
+    if(task){ const pm=pmeta(taskPriority(task));
+      h+='<p class="text-[10.5px] text-on-surface-variant/55 mt-2 flex items-center gap-1.5"><span class="inline-flex items-center text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full border '+pm.badge+'">'+pm.label+'</span><span>Top open task — updates as you work</span></p>';
+    } else {
+      h+='<p class="text-[10.5px] text-on-surface-variant/45 mt-2 flex items-center gap-1.5"><span class="material-symbols-outlined text-[13px]">edit_note</span>Manual override</p>';
+    }
+  } else {
+    h+='<p class="text-[12.5px] text-on-surface-variant/50">No open tasks — add one, or tap Edit to set a next step.</p>';
+  }
+  h+='</div>';
+  return h;
+}
 function goalFieldInput(id,label,val,type,ph){ return '<div><label for="'+id+'" class="block text-[11px] font-bold tracking-widest text-on-surface-variant/70 uppercase mb-2">'+esc(label)+'</label><input id="'+id+'" type="'+(type||"text")+'" value="'+esc(val)+'" autocomplete="off" placeholder="'+esc(ph||"")+'" class="w-full bg-surface-container-lowest/80 border hairline rounded-xl px-3 py-2.5 text-[14px] text-on-surface focus:border-primary/50 transition-colors"></div>'; }
 function goalFieldArea(id,label,val,ph){ return '<div><label for="'+id+'" class="block text-[11px] font-bold tracking-widest text-on-surface-variant/70 uppercase mb-2">'+esc(label)+'</label><textarea id="'+id+'" rows="3" placeholder="'+esc(ph||"")+'" class="w-full bg-surface-container-lowest/80 border hairline rounded-xl px-3 py-2.5 text-[14px] text-on-surface leading-snug focus:border-primary/50 transition-colors resize-y">'+esc(val)+'</textarea></div>'; }
 function goalEditModal(p){
-  let h=mhead("Edit goal", esc(p.name));
+  let h=mhead("Edit goal &amp; next action", esc(p.name));
   h+='<div class="px-5 sm:px-6 py-5 space-y-4">';
   h+=goalFieldArea("goal-smart","SMART goal", p.smart_goal||"", "What does done look like, by when?");
   h+=goalFieldArea("goal-blocker","Blocker", p.blocker||"", "What is in the way? (leave blank or “None” if clear)");
+  h+=goalFieldArea("goal-next","Next action override", p.nextStep||"", "Leave blank to auto-use your top open task.");
   h+='<div class="grid grid-cols-3 gap-3">'+
        goalFieldInput("goal-current","Current", p.goal_current!=null?String(p.goal_current):"", "number","0")+
        goalFieldInput("goal-target","Target", p.goal_target!=null?String(p.goal_target):"", "number","—")+
@@ -647,9 +674,11 @@ async function writeProjectsCol(){
 async function saveGoalEdit(id){
   const p=projById(id); if(!p) return;
   if(!USER_ID){ toast("Sign in first","lock"); return; }
-  const g=$("#goal-smart"), b=$("#goal-blocker"), t=$("#goal-target"), c=$("#goal-current"), u=$("#goal-unit");
+  const g=$("#goal-smart"), b=$("#goal-blocker"), t=$("#goal-target"), c=$("#goal-current"), u=$("#goal-unit"), nx=$("#goal-next");
   p.smart_goal=(g&&g.value||"").trim();
   p.blocker=(b&&b.value||"").trim();
+  const nxv=(nx&&nx.value||"").trim();
+  if(nxv==="") delete p.nextStep; else p.nextStep=nxv;   // blank → auto top-task; set → manual override
   const tv=(t&&t.value||"").trim(), cv=(c&&c.value||"").trim(), uv=(u&&u.value||"").trim();
   if(tv===""){ delete p.goal_target; } else { const n=parseFloat(tv); p.goal_target=isFinite(n)?n:tv; }
   if(cv===""){ delete p.goal_current; } else { const n=parseFloat(cv); p.goal_current=isFinite(n)?n:cv; }
@@ -713,8 +742,9 @@ function projectModal(p){
     h+='<button data-act="mark-task" data-ids="'+esc(ids)+'" data-pid="'+esc(p.id)+'" data-done="'+(allDone?"1":"0")+'" class="pressable w-full flex items-center justify-center gap-2 font-bold text-[13.5px] py-2.5 rounded-xl '+(allDone?"bg-surface-container-high text-on-surface hover:bg-surface-variant":"bg-primary text-on-primary hover:brightness-110")+'"><span class="material-symbols-outlined text-[18px]'+(allDone?" text-green ms-fill":"")+'">'+(allDone?"undo":"check_circle")+'</span>'+(allDone?"Done ✓ — mark not done":"Mark done")+'</button>';
   }
   h+=goalModalSection(p);
-  if(p.note) h+='<p class="text-[14px] leading-relaxed text-on-surface/85">'+esc(p.note)+'</p>';
-  if(p.nextStep) h+='<div class="rounded-xl border border-primary/25 bg-primary/5 p-4"><div class="flex items-center gap-2 mb-1"><span class="material-symbols-outlined text-primary text-[18px]">bolt</span><span class="text-[11px] font-bold tracking-widest text-primary uppercase">Next action</span></div><p class="text-[13.5px] text-on-surface/90 leading-snug">'+esc(p.nextStep)+'</p></div>';
+  // Boilerplate project description (p.note) intentionally NOT surfaced here — Jeremy found it
+  // unhelpful. The data is preserved on the project; we just stop rendering it in the detail view.
+  h+=nextActionSection(p);
   if(p.url) h+='<a href="'+esc(p.url)+'" target="_blank" rel="noopener" class="pressable w-full flex items-center gap-3 rounded-xl border hairline bg-surface-container/40 hover:border-primary/30 px-4 py-3"><span class="material-symbols-outlined text-primary text-[20px]">open_in_new</span><span class="text-[13px] text-on-surface flex-1 truncate">'+esc(linkLabel(p.url))+'</span><span class="material-symbols-outlined text-on-surface-variant/40 text-[18px]">arrow_outward</span></a>';
   h+='</div>';
   openModal(h);

@@ -167,6 +167,7 @@
         <a href="#week" data-act="nav" data-view="week" class="tab pressable">Week</a>
         <a href="#travel" data-act="nav" data-view="travel" class="tab pressable">Travel</a>
         <a href="#routines" data-act="nav" data-view="routines" class="tab pressable">Routines</a>
+        <a href="#notes" data-act="nav" data-view="notes" class="tab pressable">Notes</a>
         <a href="#inbox" data-act="nav" data-view="inbox" class="tab pressable">Inbox</a>
       </nav>
       <div class="flex items-center gap-2">
@@ -187,6 +188,7 @@
     <section id="view-week" class="view"></section>
     <section id="view-travel" class="view"></section>
     <section id="view-routines" class="view"></section>
+    <section id="view-notes" class="view"></section>
     <section id="view-inbox" class="view"></section>
   </main>
 
@@ -197,6 +199,7 @@
     <a href="#week" data-act="nav" data-view="week" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">calendar_month</span>Week</a>
     <a href="#travel" data-act="nav" data-view="travel" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">flight</span>Travel</a>
     <a href="#routines" data-act="nav" data-view="routines" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">self_improvement</span>Routines</a>
+    <a href="#notes" data-act="nav" data-view="notes" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">menu_book</span>Notes</a>
   </nav>
 </div>
 
@@ -219,8 +222,9 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON, { auth:{ persistSession:tru
 const $ = (s,r)=> (r||document).querySelector(s);
 const $$ = (s,r)=> Array.from((r||document).querySelectorAll(s));
 const esc = s => (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-let DATA=null, NOW=new Date(), STATE={ view:"overview", calFilter:"all", setupExpanded:{} }, RENDERED={}, PENDING=[], USER_ID=null;
+let DATA=null, NOW=new Date(), STATE={ view:"overview", calFilter:"all", setupExpanded:{}, noteSel:null, noteOpen:{} }, RENDERED={}, PENDING=[], USER_ID=null;
 let RUNS=[], RUNS_TIMER=null;
+let DOCS=null, DOCS_LOADING=false;   // Notes vault (maestro_docs) — lazy-loaded, RLS-scoped to the owner
 
 const KIND = {
   meeting:{icon:"groups",label:"Meeting"}, shoot:{icon:"photo_camera",label:"Shoot"}, edit:{icon:"movie_edit",label:"Edit"},
@@ -1288,6 +1292,9 @@ document.addEventListener("click",(e)=>{
   else if(el.dataset.act==="add-task-prio"){ selectAddTaskPrio(el); }
   else if(el.dataset.act==="add-task-twomin"){ toggleAddTaskTwoMin(el); }
   else if(el.dataset.act==="add-task-save"){ saveNewTask(); }
+  else if(el.dataset.act==="note-open"){ openNote(el.dataset.path); }
+  else if(el.dataset.act==="note-folder"){ const p=el.dataset.path; STATE.noteOpen[p]=!STATE.noteOpen[p]; rerender("notes"); }
+  else if(el.dataset.act==="note-wiki"){ e.preventDefault(); const d=resolveDoc(el.dataset.target); if(d) openNote(d.path); else toast("No note found for “"+el.dataset.target+"”","search"); }
 });
 
 /* ───── SETTINGS: calendar visibility (user-owned, persisted to settings column) ───── */
@@ -1328,9 +1335,131 @@ async function toggleCalendar(name){
 
 function footerHTML(){ return '<footer class="pt-8 pb-6 text-center space-y-2"><p class="text-[11px] tracking-[0.25em] text-primary/60 font-bold">MAESTRO</p><p class="text-[12px] text-on-surface-variant/50 max-w-xl mx-auto leading-relaxed">Private · your calendar, projects and tasks, secured to your account.</p></footer>'; }
 
+/* ───── NOTES — read-only viewer for the CLAUDE markdown vault (maestro_docs) ─────
+   Browse Drive .md docs Obsidian-style without opening Obsidian: a folder tree on the left,
+   a rendered reading pane on the right. Docs come from the RLS-scoped maestro_docs table
+   (owner-only), kept in sync by ~/Documents/Claude/maestro/sync_docs_to_supabase.py. */
+async function loadDocs(){
+  if(DOCS_LOADING) return; DOCS_LOADING=true;
+  const { data, error } = await sb.from("maestro_docs").select("id, project, path, title, content_md, updated_at").order("path",{ascending:true});
+  DOCS_LOADING=false;
+  if(error){ DOCS=[]; console.warn("docs load:", error.message); toast("Couldn’t load notes: "+error.message,"error"); }
+  else DOCS=data||[];
+  if(STATE.view==="notes") rerender("notes");
+}
+// Resolve a [[wiki-link]] target to a doc: exact path, then filename (with/without .md), then title.
+function resolveDoc(target){
+  if(!DOCS) return null; const t=String(target||"").trim(); const tl=t.toLowerCase();
+  const base=s=>String(s).split("/").pop().replace(/\.md$/i,"");
+  return DOCS.find(d=>d.path===t) ||
+         DOCS.find(d=>d.path.toLowerCase()===tl || d.path.toLowerCase()===tl+".md") ||
+         DOCS.find(d=>base(d.path).toLowerCase()===tl) ||
+         DOCS.find(d=>String(d.title||"").toLowerCase()===tl) || null;
+}
+// ── minimal, safe-ish markdown → HTML (input is escaped first; only known patterns re-emitted) ──
+function mdInline(s){
+  s=s.replace(/`([^`]+)`/g,(m,c)=>'<code class="px-1 py-0.5 rounded bg-surface-container-high text-primary/90 text-[12px] font-mono">'+c+'</code>');
+  s=s.replace(/!\[[^\]]*\]\([^)]*\)/g,"");                              // strip images in v1
+  s=s.replace(/\[\[([^\]]+)\]\]/g,(m,inner)=>{ const p=inner.split("|"); const target=p[0].trim(); const label=(p[1]||p[0]).trim();
+      return '<a data-act="note-wiki" data-target="'+esc(target)+'" class="text-primary underline decoration-dotted decoration-primary/50 hover:decoration-primary cursor-pointer">'+esc(label)+'</a>'; });
+  s=s.replace(/\[([^\]]+)\]\(([^)\s]+)[^)]*\)/g,(m,t,u)=>{ const safe=/^(https?:|mailto:)/i.test(u);
+      return safe? '<a href="'+u+'" target="_blank" rel="noopener" class="text-primary underline decoration-primary/40 hover:decoration-primary">'+t+'</a>' : t; });
+  s=s.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/__([^_]+)__/g,'<strong>$1</strong>');
+  s=s.replace(/(^|[^*])\*([^*\n]+)\*/g,'$1<em>$2</em>');
+  return s;
+}
+function mdToHtml(md){
+  const lines=String(md||"").replace(/\r\n?/g,"\n").split("\n");
+  let i=0;
+  if(lines[0]==="---"){ let j=1; while(j<lines.length && lines[j]!=="---") j++; if(j<lines.length) i=j+1; }   // strip YAML frontmatter
+  let html="", inUL=false, inOL=false;
+  const closeLists=()=>{ if(inUL){html+="</ul>";inUL=false;} if(inOL){html+="</ol>";inOL=false;} };
+  const HSZ={1:"text-[19px]",2:"text-[16px]",3:"text-[14.5px]",4:"text-[13.5px]",5:"text-[13px]",6:"text-[12.5px]"};
+  while(i<lines.length){
+    const line=lines[i];
+    if(/^```/.test(line)){ closeLists(); i++; let code=""; while(i<lines.length && !/^```/.test(lines[i])){ code+=lines[i]+"\n"; i++; } i++;
+      html+='<pre class="my-3 p-3 rounded-xl bg-surface-container-lowest border hairline overflow-x-auto"><code class="text-[12px] font-mono text-on-surface/90 whitespace-pre">'+esc(code.replace(/\n$/,""))+'</code></pre>'; continue; }
+    const hm=line.match(/^(#{1,6})\s+(.*)$/);
+    if(hm){ closeLists(); const lv=hm[1].length; html+='<h'+lv+' class="font-bold text-on-surface mt-4 mb-2 '+(HSZ[lv]||"text-[13px]")+'">'+mdInline(esc(hm[2]))+'</h'+lv+'>'; i++; continue; }
+    if(/^(\s*[-*_]){3,}\s*$/.test(line)){ closeLists(); html+='<hr class="my-4 border-outline-variant/30">'; i++; continue; }
+    if(/^>\s?/.test(line)){ closeLists(); let q=""; while(i<lines.length && /^>\s?/.test(lines[i])){ q+=lines[i].replace(/^>\s?/,"")+"\n"; i++; }
+      html+='<blockquote class="border-l-2 border-primary/40 pl-3 my-2 text-on-surface-variant/80 italic">'+mdInline(esc(q.trim()))+'</blockquote>'; continue; }
+    const um=line.match(/^\s*[-*+]\s+(.*)$/);
+    if(um){ if(inOL){html+="</ol>";inOL=false;} if(!inUL){html+='<ul class="list-disc pl-5 my-2 space-y-1">';inUL=true;} html+='<li class="text-on-surface/90">'+mdInline(esc(um[1]))+'</li>'; i++; continue; }
+    const om=line.match(/^\s*\d+\.\s+(.*)$/);
+    if(om){ if(inUL){html+="</ul>";inUL=false;} if(!inOL){html+='<ol class="list-decimal pl-5 my-2 space-y-1">';inOL=true;} html+='<li class="text-on-surface/90">'+mdInline(esc(om[1]))+'</li>'; i++; continue; }
+    if(/^\s*$/.test(line)){ closeLists(); i++; continue; }
+    closeLists(); let para=line; i++;
+    while(i<lines.length && !/^\s*$/.test(lines[i]) && !/^(#{1,6}\s|```|>\s?|\s*[-*+]\s|\s*\d+\.\s)/.test(lines[i])){ para+=" "+lines[i]; i++; }
+    html+='<p class="my-2 leading-relaxed text-on-surface/90 break-words">'+mdInline(esc(para))+'</p>';
+  }
+  closeLists();
+  return html;
+}
+function buildDocTree(docs){
+  const root={folders:{}, files:[]};
+  docs.forEach(d=>{ const parts=d.path.split("/"); let node=root;
+    for(let k=0;k<parts.length-1;k++){ const seg=parts[k]; node.folders[seg]=node.folders[seg]||{folders:{},files:[]}; node=node.folders[seg]; }
+    node.files.push(d); });
+  return root;
+}
+function renderDocTree(node, prefix){
+  let h="";
+  Object.keys(node.folders).sort((a,b)=>a.localeCompare(b)).forEach(name=>{
+    const fpath=prefix?prefix+"/"+name:name, open=!!STATE.noteOpen[fpath];
+    h+='<div><button data-act="note-folder" data-path="'+esc(fpath)+'" class="pressable w-full flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-surface-container/60 text-left text-[12.5px] font-semibold text-on-surface/85">'+
+      '<span class="material-symbols-outlined text-[16px] text-on-surface-variant/55 transition-transform flex-shrink-0" style="'+(open?"transform:rotate(90deg)":"")+'">chevron_right</span>'+
+      '<span class="material-symbols-outlined text-[15px] text-primary/70 flex-shrink-0">'+(open?"folder_open":"folder")+'</span>'+
+      '<span class="truncate">'+esc(name)+'</span></button>';
+    if(open) h+='<div class="ml-3 pl-2 border-l border-outline-variant/20">'+renderDocTree(node.folders[name], fpath)+'</div>';
+    h+='</div>';
+  });
+  node.files.slice().sort((a,b)=>String(a.title||a.path).localeCompare(String(b.title||b.path))).forEach(d=>{
+    const sel=STATE.noteSel===d.path;
+    h+='<button data-act="note-open" data-path="'+esc(d.path)+'" class="pressable w-full flex items-center gap-1.5 px-2 py-1 rounded-lg text-left text-[12.5px] '+(sel?"bg-primary/12 text-primary font-semibold":"text-on-surface-variant/80 hover:bg-surface-container/60")+'">'+
+      '<span class="material-symbols-outlined text-[15px] flex-shrink-0 '+(sel?"text-primary":"text-on-surface-variant/45")+'">description</span>'+
+      '<span class="truncate">'+esc(d.title||d.path.split("/").pop())+'</span></button>';
+  });
+  return h;
+}
+function renderNotes(){
+  // Lazy-load on first visit.
+  if(DOCS===null){
+    if(!DOCS_LOADING) loadDocs();
+    $("#view-notes").innerHTML='<div class="rise max-w-2xl"><div class="mb-4 px-1"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Notes</h2></div><div class="rounded-2xl border hairline bg-surface-container-low/60 p-6 flex items-center gap-3 text-on-surface-variant/70"><span class="material-symbols-outlined animate-spin text-primary">progress_activity</span><span class="text-[13px]">Loading your vault…</span></div></div>';
+    return;
+  }
+  let H='<div class="rise"><div class="mb-3 px-1 flex items-end justify-between gap-3"><div><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Notes</h2><p class="text-[12px] text-on-surface-variant/60 mt-0.5">Your CLAUDE vault — '+DOCS.length+' doc'+(DOCS.length===1?"":"s")+', read-only.</p></div></div>';
+  if(!DOCS.length){ H+='<div class="rounded-2xl border hairline bg-surface-container-low/60 p-6 text-[13px] text-on-surface-variant/60">No notes synced yet. Run the vault sync to populate them.</div>'+footerHTML()+'</div>'; $("#view-notes").innerHTML=H; return; }
+  // default selection: a root INDEX/README, else the first doc
+  if(!STATE.noteSel || !DOCS.find(d=>d.path===STATE.noteSel)){
+    const pref=DOCS.find(d=>/^(INDEX|README|CLAUDE)\.md$/i.test(d.path)) || DOCS[0];
+    STATE.noteSel=pref.path;
+    // auto-expand folders along the selected path
+    const segs=pref.path.split("/"); let acc="";
+    for(let k=0;k<segs.length-1;k++){ acc=acc?acc+"/"+segs[k]:segs[k]; STATE.noteOpen[acc]=true; }
+  }
+  const tree=buildDocTree(DOCS);
+  const cur=DOCS.find(d=>d.path===STATE.noteSel);
+  H+='<div class="grid lg:grid-cols-[20rem_1fr] gap-4">';
+  // left: tree
+  H+='<aside class="rounded-2xl border hairline bg-surface-container-low/50 p-2.5 lg:max-h-[78vh] lg:overflow-y-auto"><div class="space-y-0.5">'+renderDocTree(tree,"")+'</div></aside>';
+  // right: reader
+  H+='<article class="rounded-2xl border hairline bg-surface-container-low/40 p-4 sm:p-6 min-w-0 lg:max-h-[78vh] lg:overflow-y-auto">';
+  if(cur){
+    H+='<div class="flex items-center gap-2 mb-1 text-[11px] text-on-surface-variant/45 font-mono"><span class="material-symbols-outlined text-[14px]">folder</span><span class="truncate">'+esc(cur.path)+'</span></div>';
+    H+='<h1 class="text-[20px] font-extrabold tracking-tight text-on-surface mb-1">'+esc(cur.title||cur.path.split("/").pop())+'</h1>';
+    H+='<p class="text-[11px] text-on-surface-variant/45 mb-4">Updated '+esc(fmtSnoozeLong(cur.updated_at))+'</p>';
+    H+='<div class="notes-body text-[13.5px]">'+mdToHtml(cur.content_md)+'</div>';
+  } else { H+='<p class="text-[13px] text-on-surface-variant/60">Pick a note from the list.</p>'; }
+  H+='</article></div>'+footerHTML()+'</div>';
+  $("#view-notes").innerHTML=H;
+}
+function openNote(path){ STATE.noteSel=path; const segs=String(path).split("/"); let acc=""; for(let k=0;k<segs.length-1;k++){ acc=acc?acc+"/"+segs[k]:segs[k]; STATE.noteOpen[acc]=true; } rerender("notes"); const a=document.querySelector("#view-notes article"); if(a) a.scrollTop=0; }
+
 /* ───── router ───── */
 function showSkeleton(name){
-  if(["overview","projects","tasks","week","travel","routines","inbox"].indexOf(name)<0) name="overview";
+  if(["overview","projects","tasks","week","travel","routines","notes","inbox"].indexOf(name)<0) name="overview";
   $$(".view").forEach(v=>v.classList.toggle("active", v.id==="view-"+name));
   $$(".tab").forEach(t=>t.dataset.active = t.dataset.view===name?"1":"0");
   $$(".bnav").forEach(t=>t.dataset.active = t.dataset.view===name?"1":"0");
@@ -1338,7 +1467,7 @@ function showSkeleton(name){
   $("#view-"+name).innerHTML='<div class="space-y-4 max-w-2xl"><div class="h-7 w-44 rounded bg-surface-container-high animate-pulse mb-1"></div>'+card+card+card+card+'</div>';
 }
 function setView(name, force){
-  if(["overview","projects","tasks","week","travel","routines","inbox"].indexOf(name)<0) name="overview";
+  if(["overview","projects","tasks","week","travel","routines","notes","inbox"].indexOf(name)<0) name="overview";
   // Scroll discipline: a genuine NAVIGATION (switching views, or any unforced call from the
   // hashchange handler) jumps to the top. An in-place RE-RENDER of the view you're already on
   // (force=true, same view — e.g. checking a task off, snooze, set-priority, a realtime data
@@ -1348,7 +1477,7 @@ function setView(name, force){
   const keepScroll = !!force && sameView;
   const y = window.scrollY;
   STATE.view=name;
-  const fn={overview:renderOverview,projects:renderProjects,tasks:renderTasks,week:renderWeek,travel:renderTravel,routines:renderRoutines,inbox:renderInbox}[name];
+  const fn={overview:renderOverview,projects:renderProjects,tasks:renderTasks,week:renderWeek,travel:renderTravel,routines:renderRoutines,notes:renderNotes,inbox:renderInbox}[name];
   if(!RENDERED[name]||force){ fn(); RENDERED[name]=true; }
   $$(".view").forEach(v=>v.classList.toggle("active", v.id==="view-"+name));
   $$(".tab").forEach(t=>t.dataset.active = t.dataset.view===name?"1":"0");
@@ -1509,7 +1638,7 @@ function showLogin(msg){ showScreen("login"); const er=$("#login-error"); if(msg
 function showForgot(){ showScreen("forgot"); $("#forgot-msg").classList.add("hidden"); var fe=$("#forgot-email"); if(fe && $("#email") && $("#email").value) fe.value=$("#email").value.trim(); }
 function showReset(){ showScreen("reset"); $("#reset-msg").classList.add("hidden"); }
 function msgBox(el, kind, text){ el.textContent=text; el.className="text-[12.5px] rounded-lg px-3 py-2 "+(kind==="ok"?"text-green bg-green/10 border border-green/20":"text-on-error-container bg-error-container/30 border border-on-error-container/20"); el.classList.remove("hidden"); }
-async function signOut(){ teardownRealtime(); INBOX=[]; updateInboxBadge(); await sb.auth.signOut(); DATA=null; PENDING=[]; location.hash=""; showLogin(); }
+async function signOut(){ teardownRealtime(); INBOX=[]; updateInboxBadge(); await sb.auth.signOut(); DATA=null; PENDING=[]; DOCS=null; DOCS_LOADING=false; STATE.noteSel=null; STATE.noteOpen={}; location.hash=""; showLogin(); }
 
 const APP_URL = location.origin + location.pathname;   // redirect target for recovery links
 

@@ -805,16 +805,16 @@ function fmtSnoozeLong(iso){ try{ return new Date(iso).toLocaleDateString(undefi
 function taskDesc(t){ return String((t && (t.description||t.notes||t.detail||t.summary)) || "").trim(); }
 function taskRow(t){
   const st=pstate(t.state); const urgent=/asap/i.test(t.urgency); const done=taskDone(t.id);
-  const clickable=!!t.projectId && !done;
+  // Clicking the row opens the TASK detail modal (full title + instructions), not the project.
+  const clickable=!done;
   const tag='<span class="inline-flex items-center gap-1 text-[10.5px] font-semibold text-on-surface-variant/60 bg-surface-container-high px-1.5 py-0.5 rounded">'+(t.icon?esc(t.icon)+' ':'')+esc(t.project||"")+'</span>';
   const check='<button data-act="toggle-task" data-id="'+esc(t.id)+'" class="pressable flex-shrink-0 leading-none" aria-label="'+(done?"Mark incomplete":"Mark done")+'">'+
     '<span class="material-symbols-outlined text-[20px] '+(done?"text-green ms-fill":(st.dot==="bg-primary"?"text-primary":st.dot==="bg-blue"?"text-blue":"text-on-surface-variant/55"))+'">'+(done?"check_circle":"radio_button_unchecked")+'</span></button>';
-  // Eye-in-a-circle: shown only when the task has a description. Tapping it opens the description
-  // in a popover — the long sentence no longer lives inline, so the name gets the full width.
-  const hasDesc=!!taskDesc(t);
-  const eye=hasDesc?'<button data-act="task-desc" data-id="'+esc(t.id)+'" class="pressable flex-shrink-0 w-6 h-6 rounded-full border border-outline-variant/60 bg-surface-container/50 hover:border-primary/50 hover:text-primary text-on-surface-variant/70 flex items-center justify-center" title="Show description" aria-label="Show description"><span class="material-symbols-outlined text-[15px]">visibility</span></button>':'';
-  const body='<'+(clickable?'button data-act="open-project" data-id="'+esc(t.projectId)+'"':'div')+' class="min-w-0 flex-1 text-left '+(clickable?"pressable":"")+'">'+
-    '<p class="text-[13.5px] leading-snug '+(done?"line-through text-on-surface-variant/40":"text-on-surface")+'">'+esc(t.title)+'</p>'+
+  // Title is ONE line, ellipsis-truncated. The old per-row eye/description affordance was removed:
+  // tapping the row now opens the full task detail modal (which renders the instructions), so the
+  // inline peek was redundant.
+  const body='<'+(clickable?'button data-act="open-task" data-id="'+esc(t.id)+'"':'div')+' class="min-w-0 flex-1 text-left '+(clickable?"pressable":"")+'">'+
+    '<p class="text-[13.5px] leading-snug truncate '+(done?"line-through text-on-surface-variant/40":"text-on-surface")+'">'+esc(t.title)+'</p>'+
     '<div class="flex items-center gap-2 mt-1 '+(done?"opacity-50":"")+'">'+tag+(t.source==="drive"?'<span class="text-[10px] text-on-surface-variant/40">· from Drive</span>':'')+'</div></'+(clickable?'button':'div')+'>';
   // 2-minute task marker — a quick win you can knock out fast. Lightweight green badge so they're
   // easy to spot/batch. two_min is a user-owned override (like priority/snooze) preserved across syncs.
@@ -831,10 +831,46 @@ function taskRow(t){
   return '<div class="relative rounded-xl" data-task-row data-id="'+esc(t.id)+'">'+
     '<div class="task-swipe-hint absolute inset-y-0 right-0 flex items-center gap-1.5 pr-5 text-primary pointer-events-none" style="opacity:0"><span class="material-symbols-outlined text-[20px]">snooze</span><span class="text-[11.5px] font-bold uppercase tracking-wide">Snooze</span></div>'+
     '<div class="task-swipe flex items-stretch rounded-xl overflow-hidden hover:bg-surface-container/40 transition-colors" style="touch-action:pan-y">'+
-      '<div class="flex items-center gap-2.5 flex-1 min-w-0 pl-3 pr-2 py-2.5">'+check+body+eye+twoMinBadge+snzPill+'</div>'+
+      '<div class="flex items-center gap-2.5 flex-1 min-w-0 pl-3 pr-2 py-2.5">'+check+body+twoMinBadge+snzPill+'</div>'+
       menuRect+
     '</div>'+
   '</div>';
+}
+/* ───── TASK DETAIL modal — opened by tapping a task row. Shows the FULL title and, only when the
+   task actually carries instructions, a "Details" section. The full Goal & Blocker panel stays on
+   the PROJECT modal; here we close with just a brief, muted reminder of the parent project's goal
+   (a touch-base + a way back to the project), never the whole panel. ───── */
+function taskModal(t){
+  if(!t) return;
+  const proj=t.projectId?projById(t.projectId):null;
+  const pm=pmeta(taskPriority(t)), done=taskDone(t.id);
+  let h=mhead(esc(t.title), proj?esc(proj.name):esc(t.project||"Task"));
+  h+='<div class="px-5 sm:px-6 py-5 space-y-5">';
+  // meta chips: horizon + project + flags
+  h+='<div class="flex flex-wrap items-center gap-2">'+
+     '<span class="inline-flex items-center text-[10.5px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border '+pm.badge+'">'+pm.label+'</span>'+
+     (t.project?'<span class="inline-flex items-center gap-1 text-[11px] font-semibold text-on-surface-variant/70 bg-surface-container-high px-2 py-1 rounded-full">'+(t.icon?esc(t.icon)+' ':'')+esc(t.project)+'</span>':'')+
+     (t.two_min?'<span class="inline-flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full border border-green/35 bg-green/12 text-green"><span class="material-symbols-outlined text-[13px]">bolt</span>2-min</span>':'')+
+     (taskSnoozed(t)?'<span class="inline-flex items-center gap-1 text-[10.5px] font-semibold text-on-surface-variant/60"><span class="material-symbols-outlined text-[14px]">snooze</span>Snoozed · '+esc(fmtSnooze(t.snoozed_until))+'</span>':'')+
+     '</div>';
+  // mark done / undo (reopens THIS task modal afterwards via data-from-task)
+  h+='<button data-act="mark-task" data-from-task="1" data-ids="'+esc(t.id)+'" data-pid="'+esc(t.projectId||"")+'" data-done="'+(done?"1":"0")+'" class="pressable w-full flex items-center justify-center gap-2 font-bold text-[13.5px] py-2.5 rounded-xl '+(done?"bg-surface-container-high text-on-surface hover:bg-surface-variant":"bg-primary text-on-primary hover:brightness-110")+'"><span class="material-symbols-outlined text-[18px]'+(done?" text-green ms-fill":"")+'">'+(done?"undo":"check_circle")+'</span>'+(done?"Done ✓ — mark not done":"Mark done")+'</button>';
+  // details / instructions — ONLY when the task actually has content (no empty boilerplate)
+  const d=taskDesc(t);
+  if(d){
+    h+='<div class="rounded-xl border hairline bg-surface-container/40 p-4">'+
+       '<div class="flex items-center gap-2 mb-2"><span class="material-symbols-outlined text-primary text-[16px]">description</span><span class="text-[11px] font-bold tracking-widest text-primary uppercase">Details</span></div>'+
+       '<p class="text-[13.5px] leading-relaxed text-on-surface/85 whitespace-pre-wrap">'+esc(d)+'</p></div>';
+  }
+  // bottom: brief, muted parent-project goal reminder (touch-base — NOT the full Goal & Blocker panel)
+  if(proj){
+    const g=String(proj.smart_goal||"").trim();
+    h+='<button data-act="open-project" data-id="'+esc(proj.id)+'" class="pressable w-full text-left flex items-start gap-2 pt-1 text-on-surface-variant/55 hover:text-on-surface-variant/85 transition-colors">'+
+       '<span class="material-symbols-outlined text-[15px] flex-shrink-0 mt-[1px]">flag</span>'+
+       '<span class="text-[11.5px] leading-snug min-w-0">'+(g?'<span class="font-semibold text-on-surface-variant/75">'+esc(proj.name)+' goal:</span> '+esc(g):'Part of <span class="font-semibold text-on-surface-variant/75">'+esc(proj.name)+'</span>')+' <span class="text-on-surface-variant/40">· view project</span></span></button>';
+  }
+  h+='</div>';
+  openModal(h);
 }
 // "…" overflow menu — the two controls that used to be inline (priority horizon + Tell Claude).
 function taskMenuPopover(anchor, id){
@@ -1473,6 +1509,7 @@ async function setupRealtime(){
 document.addEventListener("click",(e)=>{
   const el=e.target.closest("[data-act]"); if(!el) return;
   if(el.dataset.act==="open-project"){ const p=projById(el.dataset.id); if(p) projectModal(p); }
+  else if(el.dataset.act==="open-task"){ const t=findTaskById(el.dataset.id); if(t) taskModal(t); }
   else if(el.dataset.act==="proj-filter"){ STATE.projFilter=el.dataset.key; rerender("projects"); }
   else if(el.dataset.act==="edit-goal"){ const p=projById(el.dataset.id); if(p) goalEditModal(p); }
   else if(el.dataset.act==="goal-save"){ saveGoalEdit(el.dataset.id); }
@@ -1488,7 +1525,10 @@ document.addEventListener("click",(e)=>{
     ids.forEach(id=>{ const i=cur.indexOf(id); if(markDone){ if(i<0) cur.push(id); } else if(i>=0){ cur.splice(i,1); } });
     DATA.settings=DATA.settings||{}; DATA.settings.completedTasks=cur;
     RENDERED.overview=false; RENDERED.tasks=false; setView(STATE.view, true);
-    const p=projById(el.dataset.pid); if(p) projectModal(p);   // refresh modal so the button flips
+    // Re-open the originating modal so its button flips: the task modal if invoked from a task,
+    // otherwise the project modal.
+    if(el.dataset.fromTask==="1"){ const t=findTaskById(ids[0]); if(t) taskModal(t); }
+    else { const p=projById(el.dataset.pid); if(p) projectModal(p); }
     toast(markDone?"Marked done":"Marked not done", markDone?"check_circle":"undo");
     sb.from("maestro_dashboard").update({ settings: DATA.settings }).eq("user_id", USER_ID).then(({error})=>{ if(error) toast("Couldn’t save: "+error.message,"error"); });
   }

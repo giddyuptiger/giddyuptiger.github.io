@@ -54,6 +54,11 @@
   .toast.show{ transform:none; opacity:1; }
   ::-webkit-scrollbar{ height:8px; width:8px; } ::-webkit-scrollbar-thumb{ background:#2E333A; border-radius:8px; }
   input:focus{ outline:none; }
+  /* task-row overflow rectangle: attached to the row — only the OUTER (right) corners are rounded */
+  .task-menu-rect{ border-radius:0 0.75rem 0.75rem 0; }
+  /* lightweight popover/tooltip (priority + Claude menu, and the eye/description) */
+  .mpop{ position:fixed; z-index:85; background:#262A2F; border:1px solid rgba(155,161,166,0.22); border-radius:14px; box-shadow:0 18px 50px -16px rgba(0,0,0,.9); padding:8px; opacity:0; transform:translateY(-4px); transition:opacity .15s ease, transform .15s ease; }
+  .mpop.open{ opacity:1; transform:none; }
   @media (prefers-reduced-motion: reduce){ *{animation-duration:.001ms !important; transition-duration:.001ms !important;} }
 </style>
 </head>
@@ -289,7 +294,36 @@ function detectConflicts(){ const map=eventsByDay(), out=[], dis=dismissedConfli
 /* ───── toast + modal ───── */
 function toast(msg, icon){ const t=document.createElement("div"); t.className="toast"; t.innerHTML='<span class="material-symbols-outlined text-primary text-[20px] ms-fill">'+(icon||"check_circle")+'</span><span>'+msg+'</span>'; $("#toasts").appendChild(t); requestAnimationFrame(()=>t.classList.add("show")); setTimeout(()=>{ t.classList.remove("show"); setTimeout(()=>t.remove(),300); },3400); }
 let lastFocus=null;
-function openModal(html){ $("#modal-content").innerHTML=html; const m=$("#modal"); lastFocus=document.activeElement; m.classList.add("open"); m.setAttribute("aria-hidden","false"); document.body.style.overflow="hidden"; $("#modal-panel").scrollTop=0; const c=$(".mclose"); if(c) c.focus(); }
+function openModal(html){ closePopover(); $("#modal-content").innerHTML=html; const m=$("#modal"); lastFocus=document.activeElement; m.classList.add("open"); m.setAttribute("aria-hidden","false"); document.body.style.overflow="hidden"; $("#modal-panel").scrollTop=0; const c=$(".mclose"); if(c) c.focus(); }
+/* ───── lightweight popover / tooltip ─────
+   Used by the task-row "…" overflow menu (priority + Tell-Claude) and the eye/description.
+   One at a time; floats in <body> so it's never clipped by a scrolling list; dismisses on
+   outside tap, scroll, resize, or Escape. Clicks INSIDE it fall through to the normal
+   delegated [data-act] handlers (which call openModal → closePopover). */
+let CURRENT_POP=null;
+function closePopover(){ if(CURRENT_POP){ CURRENT_POP.remove(); CURRENT_POP=null; } }
+function openPopover(anchor, html, ownerId){
+  closePopover();
+  const pop=document.createElement("div");
+  pop.className="mpop"; pop.innerHTML=html; if(ownerId!=null) pop._ownerId=String(ownerId);
+  document.body.appendChild(pop);
+  const r=anchor.getBoundingClientRect(), pw=pop.offsetWidth, ph=pop.offsetHeight, pad=8;
+  let left=Math.min(r.right-pw, window.innerWidth-pw-pad); left=Math.max(pad,left);
+  let top=r.bottom+6; if(top+ph>window.innerHeight-pad) top=Math.max(pad, r.top-ph-6);
+  pop.style.left=left+"px"; pop.style.top=top+"px";
+  requestAnimationFrame(()=>pop.classList.add("open"));
+  CURRENT_POP=pop;
+}
+// Dismiss on outside tap (capture so it runs before the bubble handlers). A click on a
+// popover trigger or inside the popover itself is left alone — its own handler decides.
+document.addEventListener("click",(e)=>{
+  if(!CURRENT_POP) return;
+  if(CURRENT_POP.contains(e.target)) return;
+  if(e.target.closest('[data-act="task-menu"],[data-act="task-desc"]')) return;
+  closePopover();
+}, true);
+window.addEventListener("scroll", closePopover, true);
+window.addEventListener("resize", closePopover);
 function closeModal(){ const m=$("#modal"); m.classList.remove("open"); m.setAttribute("aria-hidden","true"); document.body.style.overflow=""; const p=$("#modal-panel"); if(p){ p.style.transition=""; p.style.transform=""; } if(lastFocus&&lastFocus.focus) lastFocus.focus(); }
 // Swipe / drag-down to dismiss the bottom-sheet (mobile only). Follows the finger;
 // closes past a threshold, snaps back otherwise. Only engages when the sheet is
@@ -600,6 +634,12 @@ function renderProjects(){
 }
 function completedTasks(){ return (DATA.settings && DATA.settings.completedTasks) || []; }
 function taskDone(id){ return completedTasks().indexOf(id) >= 0; }
+// Setup checklist lifecycle: once EVERY setup item has been completed, we persist a one-way
+// flag (settings.setupComplete) so the whole Setup section disappears for good — re-opening an
+// item later won't bring it back. setupComplete is user-owned (like completedTasks) and stored
+// in the settings column, so it survives reload and brain syncs.
+function setupAllDone(){ return SETUP_ITEMS.every(it=>taskDone(it.id)); }
+function setupDismissed(){ return !!(DATA.settings && DATA.settings.setupComplete); }
 
 /* ───── PRIORITY HORIZONS — a task's time-horizon (user-owned field: priority) ─────
    Four values replace the old low/medium/high urgency for tasks. Each is a colored,
@@ -628,31 +668,50 @@ function taskSnoozed(t){ return !!(t && t.snoozed_until) && new Date(t.snoozed_u
 function fmtSnooze(iso){ try{ return new Date(iso).toLocaleDateString(undefined,{month:"short",day:"numeric"}); }catch(_e){ return String(iso); } }
 function fmtSnoozeLong(iso){ try{ return new Date(iso).toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"}); }catch(_e){ return String(iso); } }
 
+// A task's optional long-form description — surfaced behind the eye affordance, never inline.
+function taskDesc(t){ return String((t && (t.description||t.notes||t.detail||t.summary)) || "").trim(); }
 function taskRow(t){
   const st=pstate(t.state); const urgent=/asap/i.test(t.urgency); const done=taskDone(t.id);
   const clickable=!!t.projectId && !done;
   const tag='<span class="inline-flex items-center gap-1 text-[10.5px] font-semibold text-on-surface-variant/60 bg-surface-container-high px-1.5 py-0.5 rounded">'+(t.icon?esc(t.icon)+' ':'')+esc(t.project||"")+'</span>';
   const check='<button data-act="toggle-task" data-id="'+esc(t.id)+'" class="pressable mt-0.5 flex-shrink-0 leading-none" aria-label="'+(done?"Mark incomplete":"Mark done")+'">'+
     '<span class="material-symbols-outlined text-[20px] '+(done?"text-green ms-fill":(st.dot==="bg-primary"?"text-primary":st.dot==="bg-blue"?"text-blue":"text-on-surface-variant/55"))+'">'+(done?"check_circle":"radio_button_unchecked")+'</span></button>';
+  // Eye-in-a-circle: shown only when the task has a description. Tapping it opens the description
+  // in a popover — the long sentence no longer lives inline, so the name gets the full width.
+  const hasDesc=!!taskDesc(t);
+  const eye=hasDesc?'<button data-act="task-desc" data-id="'+esc(t.id)+'" class="pressable flex-shrink-0 mt-0.5 w-6 h-6 rounded-full border border-outline-variant/60 bg-surface-container/50 hover:border-primary/50 hover:text-primary text-on-surface-variant/70 flex items-center justify-center" title="Show description" aria-label="Show description"><span class="material-symbols-outlined text-[15px]">visibility</span></button>':'';
   const body='<'+(clickable?'button data-act="open-project" data-id="'+esc(t.projectId)+'"':'div')+' class="min-w-0 flex-1 text-left '+(clickable?"pressable":"")+'">'+
     '<p class="text-[13.5px] leading-snug '+(done?"line-through text-on-surface-variant/40":"text-on-surface")+'">'+esc(t.title)+'</p>'+
     '<div class="flex items-center gap-2 mt-1 '+(done?"opacity-50":"")+'">'+tag+(t.source==="drive"?'<span class="text-[10px] text-on-surface-variant/40">· from Drive</span>':'')+'</div></'+(clickable?'button':'div')+'>';
-  // Priority horizon badge — tap to set horizon / snooze (the clear per-task control).
-  const prio=taskPriority(t), pm=pmeta(prio), snz=taskSnoozed(t);
-  const badge=!done?'<button data-act="task-options" data-id="'+esc(t.id)+'" class="pressable flex-shrink-0 mt-0.5 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full border '+pm.badge+' hover:brightness-110" title="Set priority" aria-label="Set priority">'+pm.label+'</button>':'';
   // 2-minute task marker — a quick win you can knock out fast. Lightweight green badge so they're
   // easy to spot/batch. two_min is a user-owned override (like priority/snooze) preserved across syncs.
   const twoMin=!!(t&&t.two_min);
   const twoMinBadge=(!done && twoMin)?'<span class="flex-shrink-0 mt-0.5 inline-flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full border border-green/35 bg-green/12 text-green" title="Quick 2-minute task"><span class="material-symbols-outlined text-[13px]">bolt</span>2-min</span>':'';
+  const snz=taskSnoozed(t);
   const snzPill=(!done && snz)?'<span class="flex-shrink-0 mt-0.5 inline-flex items-center gap-1 text-[10px] font-semibold text-on-surface-variant/55 px-1.5 py-1" title="Snoozed"><span class="material-symbols-outlined text-[14px]">snooze</span>'+esc(fmtSnooze(t.snoozed_until))+'</span>':'';
-  const respond='<button data-act="task-respond" data-id="'+esc(t.id)+'" class="pressable flex-shrink-0 mt-0.5 inline-flex items-center gap-1 rounded-full border border-primary/35 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary hover:bg-primary/20 transition-colors" title="Tell Claude to change this task" aria-label="Tell Claude about this task"><span class="material-symbols-outlined text-[15px]">forum</span>Tell&nbsp;Claude</button>';
+  // Overflow "…": a vertical rectangle flush to the row's right edge (only its outer/right corners
+  // rounded so it reads as attached). It houses the priority + Tell-Claude controls in a popover.
+  const menuRect='<button data-act="task-menu" data-id="'+esc(t.id)+'" class="task-menu-rect pressable flex-shrink-0 self-stretch w-9 flex items-center justify-center bg-surface-container-high/70 hover:bg-surface-variant border-l hairline text-on-surface-variant/70 hover:text-primary transition-colors" title="More" aria-label="More actions"><span class="material-symbols-outlined text-[20px]">more_vert</span></button>';
   // Wrapped for swipe-left → snooze: a hidden "Snooze" hint sits behind; the inner .task-swipe
   // layer translates left under the finger (see initTaskSwipe). touch-action:pan-y keeps vertical
   // scrolling native while we own the horizontal drag.
   return '<div class="relative rounded-xl" data-task-row data-id="'+esc(t.id)+'">'+
     '<div class="task-swipe-hint absolute inset-y-0 right-0 flex items-center gap-1.5 pr-5 text-primary pointer-events-none" style="opacity:0"><span class="material-symbols-outlined text-[20px]">snooze</span><span class="text-[11.5px] font-bold uppercase tracking-wide">Snooze</span></div>'+
-    '<div class="task-swipe flex items-start gap-2.5 rounded-xl px-3 py-2.5 hover:bg-surface-container/40 transition-colors" style="touch-action:pan-y">'+check+body+twoMinBadge+snzPill+badge+respond+'</div>'+
+    '<div class="task-swipe flex items-stretch rounded-xl overflow-hidden hover:bg-surface-container/40 transition-colors" style="touch-action:pan-y">'+
+      '<div class="flex items-start gap-2.5 flex-1 min-w-0 pl-3 pr-2 py-2.5">'+check+body+eye+twoMinBadge+snzPill+'</div>'+
+      menuRect+
+    '</div>'+
   '</div>';
+}
+// "…" overflow menu — the two controls that used to be inline (priority horizon + Tell Claude).
+function taskMenuPopover(anchor, id){
+  const t=findTaskById(id); if(!t) return;
+  const pm=pmeta(taskPriority(t)), done=taskDone(id);
+  let h='<div class="flex flex-col gap-1 min-w-[172px]">';
+  if(!done) h+='<button data-act="task-options" data-id="'+esc(id)+'" class="pressable w-full flex items-center justify-between gap-2 rounded-lg px-2.5 py-2 hover:bg-surface-container-high text-left"><span class="text-[12.5px] font-semibold text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-[16px] text-on-surface-variant/70">flag</span>Priority</span><span class="inline-flex items-center text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border '+pm.badge+'">'+pm.label+'</span></button>';
+  h+='<button data-act="task-respond" data-id="'+esc(id)+'" class="pressable w-full flex items-center gap-2 rounded-lg px-2.5 py-2 hover:bg-surface-container-high text-left text-[12.5px] font-semibold text-primary"><span class="material-symbols-outlined text-[16px]">forum</span>Tell&nbsp;Claude</button>';
+  h+='</div>';
+  openPopover(anchor, h, id);
 }
 /* ───── Setup / Needs-you checklist (one-time onboarding actions) ───── */
 // Generic first-run onboarding. These are the SAME for every new account — no personal data.
@@ -667,7 +726,7 @@ var SETUP_ITEMS = [
       "Your refresh token is stored encrypted server-side and never leaves Supabase.",
       "After connecting, tap <b>Sync now</b> (or just reload) and your calendar fills in live." ] },
   { id:"setup-install-connector", title:"Install the Maestro connector in Claude",
-    summary:"Lets Claude read &amp; update this dashboard for you.",
+    summary:"Lets Claude read & update this dashboard for you.",
     steps:[
       "Add the Maestro connector / plugin in Claude and sign in with this same account.",
       "Approve the one-time OAuth prompt when it appears.",
@@ -683,7 +742,7 @@ var SETUP_ITEMS = [
       "Tap the <b>Add task</b> button at the top of the Tasks view.",
       "Type the task, then tap its badge to set a time horizon (ASAP, this week, …) or snooze it.",
       "Check-offs and horizons survive every sync." ] },
-  { id:"setup-explore", title:"Explore horizons &amp; quick wins", optional:true,
+  { id:"setup-explore", title:"Explore horizons & quick wins", optional:true,
     summary:"Tap a task’s badge to set its horizon, snooze, or flag a 2-minute task.",
     steps:[
       "Tap any task’s priority badge to move it between time horizons or snooze it.",
@@ -736,7 +795,7 @@ function renderTasks(){
   // within-section order changes; cross-section ordering by horizon is untouched).
   PRIORITY_ORDER.forEach(k=>{ groups[k].sort((a,b)=>(b&&b.two_min?1:0)-(a&&a.two_min?1:0)); });
   let H='<div class="rise"><div class="mb-4 px-1 flex items-start justify-between gap-3"><div><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Tasks</h2><p class="text-[12px] text-on-surface-variant/60 mt-0.5">Grouped by time horizon — tap a task’s badge to change its horizon or snooze it. Check-offs and horizons survive every sync.</p></div><button data-act="add-task" class="pressable flex-shrink-0 inline-flex items-center gap-1.5 bg-primary text-on-primary font-bold text-[12.5px] px-3.5 py-2 rounded-xl hover:brightness-110" title="Add a task" aria-label="Add a task"><span class="material-symbols-outlined text-[18px]">add</span>Add task</button></div><div class="max-w-2xl space-y-5">';
-  H+= renderSetupGroup();
+  if(!setupDismissed()) H+= renderSetupGroup();   // gone for good once all setup items were completed
   PRIORITY_ORDER.forEach(key=>{
     const arr=groups[key]; if(!arr.length) return; const pm=PRIORITY[key];
     H+='<div><h3 class="text-[11px] font-bold tracking-widest uppercase mb-2 px-1 flex items-center gap-2"><span class="inline-block w-2 h-2 rounded-full '+pm.dot+'"></span><span class="'+pm.text+'">'+pm.label+' ('+arr.length+')</span></h3><div class="rounded-2xl border hairline bg-surface-container-low/50 p-2">'+arr.map(taskRow).join("")+'</div></div>';
@@ -906,6 +965,8 @@ async function toggleTask(id){
   const i = cur.indexOf(id);
   if(i>=0) cur.splice(i,1); else cur.push(id);
   DATA.settings = DATA.settings || {}; DATA.settings.completedTasks = cur;
+  // One-way: the first time every setup item is complete, retire the Setup section permanently.
+  if(!DATA.settings.setupComplete && setupAllDone()) DATA.settings.setupComplete = true;
   RENDERED.overview=false; RENDERED.tasks=false;   // both views show completion
   setView(STATE.view, true);                       // re-render the view the user is ACTUALLY on (overview or tasks)
   const { error } = await sb.from("maestro_dashboard").update({ settings: DATA.settings }).eq("user_id", USER_ID);
@@ -1215,6 +1276,8 @@ document.addEventListener("click",(e)=>{
   }
   else if(el.dataset.act==="setup-expand"){ const id=el.dataset.id; STATE.setupExpanded[id]=!STATE.setupExpanded[id]; rerender("tasks"); }
   else if(el.dataset.act==="dismiss-conflict"){ dismissConflict(el.dataset.cid); }
+  else if(el.dataset.act==="task-menu"){ e.stopPropagation(); const id=el.dataset.id; if(CURRENT_POP && CURRENT_POP._ownerId===String(id)){ closePopover(); } else { taskMenuPopover(el, id); } }
+  else if(el.dataset.act==="task-desc"){ e.stopPropagation(); const t=findTaskById(el.dataset.id); const d=t?taskDesc(t):""; if(d) openPopover(el, '<div class="text-[12.5px] leading-relaxed text-on-surface/90 max-w-[260px] whitespace-pre-wrap px-1 py-0.5">'+esc(d)+'</div>'); }
   else if(el.dataset.act==="task-options"){ taskOptionsModal(el.dataset.id); }
   else if(el.dataset.act==="set-prio"){ setTaskPriority(el.dataset.id, el.dataset.prio); }
   else if(el.dataset.act==="toggle-twomin"){ toggleTwoMin(el.dataset.id); }
@@ -1280,6 +1343,7 @@ function setView(name, force){
   // hashchange handler) jumps to the top. An in-place RE-RENDER of the view you're already on
   // (force=true, same view — e.g. checking a task off, snooze, set-priority, a realtime data
   // refresh) must PRESERVE scroll position so the page doesn't jump back to the top.
+  closePopover();   // any open task popover is anchored to a row that's about to be re-rendered
   const sameView = (STATE.view===name);
   const keepScroll = !!force && sameView;
   const y = window.scrollY;
@@ -1330,7 +1394,7 @@ document.addEventListener("click", async (e)=>{
     return;
   }
 });
-document.addEventListener("keydown", e=>{ if(e.key==="Escape" && $("#modal").classList.contains("open")) closeModal(); });
+document.addEventListener("keydown", e=>{ if(e.key==="Escape"){ if(CURRENT_POP){ closePopover(); return; } if($("#modal").classList.contains("open")) closeModal(); } });
 window.addEventListener("hashchange", ()=> setView((location.hash||"#overview").slice(1)));
 function tick(){ const c=$("#clock"); if(c) c.textContent=new Date().toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"}); }
 
@@ -1365,6 +1429,12 @@ async function loadDashboard(){
     else { DATA={ meta:{}, events:[], projects:[], tasks:[] }; }
   }
   DATA.settings = (row && row.settings) || {};   // user-owned calendar visibility
+  // Retire the Setup section for accounts that already finished every setup item before the
+  // one-way flag existed (so it doesn't linger as a "Done" archive). Persist once.
+  if(!DATA.settings.setupComplete && setupAllDone()){
+    DATA.settings.setupComplete = true;
+    sb.from("maestro_dashboard").update({ settings: DATA.settings }).eq("user_id", USER_ID).then(({error})=>{ if(error) console.warn("setupComplete persist:", error.message); });
+  }
   await ensureProjectsTasks();   // no-op: projects/tasks come only from the auth-gated Supabase row
   NOW = (DATA.meta && DATA.meta.sample && DATA.meta.generatedAt) ? new Date(DATA.meta.generatedAt) : new Date();
   if(DATA.meta && DATA.meta.location) $("#loc").textContent=DATA.meta.location;

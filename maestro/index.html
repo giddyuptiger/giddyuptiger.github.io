@@ -542,6 +542,8 @@ function renderOverview(){
       conflicts.map(c=>'<div class="flex items-center justify-between gap-3 flex-wrap"><p class="text-[13px] text-on-surface/85"><span class="font-mono text-[11px] text-on-error-container/80">'+fmtTime(c.a.start)+'</span> <b>'+esc(c.a.title)+'</b> overlaps <b>'+esc(c.b.title)+'</b></p><div class="flex items-center gap-2 flex-shrink-0">'+affBtn("resched",c.b.id,{op:"shift",minutes:60},"schedule","Queue: push 1h")+'<button data-act="dismiss-conflict" data-cid="'+esc(c.cid)+'" title="Stop flagging this overlap" class="pressable flex items-center gap-1.5 text-[12.5px] font-semibold px-3 py-1.5 rounded-full border border-outline-variant text-on-surface-variant/80 hover:border-green/40 hover:text-green"><span class="material-symbols-outlined text-[16px]">do_not_disturb_on</span>It’s fine</button></div></div>').join("")+
     '</div></div>';
   }
+  // ── Accomplished today — summarized digest of today's completed task runs, at the bottom ──
+  H += accomplishedTodayHTML();
   H += footerHTML();
   $("#view-overview").innerHTML=H;
   syncRunsSection();   // keep the live-runs strip at the top of Overview
@@ -1238,6 +1240,7 @@ async function loadRuns(){
     if(error) return;                       // RLS / transient — keep last known, no regression
     RUNS = data || [];
     syncRunsSection();
+    syncAccomplishedSection();   // live-refresh the Accomplished-today digest as runs complete
   }catch(_e){ /* offline — realtime or the next poll catches up */ }
 }
 function runsActive(){
@@ -1349,6 +1352,86 @@ function tickRuns(){
   const before=Array.from(document.querySelectorAll("[data-run-card]")).map(c=>c.getAttribute("data-run-card")).join(",");
   const after=runsActive().map(r=>String(r.id)).join(",");
   if(before!==after) syncRunsSection(); else updateRunDynamics();
+}
+
+/* ───── ACCOMPLISHED TODAY — a SUMMARIZED digest of today's COMPLETED task runs (maestro_runs),
+   owner-scoped, on the America/Los_Angeles day boundary. Dispatch task runs already register +
+   complete in maestro_runs, so this populates automatically going forward. We GROUP by project /
+   theme and collapse internal noise (self-heal / seed / demo / sync / health checks) plus near-
+   duplicate runs, so Jeremy sees real accomplishments — not every granular micro-step. Reads live
+   from RUNS, so it fills in as runs complete (realtime → loadRuns → syncAccomplishedSection). ───── */
+// Match RUN-TYPE noise (self-heal / seed / demo / health checks / internal plumbing), NOT any
+// real accomplishment that merely mentions one of these words — e.g. "cleared App Store
+// demo-profile risk" must survive. So we anchor on run-type phrases, not bare keywords.
+const ACC_NOISE_RE=/\b(self[\s-]?heal|smoke[\s-]?test|health[\s-]?check|heartbeat|keep[\s-]?alive|no[\s-]?op|warm[\s-]?up|reindex|backfill|seed(?:ing|ed)?\s+(?:demo|data|run|the\b)|demo\s+(?:seed|data|run|account)|internal\s+sync|cron\s+job|dry[\s-]?run)\b/i;
+// A run counts as "today" if its finished_at, rendered in Los Angeles time, equals today's LA date.
+function laDateStr(d){ try{ return new Date(d).toLocaleDateString("en-CA",{timeZone:"America/Los_Angeles"}); }catch(_e){ return ""; } }
+// Project / theme for a run: an explicit "Project — …" / "Project: …" prefix wins; else match a
+// known project name found in the title; else "Other".
+function accProject(r){
+  const t=String(r.title||"").trim();
+  let m=t.match(/^\s*([^—:|>]{2,40}?)\s*(?:—|:|\||›|>)\s+/);
+  if(m) return m[1].trim();
+  const names=((DATA&&DATA.projects)||[]).map(p=>p.name).filter(Boolean).sort((a,b)=>String(b).length-String(a).length);
+  const lt=t.toLowerCase();
+  const hit=names.find(n=> lt.includes(String(n).toLowerCase()));
+  return hit || "Other";
+}
+// The accomplishment phrase = the run title with its project prefix stripped off.
+function accAction(r, proj){
+  let t=String(r.title||"").trim();
+  t=t.replace(/^\s*[^—:|>]{2,40}?\s*(?:—|:|\||›|>)\s+/,"");
+  if(proj && proj!=="Other"){ const re=new RegExp("^"+proj.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"[\\s:—|>-]*","i"); t=t.replace(re,""); }
+  return t.replace(/\s+/g," ").trim();
+}
+function accomplishedToday(){
+  const today=laDateStr(NOW);
+  let done=(RUNS||[]).filter(r=> r.status==="done" && r.finished_at && laDateStr(r.finished_at)===today);
+  done=done.filter(r=> !ACC_NOISE_RE.test(String(r.title||"")));   // drop internal noise / self-heal / demo / seed
+  const order=[], groups=new Map();
+  done.forEach(r=>{ const proj=accProject(r), action=accAction(r,proj); if(!action) return;
+    if(!groups.has(proj)){ groups.set(proj,[]); order.push(proj); }
+    groups.get(proj).push(action); });
+  const norm=s=>String(s).toLowerCase().replace(/[^a-z0-9 ]+/g,"").replace(/\s+/g," ").trim();
+  const entries=[];
+  order.forEach(proj=>{ const seen=new Set(), uniq=[];
+    groups.get(proj).forEach(a=>{ const k=norm(a); if(k && !seen.has(k)){ seen.add(k); uniq.push(a); } });   // collapse near-duplicate runs
+    if(uniq.length) entries.push({proj, acts:uniq}); });
+  return entries;
+}
+function accomplishedTodayHTML(){
+  const entries=accomplishedToday();
+  const cap=s=> s? s.charAt(0).toUpperCase()+s.slice(1) : s;
+  const total=entries.reduce((n,e)=>n+e.acts.length,0);
+  let inner="";
+  if(!entries.length){
+    inner='<p class="text-[13px] text-on-surface-variant/55 px-1 py-2.5 flex items-center gap-2"><span class="material-symbols-outlined text-on-surface-variant/40 text-[18px]">nightlight</span>Nothing wrapped up yet today — completed task runs land here.</p>';
+  } else {
+    const MAXG=5, MAXP=5;
+    const shown=entries.slice(0,MAXG);
+    inner='<div class="space-y-2.5">'+shown.map(e=>{
+      const raw=e.acts.slice(0,MAXP);
+      const phrases=raw.map((a,i)=> esc(i===0?cap(a):a));
+      let line=phrases.join(", ");
+      const extra=e.acts.length-raw.length;
+      if(extra>0) line+=' <span class="text-on-surface-variant/45">+'+extra+' more</span>';
+      return '<div class="flex items-start gap-2.5">'+
+        '<span class="material-symbols-outlined text-green text-[18px] mt-[1px] flex-shrink-0 ms-fill">check_circle</span>'+
+        '<p class="text-[13px] leading-snug min-w-0"><span class="font-bold text-on-surface">'+esc(e.proj)+'</span> <span class="text-on-surface-variant/35">—</span> <span class="text-on-surface/80">'+line+'</span></p></div>';
+    }).join("")+'</div>';
+    const moreG=entries.length-shown.length;
+    if(moreG>0) inner+='<p class="text-[11.5px] text-on-surface-variant/45 mt-2.5 pl-7">+'+moreG+' more project'+(moreG>1?"s":"")+'</p>';
+  }
+  return '<div id="accomplished-section" class="rise rounded-2xl border hairline bg-surface-container-low/60 p-4 sm:p-5 mb-5" style="animation-delay:.22s">'+
+    '<div class="flex items-center justify-between mb-3"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase flex items-center gap-2"><span class="material-symbols-outlined text-[18px]">verified</span>Accomplished today</h2>'+
+    (total?'<span class="text-[11px] text-on-surface-variant/50 font-mono">'+total+' done</span>':'')+'</div>'+
+    inner+'</div>';
+}
+// Live refresh: swap the section in place when runs change, without re-rendering all of Overview.
+function syncAccomplishedSection(){
+  const ex=document.getElementById("accomplished-section"); if(!ex) return;
+  const tmp=document.createElement("div"); tmp.innerHTML=accomplishedTodayHTML();
+  const next=tmp.firstElementChild; if(next) ex.replaceWith(next);
 }
 
 /* ───── REALTIME — live dashboard + inbox via Supabase postgres_changes (sync button stays as fallback) ───── */

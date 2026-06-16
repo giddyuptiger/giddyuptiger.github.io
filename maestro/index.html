@@ -678,21 +678,21 @@ function taskRow(t){
   const st=pstate(t.state); const urgent=/asap/i.test(t.urgency); const done=taskDone(t.id);
   const clickable=!!t.projectId && !done;
   const tag='<span class="inline-flex items-center gap-1 text-[10.5px] font-semibold text-on-surface-variant/60 bg-surface-container-high px-1.5 py-0.5 rounded">'+(t.icon?esc(t.icon)+' ':'')+esc(t.project||"")+'</span>';
-  const check='<button data-act="toggle-task" data-id="'+esc(t.id)+'" class="pressable mt-0.5 flex-shrink-0 leading-none" aria-label="'+(done?"Mark incomplete":"Mark done")+'">'+
+  const check='<button data-act="toggle-task" data-id="'+esc(t.id)+'" class="pressable flex-shrink-0 leading-none" aria-label="'+(done?"Mark incomplete":"Mark done")+'">'+
     '<span class="material-symbols-outlined text-[20px] '+(done?"text-green ms-fill":(st.dot==="bg-primary"?"text-primary":st.dot==="bg-blue"?"text-blue":"text-on-surface-variant/55"))+'">'+(done?"check_circle":"radio_button_unchecked")+'</span></button>';
   // Eye-in-a-circle: shown only when the task has a description. Tapping it opens the description
   // in a popover — the long sentence no longer lives inline, so the name gets the full width.
   const hasDesc=!!taskDesc(t);
-  const eye=hasDesc?'<button data-act="task-desc" data-id="'+esc(t.id)+'" class="pressable flex-shrink-0 mt-0.5 w-6 h-6 rounded-full border border-outline-variant/60 bg-surface-container/50 hover:border-primary/50 hover:text-primary text-on-surface-variant/70 flex items-center justify-center" title="Show description" aria-label="Show description"><span class="material-symbols-outlined text-[15px]">visibility</span></button>':'';
+  const eye=hasDesc?'<button data-act="task-desc" data-id="'+esc(t.id)+'" class="pressable flex-shrink-0 w-6 h-6 rounded-full border border-outline-variant/60 bg-surface-container/50 hover:border-primary/50 hover:text-primary text-on-surface-variant/70 flex items-center justify-center" title="Show description" aria-label="Show description"><span class="material-symbols-outlined text-[15px]">visibility</span></button>':'';
   const body='<'+(clickable?'button data-act="open-project" data-id="'+esc(t.projectId)+'"':'div')+' class="min-w-0 flex-1 text-left '+(clickable?"pressable":"")+'">'+
     '<p class="text-[13.5px] leading-snug '+(done?"line-through text-on-surface-variant/40":"text-on-surface")+'">'+esc(t.title)+'</p>'+
     '<div class="flex items-center gap-2 mt-1 '+(done?"opacity-50":"")+'">'+tag+(t.source==="drive"?'<span class="text-[10px] text-on-surface-variant/40">· from Drive</span>':'')+'</div></'+(clickable?'button':'div')+'>';
   // 2-minute task marker — a quick win you can knock out fast. Lightweight green badge so they're
   // easy to spot/batch. two_min is a user-owned override (like priority/snooze) preserved across syncs.
   const twoMin=!!(t&&t.two_min);
-  const twoMinBadge=(!done && twoMin)?'<span class="flex-shrink-0 mt-0.5 inline-flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full border border-green/35 bg-green/12 text-green" title="Quick 2-minute task"><span class="material-symbols-outlined text-[13px]">bolt</span>2-min</span>':'';
+  const twoMinBadge=(!done && twoMin)?'<span class="flex-shrink-0 inline-flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full border border-green/35 bg-green/12 text-green" title="Quick 2-minute task"><span class="material-symbols-outlined text-[13px]">bolt</span>2-min</span>':'';
   const snz=taskSnoozed(t);
-  const snzPill=(!done && snz)?'<span class="flex-shrink-0 mt-0.5 inline-flex items-center gap-1 text-[10px] font-semibold text-on-surface-variant/55 px-1.5 py-1" title="Snoozed"><span class="material-symbols-outlined text-[14px]">snooze</span>'+esc(fmtSnooze(t.snoozed_until))+'</span>':'';
+  const snzPill=(!done && snz)?'<span class="flex-shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold text-on-surface-variant/55 px-1.5 py-1" title="Snoozed"><span class="material-symbols-outlined text-[14px]">snooze</span>'+esc(fmtSnooze(t.snoozed_until))+'</span>':'';
   // Overflow "…": a vertical rectangle flush to the row's right edge (only its outer/right corners
   // rounded so it reads as attached). It houses the priority + Tell-Claude controls in a popover.
   const menuRect='<button data-act="task-menu" data-id="'+esc(t.id)+'" class="task-menu-rect pressable flex-shrink-0 self-stretch w-9 flex items-center justify-center bg-surface-container-high/70 hover:bg-surface-variant border-l hairline text-on-surface-variant/70 hover:text-primary transition-colors" title="More" aria-label="More actions"><span class="material-symbols-outlined text-[20px]">more_vert</span></button>';
@@ -702,7 +702,7 @@ function taskRow(t){
   return '<div class="relative rounded-xl" data-task-row data-id="'+esc(t.id)+'">'+
     '<div class="task-swipe-hint absolute inset-y-0 right-0 flex items-center gap-1.5 pr-5 text-primary pointer-events-none" style="opacity:0"><span class="material-symbols-outlined text-[20px]">snooze</span><span class="text-[11.5px] font-bold uppercase tracking-wide">Snooze</span></div>'+
     '<div class="task-swipe flex items-stretch rounded-xl overflow-hidden hover:bg-surface-container/40 transition-colors" style="touch-action:pan-y">'+
-      '<div class="flex items-start gap-2.5 flex-1 min-w-0 pl-3 pr-2 py-2.5">'+check+body+eye+twoMinBadge+snzPill+'</div>'+
+      '<div class="flex items-center gap-2.5 flex-1 min-w-0 pl-3 pr-2 py-2.5">'+check+body+eye+twoMinBadge+snzPill+'</div>'+
       menuRect+
     '</div>'+
   '</div>';

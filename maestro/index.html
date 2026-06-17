@@ -1675,6 +1675,11 @@ document.addEventListener("click",(e)=>{
   else if(el.dataset.act==="add-task-save"){ saveNewTask(); }
   else if(el.dataset.act==="tts-toggle"){ TTS.toggle(); }
   else if(el.dataset.act==="tts-stop"){ TTS.stop(); }
+  else if(el.dataset.act==="tts-prev"){ TTS.prev(); }
+  else if(el.dataset.act==="tts-next"){ TTS.next(); }
+  else if(el.dataset.act==="tts-prev-sec"){ TTS.prevSec(); }
+  else if(el.dataset.act==="tts-next-sec"){ TTS.nextSec(); }
+  else if(el.dataset.act==="tts-jump"){ TTS.jump(parseInt(el.dataset.sec,10)||0); }
   else if(el.dataset.act==="note-open"){ openNote(el.dataset.path); }
   else if(el.dataset.act==="note-folder"){ const p=el.dataset.path; STATE.noteOpen[p]=!STATE.noteOpen[p]; rerender("notes"); }
   else if(el.dataset.act==="note-wiki"){ e.preventDefault(); const d=resolveDoc(el.dataset.target); if(d) openNote(d.path); else toast("No note found for “"+el.dataset.target+"”","search"); }
@@ -1784,43 +1789,75 @@ function mdToHtml(md){
    markers, unwraps [[wiki-links]] and [text](url) to their readable text, removes
    bold/italic/`code` markers, and turns blank lines into sentence breaks so the
    browser's speech engine pauses naturally. */
-function mdToSpeech(md){
-  let s=String(md||"").replace(/\r\n?/g,"\n");
-  // strip YAML frontmatter (--- ... --- at top)
-  if(/^---\n/.test(s)){ const end=s.indexOf("\n---",3); if(end>=0){ const nl=s.indexOf("\n",end+1); s=nl>=0?s.slice(nl+1):""; } }
-  // drop fenced code blocks entirely so code isn't spoken
-  s=s.replace(/```[\s\S]*?```/g,"\n").replace(/~~~[\s\S]*?~~~/g,"\n");
-  const lines=s.split("\n").map(raw=>{
-    let line=raw;
-    if(/^\s*([-*_]\s*){3,}$/.test(line)) return "";          // horizontal rule
-    line=line.replace(/^\s*#{1,6}\s+/,"");                    // heading hashes → text
-    line=line.replace(/^\s*>+\s?/,"");                        // blockquote marker
-    line=line.replace(/^\s*[-*+]\s+/,"");                     // unordered bullet
-    line=line.replace(/^\s*\d+[.)]\s+/,"");                   // ordered list marker
-    line=line.replace(/^\s*\[[ xX]\]\s+/,"");                 // task checkbox
-    line=line.replace(/!\[[^\]]*\]\([^)]*\)/g,"");            // images → drop
-    line=line.replace(/\[\[([^\]]+)\]\]/g,(m,inner)=>{ const p=inner.split("|"); return (p[1]||p[0]).trim(); }); // [[wiki|label]] → label
-    line=line.replace(/\[([^\]]+)\]\([^)]*\)/g,"$1");         // [text](url) → text
-    line=line.replace(/`([^`]+)`/g,"$1");                     // `code` → code text
-    line=line.replace(/(\*\*|__)(.*?)\1/g,"$2");              // **bold** / __bold__
-    line=line.replace(/\*([^*\n]+)\*/g,"$1");                 // *italic*
-    line=line.replace(/~~(.*?)~~/g,"$1");                     // ~~strike~~
-    line=line.replace(/<[^>]+>/g,"");                         // stray html tags
-    line=line.replace(/[#*`>~]/g,"");                         // leftover md symbols
-    line=line.replace(/_/g," ");                              // stray underscores → space
-    return line.replace(/\s+/g," ").trim();
-  });
-  // group non-blank runs into blocks; blank line = sentence/paragraph break
-  const blocks=[]; let cur=[];
-  lines.forEach(l=>{ if(l===""){ if(cur.length){ blocks.push(cur.join(" ")); cur=[]; } } else cur.push(l); });
-  if(cur.length) blocks.push(cur.join(" "));
-  return blocks.map(b=>{ b=b.trim(); return b?(/[.!?:;]$/.test(b)?b:b+"."):""; })
-               .filter(Boolean).join("\n").replace(/\n{2,}/g,"\n").trim();
+// Strip inline markdown to clean prose so symbols are never read aloud.
+function inlineToText(s){
+  s=String(s==null?"":s);
+  s=s.replace(/!\[[^\]]*\]\([^)]*\)/g,"");                  // images → drop
+  s=s.replace(/\[\[([^\]]+)\]\]/g,(m,inner)=>{ const p=inner.split("|"); return (p[1]||p[0]).trim(); }); // [[wiki|label]] → label
+  s=s.replace(/\[([^\]]+)\]\([^)]*\)/g,"$1");               // [text](url) → text
+  s=s.replace(/`([^`]+)`/g,"$1");                           // `code` → code text
+  s=s.replace(/(\*\*|__)(.*?)\1/g,"$2");                    // **bold** / __bold__
+  s=s.replace(/\*([^*\n]+)\*/g,"$1");                       // *italic*
+  s=s.replace(/~~(.*?)~~/g,"$1");                           // ~~strike~~
+  s=s.replace(/<[^>]+>/g,"");                               // stray html tags
+  s=s.replace(/[#*`>~]/g,"");                               // leftover md symbols
+  s=s.replace(/_/g," ");                                    // stray underscores → space
+  return s.replace(/\s+/g," ").trim();
 }
-/* ── Notes read-aloud controller (Web Speech API; no external service / API key) ── */
+function sentenceEnd(b){ b=String(b).trim(); return b?(/[.!?:;]$/.test(b)?b:b+"."):""; }
+/* ── Parse a note into (a) reading-pane HTML carrying data-tts anchors and tappable
+   headings, and (b) ordered speech "parts" grouped into heading-delimited "sections".
+   Parts are spoken chunk-by-chunk; sections drive jump-to-heading + skip controls.
+   Mirrors mdToHtml's block grammar; code blocks/rules/images render but are not spoken. */
+function buildNoteParts(md){
+  const lines=String(md||"").replace(/\r\n?/g,"\n").split("\n");
+  let i=0;
+  if(lines[0]==="---"){ let j=1; while(j<lines.length && lines[j]!=="---") j++; if(j<lines.length) i=j+1; }  // frontmatter
+  let html="", inUL=false, inOL=false;
+  const closeLists=()=>{ if(inUL){html+="</ul>";inUL=false;} if(inOL){html+="</ol>";inOL=false;} };
+  const HSZ={1:"text-[19px]",2:"text-[16px]",3:"text-[14.5px]",4:"text-[13.5px]",5:"text-[13px]",6:"text-[12.5px]"};
+  const interactive = (typeof TTS!=="undefined") && TTS.supported;
+  const parts=[], sections=[]; let sec=-1;
+  const ensureSec=()=>{ if(sec<0){ sec=0; sections.push({index:0,title:"Top",firstPartIndex:null}); } return sec; };
+  // add a spoken part (clean text), return its index or -1 if empty
+  const addPart=(text)=>{ const t=inlineToText(text); if(!t) return -1; const s=ensureSec(); const pi=parts.length;
+    parts.push({i:pi,text:sentenceEnd(t),sec:s}); if(sections[s].firstPartIndex===null) sections[s].firstPartIndex=pi; return pi; };
+  const dataAttr=(pi)=> pi>=0?(' data-tts="'+pi+'"'):"";
+  while(i<lines.length){
+    const line=lines[i];
+    if(/^```/.test(line)){ closeLists(); i++; let code=""; while(i<lines.length && !/^```/.test(lines[i])){ code+=lines[i]+"\n"; i++; } i++;  // fenced code: render, never spoken
+      html+='<pre class="my-3 p-3 rounded-xl bg-surface-container-lowest border hairline overflow-x-auto"><code class="text-[12px] font-mono text-on-surface/90 whitespace-pre">'+esc(code.replace(/\n$/,""))+'</code></pre>'; continue; }
+    const hm=line.match(/^(#{1,6})\s+(.*)$/);
+    if(hm){ closeLists(); const lv=hm[1].length; const txt=inlineToText(hm[2]);
+      sections.push({index:sections.length,title:txt||("Section "+(sections.length+1)),firstPartIndex:null}); sec=sections.length-1;
+      const pi=addPart(hm[2]);
+      const navCls = interactive ? ' cursor-pointer hover:text-primary tts-h' : '';
+      const navAtt = interactive ? (' data-act="tts-jump" data-sec="'+sec+'" title="Read from here"') : '';
+      html+='<h'+lv+' id="tts-sec-'+sec+'"'+navAtt+dataAttr(pi)+' class="font-bold text-on-surface mt-4 mb-2 '+(HSZ[lv]||"text-[13px]")+navCls+'">'+mdInline(esc(hm[2]))+'</h'+lv+'>'; i++; continue; }
+    if(/^(\s*[-*_]){3,}\s*$/.test(line)){ closeLists(); html+='<hr class="my-4 border-outline-variant/30">'; i++; continue; }
+    if(/^>\s?/.test(line)){ closeLists(); let q=""; while(i<lines.length && /^>\s?/.test(lines[i])){ q+=lines[i].replace(/^>\s?/,"")+"\n"; i++; }
+      const pi=addPart(q); html+='<blockquote'+dataAttr(pi)+' class="border-l-2 border-primary/40 pl-3 my-2 text-on-surface-variant/80 italic">'+mdInline(esc(q.trim()))+'</blockquote>'; continue; }
+    const um=line.match(/^\s*[-*+]\s+(.*)$/);
+    if(um){ if(inOL){html+="</ol>";inOL=false;} if(!inUL){html+='<ul class="list-disc pl-5 my-2 space-y-1">';inUL=true;} const pi=addPart(um[1]); html+='<li'+dataAttr(pi)+' class="text-on-surface/90">'+mdInline(esc(um[1]))+'</li>'; i++; continue; }
+    const om=line.match(/^\s*\d+\.\s+(.*)$/);
+    if(om){ if(inUL){html+="</ul>";inUL=false;} if(!inOL){html+='<ol class="list-decimal pl-5 my-2 space-y-1">';inOL=true;} const pi=addPart(om[1]); html+='<li'+dataAttr(pi)+' class="text-on-surface/90">'+mdInline(esc(om[1]))+'</li>'; i++; continue; }
+    if(/^\s*$/.test(line)){ closeLists(); i++; continue; }
+    closeLists(); let para=line; i++;
+    while(i<lines.length && !/^\s*$/.test(lines[i]) && !/^(#{1,6}\s|```|>\s?|\s*[-*+]\s|\s*\d+\.\s)/.test(lines[i])){ para+=" "+lines[i]; i++; }
+    const pi=addPart(para); html+='<p'+dataAttr(pi)+' class="my-2 leading-relaxed text-on-surface/90 break-words">'+mdInline(esc(para))+'</p>';
+  }
+  closeLists();
+  return { html, parts, sections };
+}
+// Back-compat: full clean-prose string of a note (used by checks/tools).
+function mdToSpeech(md){ return buildNoteParts(md).parts.map(p=>p.text).join("\n"); }
+
+/* ── Notes read-aloud controller with chunk navigation (Web Speech API; no service/key).
+   Web Speech can't seek inside one utterance, so we speak part-by-part and track the
+   current index — giving jump-to-heading, section/part skip, and progress highlight. ── */
 const TTS = {
   supported: (typeof window!=="undefined" && "speechSynthesis" in window && typeof SpeechSynthesisUtterance!=="undefined"),
-  state:"idle", path:null, utter:null, _ka:null,
+  state:"idle", path:null, utter:null, _ka:null, parts:[], sections:[], idx:0,
   _pickVoice(){
     try{
       const vs=window.speechSynthesis.getVoices()||[]; if(!vs.length) return null;
@@ -1832,35 +1869,57 @@ const TTS = {
   // Chrome stops long utterances after ~15s; a periodic resume keeps it alive.
   _keepAlive(){ this._stopKA(); this._ka=setInterval(()=>{ if(this.state==="playing"){ try{ window.speechSynthesis.resume(); }catch(e){} } },10000); },
   _stopKA(){ if(this._ka){ clearInterval(this._ka); this._ka=null; } },
-  start(){
-    if(!this.supported) return;
-    const cur=(typeof DOCS!=="undefined"&&DOCS)?DOCS.find(d=>d.path===STATE.noteSel):null; if(!cur) return;
-    const text=mdToSpeech(cur.content_md);
-    if(!text){ toast("Nothing to read in this note.","info"); return; }
+  // Bind freshly-rendered parts/sections; reset position when the note changed.
+  bind(cur, np){ if(!this.supported||!cur) return; this.parts=np.parts||[]; this.sections=np.sections||[];
+    if(this.path!==cur.path){ this._stopKA(); try{ window.speechSynthesis.cancel(); }catch(e){} this.state="idle"; this.idx=0; this.utter=null; this.path=cur.path; }
+    this._sync(); this._hi(); },
+  _speakFrom(i){
+    if(!this.supported || !this.parts.length) return;
+    if(i<0) i=0; if(i>=this.parts.length){ this._reset(); return; }
+    this.idx=i; this.state="playing";
     try{ window.speechSynthesis.cancel(); }catch(e){}
-    const u=new SpeechSynthesisUtterance(text); u.lang="en-US"; u.rate=0.95; u.pitch=1.0;
+    const u=new SpeechSynthesisUtterance(this.parts[i].text); u.lang="en-US"; u.rate=0.95; u.pitch=1.0;
     const v=this._pickVoice(); if(v) u.voice=v;
-    u.onend=()=>{ if(this.utter===u) this._reset(); };
-    u.onerror=()=>{ if(this.utter===u) this._reset(); };
-    this.utter=u; this.path=cur.path; this.state="playing";
-    window.speechSynthesis.speak(u); this._keepAlive(); this._sync();
+    u.onend=()=>{ if(this.utter===u && this.state==="playing") this._speakFrom(this.idx+1); };   // auto-advance
+    u.onerror=()=>{ if(this.utter===u && this.state==="playing") this._speakFrom(this.idx+1); };
+    this.utter=u; window.speechSynthesis.speak(u); this._keepAlive(); this._hi(); this._sync();
   },
   toggle(){
     if(!this.supported) return;
-    if(this.state==="idle"||this.path!==STATE.noteSel){ this.start(); return; }
+    if(this.state==="idle"){ if(!this.parts.length){ toast("Nothing to read in this note.","info"); return; } this._speakFrom(this.idx||0); return; }
     if(this.state==="playing"){ try{ window.speechSynthesis.pause(); }catch(e){} this.state="paused"; this._sync(); return; }
     if(this.state==="paused"){ try{ window.speechSynthesis.resume(); }catch(e){} this.state="playing"; this._sync(); return; }
   },
+  start(){ if(this.supported && this.parts.length) this._speakFrom(this.idx||0); },
+  next(){ if(this.supported) this._speakFrom(this.idx+1); },
+  prev(){ if(this.supported) this._speakFrom(this.idx-1); },
+  _firstOfSec(s){ const x=this.sections[s]; return x&&x.firstPartIndex!=null?x.firstPartIndex:null; },
+  nextSec(){ if(!this.supported||!this.parts.length) return; const s=this.parts[this.idx]?this.parts[this.idx].sec:0;
+    for(let k=s+1;k<this.sections.length;k++){ const f=this._firstOfSec(k); if(f!=null){ this._speakFrom(f); return; } } },
+  prevSec(){ if(!this.supported||!this.parts.length) return; const s=this.parts[this.idx]?this.parts[this.idx].sec:0; const first=this._firstOfSec(s);
+    if(first!=null && this.idx>first){ this._speakFrom(first); return; }                 // restart current section
+    for(let k=s-1;k>=0;k--){ const f=this._firstOfSec(k); if(f!=null){ this._speakFrom(f); return; } } },
+  jump(sec){ if(!this.supported) return; const f=this._firstOfSec(sec); if(f!=null) this._speakFrom(f); },
   stop(){ if(!this.supported) return; this._reset(); },
-  _reset(){ this._stopKA(); this.utter=null; this.state="idle"; this.path=null; try{ window.speechSynthesis.cancel(); }catch(e){} this._sync(); },
+  _reset(){ this._stopKA(); this.utter=null; this.state="idle"; this.idx=0; try{ window.speechSynthesis.cancel(); }catch(e){} this._hi(); this._sync(); },
+  _hi(){
+    document.querySelectorAll("[data-tts].tts-now").forEach(e=>{ e.classList.remove("tts-now"); e.style.background=""; e.style.boxShadow=""; e.style.borderRadius=""; e.style.paddingLeft=""; });
+    if(this.state==="idle" || this.path!==STATE.noteSel) return;
+    const p=this.parts[this.idx]; if(!p) return;
+    const el=document.querySelector('[data-tts="'+p.i+'"]'); if(!el) return;
+    el.classList.add("tts-now"); el.style.background="rgba(197,228,92,0.14)"; el.style.boxShadow="inset 3px 0 0 #C5E45C"; el.style.borderRadius="6px"; el.style.paddingLeft="8px";
+    try{ el.scrollIntoView({block:"center",behavior:"smooth"}); }catch(e){}
+  },
   _sync(){
     const btn=document.getElementById("tts-toggle"); if(!btn) return;
     const icon=btn.querySelector(".tts-icon"), label=btn.querySelector(".tts-label");
-    const onThis=this.path===STATE.noteSel, playing=onThis&&this.state==="playing", paused=onThis&&this.state==="paused";
+    const onThis=this.path===STATE.noteSel, playing=onThis&&this.state==="playing", paused=onThis&&this.state==="paused", active=onThis&&this.state!=="idle";
     if(icon) icon.textContent=playing?"pause":"play_arrow";
     if(label) label.textContent=playing?"Pause":(paused?"Resume":"Play");
-    const stop=document.getElementById("tts-stop");
-    if(stop) stop.style.display=(onThis&&this.state!=="idle")?"":"none";
+    const stop=document.getElementById("tts-stop"); if(stop) stop.style.display=active?"":"none";
+    const status=document.getElementById("tts-status");
+    if(status){ const total=this.sections.length||0; const cs=(this.parts[this.idx]?this.parts[this.idx].sec:0);
+      status.textContent = total? ("Section "+(cs+1)+" of "+total) : ""; status.style.opacity = active?"1":"0.55"; }
   }
 };
 function buildDocTree(docs){
@@ -1915,24 +1974,34 @@ function renderNotes(){
   H+='<aside class="rounded-2xl border hairline bg-surface-container-low/50 p-2.5 lg:max-h-[78vh] lg:overflow-y-auto"><div class="space-y-0.5">'+renderDocTree(tree,"")+'</div></aside>';
   // right: reader
   H+='<article class="rounded-2xl border hairline bg-surface-container-low/40 p-4 sm:p-6 min-w-0 lg:max-h-[78vh] lg:overflow-y-auto">';
+  let _np=null;
   if(cur){
     H+='<div class="flex items-center gap-2 mb-1 text-[11px] text-on-surface-variant/45 font-mono"><span class="material-symbols-outlined text-[14px]">folder</span><span class="truncate">'+esc(cur.path)+'</span></div>';
     H+='<h1 class="text-[20px] font-extrabold tracking-tight text-on-surface mb-1">'+esc(cur.title||cur.path.split("/").pop())+'</h1>';
     H+='<p class="text-[11px] text-on-surface-variant/45 mb-3">Updated '+esc(fmtSnoozeLong(cur.updated_at))+'</p>';
+    _np = buildNoteParts(cur.content_md);
     if(TTS.supported){
       const onThis=TTS.path===cur.path, playing=onThis&&TTS.state==="playing", paused=onThis&&TTS.state==="paused", active=onThis&&TTS.state!=="idle";
-      H+='<div class="flex items-center gap-2 mb-4">'+
+      const hasNav=_np.sections.length>1, multi=_np.parts.length>1;
+      const rbtn='inline-flex items-center justify-center rounded-full border hairline bg-surface-container-low/60 text-on-surface-variant/80 hover:bg-surface-container/60 hover:text-primary pressable w-8 h-8';
+      H+='<div class="flex flex-wrap items-center gap-1.5 mb-4">'+
+        (hasNav?'<button data-act="tts-prev-sec" title="Previous section" class="'+rbtn+'"><span class="material-symbols-outlined text-[18px]">skip_previous</span></button>':'')+
+        (multi?'<button data-act="tts-prev" title="Previous part" class="'+rbtn+'"><span class="material-symbols-outlined text-[18px]">chevron_left</span></button>':'')+
         '<button id="tts-toggle" data-act="tts-toggle" title="Read this note aloud" class="pressable inline-flex items-center gap-1.5 rounded-full bg-primary text-on-primary font-bold text-[12.5px] pl-2.5 pr-3.5 py-1.5 hover:brightness-110">'+
           '<span class="tts-icon material-symbols-outlined text-[18px]">'+(playing?"pause":"play_arrow")+'</span>'+
           '<span class="tts-label">'+(playing?"Pause":(paused?"Resume":"Play"))+'</span></button>'+
-        '<button id="tts-stop" data-act="tts-stop" title="Stop reading" class="pressable inline-flex items-center gap-1.5 rounded-full border hairline bg-surface-container-low/60 text-on-surface-variant/80 font-semibold text-[12.5px] px-3 py-1.5 hover:bg-surface-container/60" style="'+(active?"":"display:none")+'">'+
+        (multi?'<button data-act="tts-next" title="Next part" class="'+rbtn+'"><span class="material-symbols-outlined text-[18px]">chevron_right</span></button>':'')+
+        (hasNav?'<button data-act="tts-next-sec" title="Next section" class="'+rbtn+'"><span class="material-symbols-outlined text-[18px]">skip_next</span></button>':'')+
+        '<button id="tts-stop" data-act="tts-stop" title="Stop reading" class="pressable inline-flex items-center gap-1.5 rounded-full border hairline bg-surface-container-low/60 text-on-surface-variant/80 font-semibold text-[12.5px] px-3 py-1.5 hover:bg-surface-container/60 ml-0.5" style="'+(active?"":"display:none")+'">'+
           '<span class="material-symbols-outlined text-[18px]">stop</span><span>Stop</span></button>'+
-        '<span class="inline-flex items-center gap-1 text-[11px] text-on-surface-variant/45 ml-0.5"><span class="material-symbols-outlined text-[14px]">volume_up</span>Read aloud</span></div>';
+        '<span id="tts-status" class="text-[11px] font-semibold text-on-surface-variant/55 ml-1.5"></span></div>'+
+        (hasNav?'<p class="text-[11px] text-on-surface-variant/40 -mt-3 mb-4 flex items-center gap-1"><span class="material-symbols-outlined text-[13px]">touch_app</span>Tap a heading to start reading from that section.</p>':'');
     }
-    H+='<div class="notes-body text-[13.5px]">'+mdToHtml(cur.content_md)+'</div>';
+    H+='<div class="notes-body text-[13.5px]">'+_np.html+'</div>';
   } else { H+='<p class="text-[13px] text-on-surface-variant/60">Pick a note from the list.</p>'; }
   H+='</article></div>'+footerHTML()+'</div>';
   $("#view-notes").innerHTML=H;
+  if(cur && TTS.supported && _np) TTS.bind(cur, _np);   // wire parts/sections + restore highlight/labels
 }
 function openNote(path){ if(typeof TTS!=="undefined") TTS.stop(); STATE.noteSel=path; const segs=String(path).split("/"); let acc=""; for(let k=0;k<segs.length-1;k++){ acc=acc?acc+"/"+segs[k]:segs[k]; STATE.noteOpen[acc]=true; } rerender("notes"); const a=document.querySelector("#view-notes article"); if(a) a.scrollTop=0; }
 

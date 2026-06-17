@@ -519,83 +519,95 @@ function greeting(){ const h=NOW.getHours(); return h<12?"Good morning":h<18?"Go
 
 /* ───── views ───── */
 function renderOverview(){
-  const d=DATA, tkey=todayKey(), byDay=eventsByDay();
-  const today=(byDay[tkey]||[]);
-  const conflicts=detectConflicts();
-  const base=new Date(tkey+"T00:00:00"); const wend=new Date(base); wend.setDate(wend.getDate()+7);
-  const weekCount=eventsAll().filter(e=>{ const dk=new Date(dateKey(e.start)+"T00:00:00"); return dk>=base && dk<wend; }).length;
-  const upcomingTrip=nextTrip();   // next consolidated trip; derived live from the calendar
-  const todayTimed=today.filter(e=>!e.allDay);
-  const current=todayTimed.find(e=> new Date(e.start)<=NOW && (!e.end||new Date(e.end)>=NOW));
-  const next=todayTimed.find(e=> new Date(e.start)>NOW) || (current?null:todayTimed[0]);
-  const focusEvent=current||next;
-  // Next tasks: open (not done, not snoozed), highest horizon first (ASAP → Someday), top 5
-  const openTasks=(d.tasks||[]).filter(t=>!taskDone(t.id) && !taskSnoozed(t));
-  const nextTasks=openTasks.slice().sort((a,b)=>pmeta(taskPriority(a)).order-pmeta(taskPriority(b)).order).slice(0,5);
+  const d=DATA, tkey=todayKey();
   let H="";
   const sampleBadge = d.meta&&d.meta.sample ? '<span class="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded-full ml-2">Sample</span>' : '';
+  // Each section is wrapped in safeBlock so a single failing/derived section (a malformed
+  // event, a bad date) renders an inline "Retry" instead of throwing and blanking the whole tab.
+  // Sections that share derived data recompute it locally so one section's failure stays contained.
+  const focusOf=()=>{ const today=(eventsByDay()[tkey]||[]).filter(e=>!e.allDay);
+    const current=today.find(e=> new Date(e.start)<=NOW && (!e.end||new Date(e.end)>=NOW));
+    const next=today.find(e=> new Date(e.start)>NOW) || (current?null:today[0]);
+    return { current, focusEvent: current||next }; };
 
   // ── compact header: greeting + date ──
-  H += '<div class="rise flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-5">'+
+  H += safeBlock("the header", ()=>
+    '<div class="rise flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-5">'+
     '<div><div class="flex items-center mb-0.5"><span class="text-[11px] font-bold tracking-[0.22em] text-primary uppercase">Maestro · Today</span>'+sampleBadge+'</div>'+
     '<h1 class="text-[23px] sm:text-[27px] font-extrabold tracking-tight leading-tight">'+greeting()+', <span class="text-primary">'+esc((d.meta&&d.meta.name||"there").split(" ")[0])+'</span>.</h1>'+
     '<p class="text-[11.5px] text-on-surface-variant/60 font-mono mt-0.5">'+fmtDayLabel(tkey).toUpperCase()+'</p></div>'+
-    '</div>';
+    '</div>');
 
-  H += northStarBanner();
+  H += safeBlock("your North Star", ()=> northStarBanner());
 
   // ── now / next (the single most useful glance) ──
-  if(focusEvent){
-    H += '<div class="rise mb-5 rounded-2xl accent-edge bg-surface-container/70 p-4 flex items-center gap-3" style="animation-delay:.04s">'+
+  H += safeBlock("Up next", ()=>{
+    const { current, focusEvent } = focusOf();
+    if(!focusEvent) return "";
+    return '<div class="rise mb-5 rounded-2xl accent-edge bg-surface-container/70 p-4 flex items-center gap-3" style="animation-delay:.04s">'+
       '<span class="w-11 h-11 rounded-xl bg-primary/12 flex items-center justify-center flex-shrink-0" style="color:'+calColor(focusEvent.calendar)+'"><span class="material-symbols-outlined text-[24px]">'+kindOf(focusEvent).icon+'</span></span>'+
       '<div class="min-w-0 flex-1"><p class="text-[10.5px] font-bold tracking-widest text-primary uppercase">'+(current?"Happening now":"Up next")+'</p><p class="text-[16px] font-bold text-on-surface truncate">'+esc(focusEvent.title)+'</p>'+(focusEvent.location&&focusEvent.location!=="—"?'<p class="text-[12px] text-on-surface-variant/60 truncate">'+esc(focusEvent.location)+'</p>':'')+'</div>'+
       '<span class="text-[13px] font-mono text-on-surface-variant/70 flex-shrink-0">'+(focusEvent.allDay?"all day":fmtTime(focusEvent.start)+(focusEvent.end?"–"+fmtTime(focusEvent.end):""))+'</span></div>';
-  }
+  });
 
   // ── Upcoming travel — the next TRIP as destination + date range (e.g. "Alaska · Jun 17 – 29").
   //    Derived live from the calendar so a sync can't blank it. Tapping opens the Travel view
   //    (it's no longer a top-level tab — this widget is the way in). ──
-  if(upcomingTrip){
-    H += '<div class="rise mb-5" style="animation-delay:.05s"><button data-act="nav" data-view="travel" title="Upcoming travel — view trips" class="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/[0.06] px-3.5 py-1.5 hover:border-primary/40 pressable max-w-full">'+
-      '<span class="material-symbols-outlined text-primary text-[15px] flex-shrink-0">flight</span>'+
-      '<span class="text-[12.5px] font-semibold text-on-surface truncate">'+esc(upcomingTrip.dest)+'</span>'+
-      '<span class="text-on-surface-variant/35 flex-shrink-0">·</span>'+
-      '<span class="text-[12.5px] font-bold text-primary flex-shrink-0">'+esc(fmtTripRange(upcomingTrip.startKey, upcomingTrip.endKey))+'</span>'+
-      '<span class="material-symbols-outlined text-on-surface-variant/40 text-[16px] flex-shrink-0">chevron_right</span></button></div>';
-  } else {
-    H += '<div class="rise mb-5" style="animation-delay:.05s"><span class="inline-flex items-center gap-1.5 text-[11.5px] text-on-surface-variant/45"><span class="material-symbols-outlined text-[15px]">flight</span>No upcoming trips</span></div>';
-  }
+  H += safeBlock("upcoming travel", ()=>{
+    const upcomingTrip=nextTrip();   // next consolidated trip; derived live from the calendar
+    if(upcomingTrip){
+      return '<div class="rise mb-5" style="animation-delay:.05s"><button data-act="nav" data-view="travel" title="Upcoming travel — view trips" class="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/[0.06] px-3.5 py-1.5 hover:border-primary/40 pressable max-w-full">'+
+        '<span class="material-symbols-outlined text-primary text-[15px] flex-shrink-0">flight</span>'+
+        '<span class="text-[12.5px] font-semibold text-on-surface truncate">'+esc(upcomingTrip.dest)+'</span>'+
+        '<span class="text-on-surface-variant/35 flex-shrink-0">·</span>'+
+        '<span class="text-[12.5px] font-bold text-primary flex-shrink-0">'+esc(fmtTripRange(upcomingTrip.startKey, upcomingTrip.endKey))+'</span>'+
+        '<span class="material-symbols-outlined text-on-surface-variant/40 text-[16px] flex-shrink-0">chevron_right</span></button></div>';
+    }
+    return '<div class="rise mb-5" style="animation-delay:.05s"><span class="inline-flex items-center gap-1.5 text-[11.5px] text-on-surface-variant/45"><span class="material-symbols-outlined text-[15px]">flight</span>No upcoming trips</span></div>';
+  });
 
-  // ── lead content: Next tasks FIRST, then Today's plan ──
-  H += '<div class="grid lg:grid-cols-2 gap-5 mb-5">';
-  H += '<div class="rise rounded-2xl border hairline bg-surface-container-low/60 p-4 sm:p-5" style="animation-delay:.08s">'+
-    '<div class="flex items-center justify-between mb-3"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase flex items-center gap-2"><span class="material-symbols-outlined text-[18px]">checklist</span>Next tasks</h2><a href="#tasks" data-act="nav" data-view="tasks" class="text-[11px] text-primary font-semibold">All tasks →</a></div>'+
-    '<div class="space-y-0.5">'+
-    (nextTasks.length ? nextTasks.map(taskRow).join("") : '<p class="text-[13px] text-on-surface-variant/55 px-2 py-4 flex items-center gap-2"><span class="material-symbols-outlined text-green text-[18px]">task_alt</span>All caught up.</p>')+
-    '</div></div>';
-  H += '<div class="rise rounded-2xl border hairline bg-surface-container-low/60 p-4 sm:p-5" style="animation-delay:.12s">'+
-    '<div class="flex items-center justify-between mb-3"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase flex items-center gap-2"><span class="material-symbols-outlined text-[18px]">event_note</span>Today’s plan</h2><button data-act="add-focus" class="pressable text-[11px] font-semibold text-primary flex items-center gap-1 hover:gap-1.5 transition-all"><span class="material-symbols-outlined text-[16px]">add</span>Focus block</button></div>'+
-    '<div class="space-y-0.5">'+
-    (today.length ? today.map(e=>eventRow(e,{highlight:e===focusEvent})).join("") : '<p class="text-[13px] text-on-surface-variant/55 px-2 py-4 flex items-center gap-2"><span class="material-symbols-outlined text-green text-[18px]">check_circle</span>Nothing scheduled today — open space.</p>')+
-    '</div></div>';
-  H += '</div>';
+  // ── Next tasks — a FULL-WIDTH card, flush with North Star / Up Next / travel (single shared
+  //    <main> width; no 2-col grid that rendered it at a different width than the other cards). ──
+  H += safeBlock("Next tasks", ()=>{
+    const openTasks=(d.tasks||[]).filter(t=>!taskDone(t.id) && !taskSnoozed(t));   // not done, not snoozed
+    const nextTasks=openTasks.slice().sort((a,b)=>pmeta(taskPriority(a)).order-pmeta(taskPriority(b)).order).slice(0,5);   // ASAP → Someday, top 5
+    return '<div class="rise rounded-2xl border hairline bg-surface-container-low/60 p-4 sm:p-5 mb-5" style="animation-delay:.08s">'+
+      '<div class="flex items-center justify-between mb-3"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase flex items-center gap-2"><span class="material-symbols-outlined text-[18px]">checklist</span>Next tasks</h2><a href="#tasks" data-act="nav" data-view="tasks" class="text-[11px] text-primary font-semibold">All tasks →</a></div>'+
+      '<div class="space-y-0.5">'+
+      (nextTasks.length ? nextTasks.map(taskRow).join("") : '<p class="text-[13px] text-on-surface-variant/55 px-2 py-4 flex items-center gap-2"><span class="material-symbols-outlined text-green text-[18px]">task_alt</span>All caught up.</p>')+
+      '</div></div>';
+  });
+
+  // ── Today's plan — also a FULL-WIDTH card, flush with the rest. ──
+  H += safeBlock("Today’s plan", ()=>{
+    const today=(eventsByDay()[tkey]||[]);
+    const { focusEvent } = focusOf();
+    return '<div class="rise rounded-2xl border hairline bg-surface-container-low/60 p-4 sm:p-5 mb-5" style="animation-delay:.12s">'+
+      '<div class="flex items-center justify-between mb-3"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase flex items-center gap-2"><span class="material-symbols-outlined text-[18px]">event_note</span>Today’s plan</h2><button data-act="add-focus" class="pressable text-[11px] font-semibold text-primary flex items-center gap-1 hover:gap-1.5 transition-all"><span class="material-symbols-outlined text-[16px]">add</span>Focus block</button></div>'+
+      '<div class="space-y-0.5">'+
+      (today.length ? today.map(e=>eventRow(e,{highlight:e===focusEvent})).join("") : '<p class="text-[13px] text-on-surface-variant/55 px-2 py-4 flex items-center gap-2"><span class="material-symbols-outlined text-green text-[18px]">check_circle</span>Nothing scheduled today — open space.</p>')+
+      '</div></div>';
+  });
 
   // ── coming up (week peek) ──
-  const wk=upcoming(7).filter(g=>g.key!==tkey).slice(0,3);
-  if(wk.length){
-    H += '<div class="rise rounded-2xl border hairline bg-surface-container-low/60 p-4 sm:p-5 mb-5" style="animation-delay:.16s"><div class="flex items-center justify-between mb-3"><h2 class="text-[12px] font-bold tracking-[0.22em] text-secondary uppercase">Coming up</h2><a href="#week" data-act="nav" data-view="week" class="text-[11px] text-primary font-semibold">Full week →</a></div><div class="grid sm:grid-cols-3 gap-4">'+
+  H += safeBlock("the week peek", ()=>{
+    const wk=upcoming(7).filter(g=>g.key!==tkey).slice(0,3);
+    if(!wk.length) return "";
+    return '<div class="rise rounded-2xl border hairline bg-surface-container-low/60 p-4 sm:p-5 mb-5" style="animation-delay:.16s"><div class="flex items-center justify-between mb-3"><h2 class="text-[12px] font-bold tracking-[0.22em] text-secondary uppercase">Coming up</h2><a href="#week" data-act="nav" data-view="week" class="text-[11px] text-primary font-semibold">Full week →</a></div><div class="grid sm:grid-cols-3 gap-4">'+
       wk.map(g=>'<div><p class="text-[10.5px] font-bold tracking-wider text-on-surface-variant/50 uppercase mb-1 px-1">'+fmtDayLabel(g.key)+'</p>'+g.events.slice(0,3).map(e=>eventRow(e)).join("")+'</div>').join("")+
     '</div></div>';
-  }
+  });
 
   // ── overlaps: secondary, moved to the bottom (and dismissible) ──
-  if(conflicts.length){
-    H += '<div class="rise rounded-2xl border border-on-error-container/20 bg-error-container/10 p-4 mb-2" style="animation-delay:.2s"><div class="flex items-center gap-2 mb-2"><span class="material-symbols-outlined text-on-error-container/80 text-[18px]">warning</span><span class="text-[11.5px] font-bold tracking-widest text-on-error-container/90 uppercase">Overlap'+(conflicts.length>1?"s":"")+' — ask Maestro to fix ('+conflicts.length+')</span></div><div class="space-y-2">'+
+  H += safeBlock("overlaps", ()=>{
+    const conflicts=detectConflicts();
+    if(!conflicts.length) return "";
+    return '<div class="rise rounded-2xl border border-on-error-container/20 bg-error-container/10 p-4 mb-2" style="animation-delay:.2s"><div class="flex items-center gap-2 mb-2"><span class="material-symbols-outlined text-on-error-container/80 text-[18px]">warning</span><span class="text-[11.5px] font-bold tracking-widest text-on-error-container/90 uppercase">Overlap'+(conflicts.length>1?"s":"")+' — ask Maestro to fix ('+conflicts.length+')</span></div><div class="space-y-2">'+
       conflicts.map(c=>'<div class="flex items-center justify-between gap-3 flex-wrap"><p class="text-[13px] text-on-surface/85"><span class="font-mono text-[11px] text-on-error-container/80">'+fmtTime(c.a.start)+'</span> <b>'+esc(c.a.title)+'</b> overlaps <b>'+esc(c.b.title)+'</b></p><div class="flex items-center gap-2 flex-shrink-0">'+affBtn("resched",c.b.id,{op:"shift",minutes:60},"schedule","Queue: push 1h")+'<button data-act="dismiss-conflict" data-cid="'+esc(c.cid)+'" title="Stop flagging this overlap" class="pressable flex items-center gap-1.5 text-[12.5px] font-semibold px-3 py-1.5 rounded-full border border-outline-variant text-on-surface-variant/80 hover:border-green/40 hover:text-green"><span class="material-symbols-outlined text-[16px]">do_not_disturb_on</span>It’s fine</button></div></div>').join("")+
     '</div></div>';
-  }
+  });
   // ── Accomplished today — summarized digest of today's completed task runs, at the bottom ──
-  H += accomplishedTodayHTML();
+  H += safeBlock("Accomplished today", ()=> accomplishedTodayHTML());
   H += footerHTML();
   $("#view-overview").innerHTML=H;
   syncRunsSection();   // keep the live-runs strip at the top of Overview
@@ -1563,14 +1575,39 @@ function syncAccomplishedSection(){
 /* ───── REALTIME — live dashboard + inbox via Supabase postgres_changes (sync button stays as fallback) ───── */
 let RT_CHANNELS=[];
 function teardownRealtime(){ RT_CHANNELS.forEach(c=>{ try{ sb.removeChannel(c); }catch(_e){} }); RT_CHANNELS=[]; }
+/* ───── RESILIENCE HELPERS (Fix: half-blank Overview) ─────
+   Root cause of the intermittent blank sections: a realtime tick or a "Sync now" re-pull
+   would overwrite in-memory DATA with whatever a re-fetch returned. When the brain was
+   mid-write (or the network/RLS hiccuped) that re-fetch came back empty/partial, and because
+   an empty array is truthy the old code happily replaced good data with [] — blanking Up Next,
+   the travel widget, Next tasks and Today's plan until the next good fetch. keepIfEmpty keeps
+   the last-known-good value when an incoming domain payload is empty, and readDashboardRow adds
+   a short retry/backoff so a single flaky/slow read can never blank the page. */
+function keepIfEmpty(incoming, current){
+  if(Array.isArray(incoming)) return incoming.length ? incoming : ((Array.isArray(current)&&current.length) ? current : incoming);
+  if(incoming && typeof incoming==="object") return Object.keys(incoming).length ? incoming : (current||incoming);
+  return (incoming==null) ? current : incoming;
+}
+async function readDashboardRow(cols, tries){
+  tries = tries||3; let lastErr=null;
+  for(let i=0;i<tries;i++){
+    try{
+      const { data, error } = await sb.from("maestro_dashboard").select(cols).maybeSingle();
+      if(!error) return { row:data||null, error:null };
+      lastErr=error;
+    }catch(e){ lastErr=e; }
+    if(i<tries-1) await new Promise(r=>setTimeout(r, 400*(i+1)*(i+1)));   // backoff: 400ms, 1600ms
+  }
+  return { row:null, error:lastErr };
+}
 async function refreshDashboardLive(){
   try{
-    const { data: row } = await sb.from("maestro_dashboard").select("events, projects, tasks, meta, settings, updated_at").maybeSingle();
-    if(!row) return;
-    if(row.events)   DATA.events   = row.events;
-    if(row.projects) DATA.projects = row.projects;
-    if(row.tasks)    DATA.tasks    = row.tasks;
-    if(row.meta)     DATA.meta     = Object.assign({}, DATA.meta, row.meta);
+    const { row, error } = await readDashboardRow("events, projects, tasks, meta, settings, updated_at");
+    if(error || !row) return;                       // keep last-known-good — never blank on a flaky refresh
+    DATA.events   = keepIfEmpty(row.events,   DATA.events);
+    DATA.projects = keepIfEmpty(row.projects, DATA.projects);
+    DATA.tasks    = keepIfEmpty(row.tasks,    DATA.tasks);
+    if(row.meta && Object.keys(row.meta).length) DATA.meta = Object.assign({}, DATA.meta, row.meta);
     if(row.settings) DATA.settings = row.settings;
     $("#synced").textContent = "synced just now";
     RENDERED={}; setView(STATE.view, true);
@@ -1803,6 +1840,25 @@ function renderNotes(){
 }
 function openNote(path){ STATE.noteSel=path; const segs=String(path).split("/"); let acc=""; for(let k=0;k<segs.length-1;k++){ acc=acc?acc+"/"+segs[k]:segs[k]; STATE.noteOpen[acc]=true; } rerender("notes"); const a=document.querySelector("#view-notes article"); if(a) a.scrollTop=0; }
 
+/* ───── render resilience: isolate failures so one bad section (or one bad render) can't blank
+   the tab. safeBlock returns an inline "Retry" card instead of throwing; viewErrorHTML is the
+   whole-view fallback used by setView if a render throws outright. Both expose a [data-act="retry-view"]
+   button that re-renders and re-pulls fresh data. ───── */
+function inlineSectionError(label){
+  return '<div class="rise mb-5 rounded-2xl border border-on-error-container/25 bg-error-container/10 p-4 flex items-center justify-between gap-3">'+
+    '<span class="text-[12.5px] text-on-surface/80 flex items-center gap-2 min-w-0"><span class="material-symbols-outlined text-on-error-container/80 text-[18px] flex-shrink-0">error</span><span class="truncate">Couldn’t load '+esc(label)+'.</span></span>'+
+    '<button data-act="retry-view" class="pressable flex-shrink-0 inline-flex items-center gap-1 text-[12px] font-semibold text-primary hover:brightness-110"><span class="material-symbols-outlined text-[16px]">refresh</span>Retry</button></div>';
+}
+function safeBlock(label, fn){
+  try{ const out=fn(); return (out==null) ? "" : out; }
+  catch(err){ console.warn("Overview section failed:", label, err); return inlineSectionError(label); }
+}
+function viewErrorHTML(name){
+  return '<div class="rise rounded-2xl border border-on-error-container/25 bg-error-container/10 p-5 flex items-center justify-between gap-3">'+
+    '<div class="flex items-center gap-2.5 min-w-0"><span class="material-symbols-outlined text-on-error-container/80 text-[20px] flex-shrink-0">error</span>'+
+    '<div class="min-w-0"><p class="text-[13.5px] font-semibold text-on-surface">This tab didn’t load fully.</p><p class="text-[12px] text-on-surface-variant/60">A hiccup interrupted rendering — your data is safe.</p></div></div>'+
+    '<button data-act="retry-view" data-view="'+esc(name)+'" class="pressable flex-shrink-0 inline-flex items-center gap-1.5 bg-primary text-on-primary font-bold text-[12.5px] px-3.5 py-2 rounded-xl hover:brightness-110"><span class="material-symbols-outlined text-[18px]">refresh</span>Retry</button></div>';
+}
 /* ───── router ───── */
 function showSkeleton(name){
   if(["overview","projects","tasks","week","travel","notes","inbox"].indexOf(name)<0) name="overview";
@@ -1824,7 +1880,11 @@ function setView(name, force){
   const y = window.scrollY;
   STATE.view=name;
   const fn={overview:renderOverview,projects:renderProjects,tasks:renderTasks,week:renderWeek,travel:renderTravel,notes:renderNotes,inbox:renderInbox}[name];
-  if(!RENDERED[name]||force){ fn(); RENDERED[name]=true; }
+  if(!RENDERED[name]||force){
+    try{ fn(); }
+    catch(err){ console.error("render failed:", name, err); var v=$("#view-"+name); if(v) v.innerHTML=viewErrorHTML(name); }
+    RENDERED[name]=true;
+  }
   $$(".view").forEach(v=>v.classList.toggle("active", v.id==="view-"+name));
   $$(".tab").forEach(t=>t.dataset.active = t.dataset.view===name?"1":"0");
   $$(".bnav").forEach(t=>t.dataset.active = t.dataset.view===name?"1":"0");
@@ -1838,6 +1898,7 @@ document.addEventListener("click", async (e)=>{
   const el=e.target.closest("[data-act]"); if(!el) return;
   const act=el.dataset.act;
   if(act==="nav"){ e.preventDefault(); location.hash="#"+el.dataset.view; return; }
+  if(act==="retry-view"){ const v=el.dataset.view||STATE.view; RENDERED[v]=false; setView(v,true); refreshDashboardLive(); return; }
   if(act==="toggle-trip"){ const k=el.dataset.trip; STATE.tripOpen[k]=!STATE.tripOpen[k]; rerender("travel"); return; }
   if(act==="toggle-past-trips"){ STATE.showPastTrips=!STATE.showPastTrips; rerender("travel"); return; }
   if(act==="close-modal"){ closeModal(); return; }
@@ -1894,8 +1955,8 @@ async function loadDashboard(){
   try { USER_ID = (await sb.auth.getSession()).data.session?.user?.id || USER_ID; } catch(_e){}
   // Read the isolated per-domain columns (each is written independently by the brain).
   // Fall back to the legacy `data` blob only if the columns are empty (transition safety).
-  const { data: row, error } = await sb.from("maestro_dashboard").select("events, projects, tasks, meta, settings, data, updated_at").maybeSingle();
-  if(error){ console.error(error); showLogin("Couldn’t load your data: "+error.message); return; }
+  const { row, error } = await readDashboardRow("events, projects, tasks, meta, settings, data, updated_at");
+  if(error && !row){ console.error(error); showLogin("Couldn’t load your data: "+(error.message||"please retry")); return; }
   if(!row){
     DATA={ meta:{name:"", sample:true}, brief:"No dashboard row yet — your calendar brain hasn’t synced. Once it does, this fills in.", events:[], projects:[], tasks:[] };
   } else {
@@ -1946,10 +2007,10 @@ async function liveSync(opts){
     });
     if(res.ok){
       const body = await res.json();
-      const { data: row } = await sb.from("maestro_dashboard").select("events, meta, updated_at").maybeSingle();
+      const { row } = await readDashboardRow("events, meta, updated_at");
       if(row){
-        DATA.events = row.events || [];
-        if(row.meta) DATA.meta = Object.assign({}, DATA.meta, row.meta);
+        DATA.events = keepIfEmpty(row.events, DATA.events);   // don't let a mid-sync empty read blank the calendar sections
+        if(row.meta && Object.keys(row.meta).length) DATA.meta = Object.assign({}, DATA.meta, row.meta);
         RENDERED={}; setView(STATE.view, true);
       }
       $("#synced").textContent = "synced just now";

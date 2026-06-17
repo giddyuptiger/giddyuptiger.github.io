@@ -889,6 +889,7 @@ function taskPriority(t){ const p=String((t&&t.priority)||"").toLowerCase(); ret
 function taskSnoozed(t){ return !!(t && t.snoozed_until) && new Date(t.snoozed_until) > NOW; }
 function fmtSnooze(iso){ try{ return new Date(iso).toLocaleDateString(undefined,{month:"short",day:"numeric"}); }catch(_e){ return String(iso); } }
 function fmtSnoozeLong(iso){ try{ return new Date(iso).toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"}); }catch(_e){ return String(iso); } }
+function fmtAgo(iso){ if(!iso) return ""; const d=new Date(iso); if(isNaN(d)) return ""; let s=Math.floor((Date.now()-d.getTime())/1000); if(s<0)s=0; if(s<60) return "just now"; const m=Math.floor(s/60); if(m<60) return m+" min"+(m===1?"":"s")+" ago"; const h=Math.floor(m/60); if(h<24) return h+" hour"+(h===1?"":"s")+" ago"; const dd=Math.floor(h/24); if(dd<30) return dd+" day"+(dd===1?"":"s")+" ago"; return d.toLocaleDateString(undefined,{month:"short",day:"numeric"}); }
 
 // A task's optional long-form description — surfaced behind the eye affordance, never inline.
 function taskDesc(t){ return String((t && (t.description||t.notes||t.detail||t.summary)) || "").trim(); }
@@ -1772,7 +1773,9 @@ function renderNotes(){
     $("#view-notes").innerHTML='<div class="rise"><div class="mb-4 px-1"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Notes</h2></div><div class="rounded-2xl border hairline bg-surface-container-low/60 p-6 flex items-center gap-3 text-on-surface-variant/70"><span class="material-symbols-outlined animate-spin text-primary">progress_activity</span><span class="text-[13px]">Loading your vault…</span></div></div>';
     return;
   }
-  let H='<div class="rise"><div class="mb-3 px-1 flex items-end justify-between gap-3"><div><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Notes</h2><p class="text-[12px] text-on-surface-variant/60 mt-0.5">Your CLAUDE vault — '+DOCS.length+' doc'+(DOCS.length===1?"":"s")+', read-only.</p></div></div>';
+  const _syncAt=DATA&&DATA.settings&&DATA.settings.docsSyncedAt;
+  const _syncHTML=_syncAt?'<div class="flex items-center gap-1 text-[11px] text-primary/55 mt-0.5 shrink-0" title="Notes last synced '+esc(new Date(_syncAt).toLocaleString())+'"><span class="material-symbols-outlined text-[13px]">sync</span><span>Last synced '+esc(fmtAgo(_syncAt))+'</span></div>':'';
+  let H='<div class="rise"><div class="mb-3 px-1 flex items-end justify-between gap-3"><div><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Notes</h2><p class="text-[12px] text-on-surface-variant/60 mt-0.5">Your CLAUDE vault — '+DOCS.length+' doc'+(DOCS.length===1?"":"s")+', read-only.</p></div>'+_syncHTML+'</div></div>';
   if(!DOCS.length){ H+='<div class="rounded-2xl border hairline bg-surface-container-low/60 p-6 text-[13px] text-on-surface-variant/60">No notes synced yet. Run the vault sync to populate them.</div>'+footerHTML()+'</div>'; $("#view-notes").innerHTML=H; return; }
   // default selection: a root INDEX/README, else the first doc
   if(!STATE.noteSel || !DOCS.find(d=>d.path===STATE.noteSel)){

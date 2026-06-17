@@ -1673,6 +1673,8 @@ document.addEventListener("click",(e)=>{
   else if(el.dataset.act==="add-task-prio"){ selectAddTaskPrio(el); }
   else if(el.dataset.act==="add-task-twomin"){ toggleAddTaskTwoMin(el); }
   else if(el.dataset.act==="add-task-save"){ saveNewTask(); }
+  else if(el.dataset.act==="tts-toggle"){ TTS.toggle(); }
+  else if(el.dataset.act==="tts-stop"){ TTS.stop(); }
   else if(el.dataset.act==="note-open"){ openNote(el.dataset.path); }
   else if(el.dataset.act==="note-folder"){ const p=el.dataset.path; STATE.noteOpen[p]=!STATE.noteOpen[p]; rerender("notes"); }
   else if(el.dataset.act==="note-wiki"){ e.preventDefault(); const d=resolveDoc(el.dataset.target); if(d) openNote(d.path); else toast("No note found for “"+el.dataset.target+"”","search"); }
@@ -1777,6 +1779,90 @@ function mdToHtml(md){
   closeLists();
   return html;
 }
+/* ── markdown → clean prose for speech: never read raw markdown symbols aloud ──
+   Strips frontmatter & fenced code, drops heading hashes / list bullets / quote
+   markers, unwraps [[wiki-links]] and [text](url) to their readable text, removes
+   bold/italic/`code` markers, and turns blank lines into sentence breaks so the
+   browser's speech engine pauses naturally. */
+function mdToSpeech(md){
+  let s=String(md||"").replace(/\r\n?/g,"\n");
+  // strip YAML frontmatter (--- ... --- at top)
+  if(/^---\n/.test(s)){ const end=s.indexOf("\n---",3); if(end>=0){ const nl=s.indexOf("\n",end+1); s=nl>=0?s.slice(nl+1):""; } }
+  // drop fenced code blocks entirely so code isn't spoken
+  s=s.replace(/```[\s\S]*?```/g,"\n").replace(/~~~[\s\S]*?~~~/g,"\n");
+  const lines=s.split("\n").map(raw=>{
+    let line=raw;
+    if(/^\s*([-*_]\s*){3,}$/.test(line)) return "";          // horizontal rule
+    line=line.replace(/^\s*#{1,6}\s+/,"");                    // heading hashes → text
+    line=line.replace(/^\s*>+\s?/,"");                        // blockquote marker
+    line=line.replace(/^\s*[-*+]\s+/,"");                     // unordered bullet
+    line=line.replace(/^\s*\d+[.)]\s+/,"");                   // ordered list marker
+    line=line.replace(/^\s*\[[ xX]\]\s+/,"");                 // task checkbox
+    line=line.replace(/!\[[^\]]*\]\([^)]*\)/g,"");            // images → drop
+    line=line.replace(/\[\[([^\]]+)\]\]/g,(m,inner)=>{ const p=inner.split("|"); return (p[1]||p[0]).trim(); }); // [[wiki|label]] → label
+    line=line.replace(/\[([^\]]+)\]\([^)]*\)/g,"$1");         // [text](url) → text
+    line=line.replace(/`([^`]+)`/g,"$1");                     // `code` → code text
+    line=line.replace(/(\*\*|__)(.*?)\1/g,"$2");              // **bold** / __bold__
+    line=line.replace(/\*([^*\n]+)\*/g,"$1");                 // *italic*
+    line=line.replace(/~~(.*?)~~/g,"$1");                     // ~~strike~~
+    line=line.replace(/<[^>]+>/g,"");                         // stray html tags
+    line=line.replace(/[#*`>~]/g,"");                         // leftover md symbols
+    line=line.replace(/_/g," ");                              // stray underscores → space
+    return line.replace(/\s+/g," ").trim();
+  });
+  // group non-blank runs into blocks; blank line = sentence/paragraph break
+  const blocks=[]; let cur=[];
+  lines.forEach(l=>{ if(l===""){ if(cur.length){ blocks.push(cur.join(" ")); cur=[]; } } else cur.push(l); });
+  if(cur.length) blocks.push(cur.join(" "));
+  return blocks.map(b=>{ b=b.trim(); return b?(/[.!?:;]$/.test(b)?b:b+"."):""; })
+               .filter(Boolean).join("\n").replace(/\n{2,}/g,"\n").trim();
+}
+/* ── Notes read-aloud controller (Web Speech API; no external service / API key) ── */
+const TTS = {
+  supported: (typeof window!=="undefined" && "speechSynthesis" in window && typeof SpeechSynthesisUtterance!=="undefined"),
+  state:"idle", path:null, utter:null, _ka:null,
+  _pickVoice(){
+    try{
+      const vs=window.speechSynthesis.getVoices()||[]; if(!vs.length) return null;
+      const pref=["Samantha","Google US English","Microsoft Aria Online (Natural) - English (United States)","Microsoft Jenny Online (Natural) - English (United States)"];
+      for(const n of pref){ const v=vs.find(x=>x.name===n); if(v) return v; }
+      return vs.find(v=>/^en[-_]US/i.test(v.lang)) || vs.find(v=>/^en/i.test(v.lang)) || vs[0];
+    }catch(e){ return null; }
+  },
+  // Chrome stops long utterances after ~15s; a periodic resume keeps it alive.
+  _keepAlive(){ this._stopKA(); this._ka=setInterval(()=>{ if(this.state==="playing"){ try{ window.speechSynthesis.resume(); }catch(e){} } },10000); },
+  _stopKA(){ if(this._ka){ clearInterval(this._ka); this._ka=null; } },
+  start(){
+    if(!this.supported) return;
+    const cur=(typeof DOCS!=="undefined"&&DOCS)?DOCS.find(d=>d.path===STATE.noteSel):null; if(!cur) return;
+    const text=mdToSpeech(cur.content_md);
+    if(!text){ toast("Nothing to read in this note.","info"); return; }
+    try{ window.speechSynthesis.cancel(); }catch(e){}
+    const u=new SpeechSynthesisUtterance(text); u.lang="en-US"; u.rate=0.95; u.pitch=1.0;
+    const v=this._pickVoice(); if(v) u.voice=v;
+    u.onend=()=>{ if(this.utter===u) this._reset(); };
+    u.onerror=()=>{ if(this.utter===u) this._reset(); };
+    this.utter=u; this.path=cur.path; this.state="playing";
+    window.speechSynthesis.speak(u); this._keepAlive(); this._sync();
+  },
+  toggle(){
+    if(!this.supported) return;
+    if(this.state==="idle"||this.path!==STATE.noteSel){ this.start(); return; }
+    if(this.state==="playing"){ try{ window.speechSynthesis.pause(); }catch(e){} this.state="paused"; this._sync(); return; }
+    if(this.state==="paused"){ try{ window.speechSynthesis.resume(); }catch(e){} this.state="playing"; this._sync(); return; }
+  },
+  stop(){ if(!this.supported) return; this._reset(); },
+  _reset(){ this._stopKA(); this.utter=null; this.state="idle"; this.path=null; try{ window.speechSynthesis.cancel(); }catch(e){} this._sync(); },
+  _sync(){
+    const btn=document.getElementById("tts-toggle"); if(!btn) return;
+    const icon=btn.querySelector(".tts-icon"), label=btn.querySelector(".tts-label");
+    const onThis=this.path===STATE.noteSel, playing=onThis&&this.state==="playing", paused=onThis&&this.state==="paused";
+    if(icon) icon.textContent=playing?"pause":"play_arrow";
+    if(label) label.textContent=playing?"Pause":(paused?"Resume":"Play");
+    const stop=document.getElementById("tts-stop");
+    if(stop) stop.style.display=(onThis&&this.state!=="idle")?"":"none";
+  }
+};
 function buildDocTree(docs){
   const root={folders:{}, files:[]};
   docs.forEach(d=>{ const parts=d.path.split("/"); let node=root;
@@ -1832,13 +1918,23 @@ function renderNotes(){
   if(cur){
     H+='<div class="flex items-center gap-2 mb-1 text-[11px] text-on-surface-variant/45 font-mono"><span class="material-symbols-outlined text-[14px]">folder</span><span class="truncate">'+esc(cur.path)+'</span></div>';
     H+='<h1 class="text-[20px] font-extrabold tracking-tight text-on-surface mb-1">'+esc(cur.title||cur.path.split("/").pop())+'</h1>';
-    H+='<p class="text-[11px] text-on-surface-variant/45 mb-4">Updated '+esc(fmtSnoozeLong(cur.updated_at))+'</p>';
+    H+='<p class="text-[11px] text-on-surface-variant/45 mb-3">Updated '+esc(fmtSnoozeLong(cur.updated_at))+'</p>';
+    if(TTS.supported){
+      const onThis=TTS.path===cur.path, playing=onThis&&TTS.state==="playing", paused=onThis&&TTS.state==="paused", active=onThis&&TTS.state!=="idle";
+      H+='<div class="flex items-center gap-2 mb-4">'+
+        '<button id="tts-toggle" data-act="tts-toggle" title="Read this note aloud" class="pressable inline-flex items-center gap-1.5 rounded-full bg-primary text-on-primary font-bold text-[12.5px] pl-2.5 pr-3.5 py-1.5 hover:brightness-110">'+
+          '<span class="tts-icon material-symbols-outlined text-[18px]">'+(playing?"pause":"play_arrow")+'</span>'+
+          '<span class="tts-label">'+(playing?"Pause":(paused?"Resume":"Play"))+'</span></button>'+
+        '<button id="tts-stop" data-act="tts-stop" title="Stop reading" class="pressable inline-flex items-center gap-1.5 rounded-full border hairline bg-surface-container-low/60 text-on-surface-variant/80 font-semibold text-[12.5px] px-3 py-1.5 hover:bg-surface-container/60" style="'+(active?"":"display:none")+'">'+
+          '<span class="material-symbols-outlined text-[18px]">stop</span><span>Stop</span></button>'+
+        '<span class="inline-flex items-center gap-1 text-[11px] text-on-surface-variant/45 ml-0.5"><span class="material-symbols-outlined text-[14px]">volume_up</span>Read aloud</span></div>';
+    }
     H+='<div class="notes-body text-[13.5px]">'+mdToHtml(cur.content_md)+'</div>';
   } else { H+='<p class="text-[13px] text-on-surface-variant/60">Pick a note from the list.</p>'; }
   H+='</article></div>'+footerHTML()+'</div>';
   $("#view-notes").innerHTML=H;
 }
-function openNote(path){ STATE.noteSel=path; const segs=String(path).split("/"); let acc=""; for(let k=0;k<segs.length-1;k++){ acc=acc?acc+"/"+segs[k]:segs[k]; STATE.noteOpen[acc]=true; } rerender("notes"); const a=document.querySelector("#view-notes article"); if(a) a.scrollTop=0; }
+function openNote(path){ if(typeof TTS!=="undefined") TTS.stop(); STATE.noteSel=path; const segs=String(path).split("/"); let acc=""; for(let k=0;k<segs.length-1;k++){ acc=acc?acc+"/"+segs[k]:segs[k]; STATE.noteOpen[acc]=true; } rerender("notes"); const a=document.querySelector("#view-notes article"); if(a) a.scrollTop=0; }
 
 /* ───── render resilience: isolate failures so one bad section (or one bad render) can't blank
    the tab. safeBlock returns an inline "Retry" card instead of throwing; viewErrorHTML is the
@@ -1875,6 +1971,7 @@ function setView(name, force){
   // (force=true, same view — e.g. checking a task off, snooze, set-priority, a realtime data
   // refresh) must PRESERVE scroll position so the page doesn't jump back to the top.
   closePopover();   // any open task popover is anchored to a row that's about to be re-rendered
+  if(typeof TTS!=="undefined" && name!=="notes") TTS.stop();   // leaving Notes stops any narration
   const sameView = (STATE.view===name);
   const keepScroll = !!force && sameView;
   const y = window.scrollY;
@@ -2047,7 +2144,7 @@ function showLogin(msg){ showScreen("login"); const er=$("#login-error"); if(msg
 function showForgot(){ showScreen("forgot"); $("#forgot-msg").classList.add("hidden"); var fe=$("#forgot-email"); if(fe && $("#email") && $("#email").value) fe.value=$("#email").value.trim(); }
 function showReset(){ showScreen("reset"); $("#reset-msg").classList.add("hidden"); }
 function msgBox(el, kind, text){ el.textContent=text; el.className="text-[12.5px] rounded-lg px-3 py-2 "+(kind==="ok"?"text-green bg-green/10 border border-green/20":"text-on-error-container bg-error-container/30 border border-on-error-container/20"); el.classList.remove("hidden"); }
-async function signOut(){ teardownRealtime(); INBOX=[]; updateInboxBadge(); await sb.auth.signOut(); DATA=null; PENDING=[]; DOCS=null; DOCS_LOADING=false; STATE.noteSel=null; STATE.noteOpen={}; location.hash=""; showLogin(); }
+async function signOut(){ if(typeof TTS!=="undefined") TTS.stop(); teardownRealtime(); INBOX=[]; updateInboxBadge(); await sb.auth.signOut(); DATA=null; PENDING=[]; DOCS=null; DOCS_LOADING=false; STATE.noteSel=null; STATE.noteOpen={}; location.hash=""; showLogin(); }
 
 const APP_URL = location.origin + location.pathname;   // redirect target for recovery links
 

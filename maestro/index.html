@@ -222,6 +222,7 @@ const $$ = (s,r)=> Array.from((r||document).querySelectorAll(s));
 const esc = s => (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 let DATA=null, NOW=new Date(), STATE={ view:"overview", calFilter:"all", setupExpanded:{}, noteSel:null, noteOpen:{}, tripOpen:{}, showPastTrips:false }, RENDERED={}, PENDING=[], USER_ID=null;
 let RUNS=[], RUNS_TIMER=null;
+let GOOGLE_CONN=null;   // {status, account_email, connected_at} from maestro_connections (provider=google) — null = unknown/not-loaded
 let DOCS=null, DOCS_LOADING=false;   // Notes vault (maestro_docs) — lazy-loaded, RLS-scoped to the owner
 
 const KIND = {
@@ -688,6 +689,47 @@ function pstate(s){ return PSTATE[s] || { label:s||"", pill:"bg-surface-containe
 function linkLabel(u){ return String(u||"").replace(/^https?:\/\//,"").replace(/\/$/,""); }
 function projById(id){ return (DATA.projects||[]).find(p=>p.id===id); }
 
+/* ───── PROJECT HOLD — user-owned On-hold / Off-hold override (settings.projectHold map:
+   projectId → "held" | "active"). Applied CLIENT-SIDE so a brain sync can never flip a project
+   the user parked (or un-parked): the override always wins over the brain-written p.state. Lives
+   in the user-owned settings column (like completedTasks / hiddenCalendars), which the brain
+   never touches — so it survives every sync. effState() is the single source of truth for a
+   project's displayed state everywhere (cards, modal, filters, sort). ───── */
+function projHoldMap(){ return (DATA.settings && DATA.settings.projectHold) || {}; }
+function projHoldOverride(p){ const m=projHoldMap(); return (p && Object.prototype.hasOwnProperty.call(m, p.id)) ? m[p.id] : null; }
+function effState(p){
+  if(!p) return "";
+  const o=projHoldOverride(p);
+  if(o==="held") return "parked";                                       // user put it on hold → always parked
+  if(o==="active") return p.state==="parked" ? "in-progress" : p.state; // user took it off hold → never parked
+  return p.state;                                                       // no override → brain's state
+}
+function isHeld(p){ return effState(p)==="parked"; }
+// Hold toggle control — small pill for cards, full-width button for the modal. Uses a <span>
+// (not <button>) in the card so it nests legally inside the card's outer <button>; the delegated
+// click handler resolves to the innermost [data-act], so it fires proj-hold, not open-project.
+function holdControlHTML(p, big){
+  const held=isHeld(p);
+  if(big){
+    return '<button data-act="proj-hold" data-id="'+esc(p.id)+'" class="pressable w-full flex items-center justify-center gap-2 rounded-xl border '+(held?"border-primary/40 bg-primary/[0.08] text-primary":"border-outline-variant bg-surface-container/50 text-on-surface-variant hover:border-primary/40")+' font-bold text-[13px] py-2.5"><span class="material-symbols-outlined text-[18px]">'+(held?"play_circle":"pause_circle")+'</span>'+(held?"Take off hold":"Put on hold")+'</button>';
+  }
+  return '<span role="button" tabindex="0" data-act="proj-hold" data-id="'+esc(p.id)+'" title="'+(held?"Take off hold":"Put on hold")+'" class="pressable inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border flex-shrink-0 '+(held?"border-primary/35 bg-primary/10 text-primary":"border-outline-variant bg-surface-container/60 text-on-surface-variant/70 hover:border-primary/40")+'"><span class="material-symbols-outlined text-[13px]">'+(held?"play_arrow":"pause")+'</span>'+(held?"Resume":"Hold")+'</span>';
+}
+async function toggleProjectHold(id){
+  const p=projById(id); if(!p) return;
+  if(!USER_ID){ toast("Sign in first","lock"); return; }
+  const held=isHeld(p);
+  DATA.settings=DATA.settings||{};
+  const m=Object.assign({}, DATA.settings.projectHold||{});
+  m[id]= held ? "active" : "held";          // toggle: on-hold → active, otherwise → on-hold
+  DATA.settings.projectHold=m;
+  closeModal();                              // harmless no-op when toggled from a card
+  RENDERED.projects=false; RENDERED.overview=false; setView(STATE.view,true);
+  toast(held?"Off hold — back in your active pipeline":"On hold — parked", held?"play_circle":"pause_circle");
+  const { error } = await sb.from("maestro_dashboard").update({ settings: DATA.settings }).eq("user_id", USER_ID);
+  if(error){ toast("Couldn’t save: "+error.message,"error"); }
+}
+
 /* ───── GOALS — SMART goal, blocker, progress bar per project + the annual North Star.
    Seeded by the brain into the projects column; surfaced on every card and editable in-app.
    Edits write straight back to the projects/settings columns under the user's own RLS, the
@@ -825,19 +867,22 @@ async function saveNorthStar(){
   if(error){ toast("Couldn’t save: "+error.message,"error"); }
 }
 function projectCard(p){
-  const st=pstate(p.state);
+  const st=pstate(effState(p));
   return '<button data-act="open-project" data-id="'+esc(p.id)+'" class="pressable text-left w-full rounded-xl bg-surface-container/80 border hairline p-3.5 hover:border-primary/35 group">'+
     '<div class="flex items-start justify-between gap-2 mb-1"><h4 class="text-[14.5px] font-bold text-on-surface leading-tight">'+esc(p.name)+'</h4><span class="w-2 h-2 rounded-full '+st.dot+' mt-1.5 flex-shrink-0"></span></div>'+
     (p.shortStatus?'<p class="text-[12px] text-on-surface-variant/65 leading-snug mb-2.5 line-clamp-2">'+esc(p.shortStatus)+'</p>':'<div class="mb-2.5"></div>')+
     goalCardHTML(p)+
-    '<div class="flex items-center justify-between gap-2"><span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border '+st.pill+'">'+st.label+'</span>'+
-    '<span class="text-[10.5px] font-mono '+(/asap/i.test(p.urgency)?"text-on-error-container":"text-on-surface-variant/45")+' flex items-center gap-1 group-hover:text-primary transition-colors">'+(p.urgency?esc(p.urgency)+' ':'')+(p.url?'<span class="material-symbols-outlined text-[15px]">link</span>':'')+'<span class="material-symbols-outlined text-[15px]">chevron_right</span></span></div></button>';
+    '<div class="flex items-center justify-between gap-2"><div class="flex items-center gap-1.5 min-w-0">'+
+    '<span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border flex-shrink-0 '+st.pill+'">'+st.label+'</span>'+holdControlHTML(p,false)+'</div>'+
+    '<span class="text-[10.5px] font-mono '+(/asap/i.test(p.urgency)?"text-on-error-container":"text-on-surface-variant/45")+' flex items-center gap-1 flex-shrink-0 group-hover:text-primary transition-colors">'+(p.urgency?esc(p.urgency)+' ':'')+(p.url?'<span class="material-symbols-outlined text-[15px]">link</span>':'')+'<span class="material-symbols-outlined text-[15px]">chevron_right</span></span></div></button>';
 }
 function projectModal(p){
-  const st=pstate(p.state);
+  const st=pstate(effState(p));
   let h=mhead(esc(p.name), st.label+(p.urgency?' · '+esc(p.urgency):''));
   h+='<div class="px-5 sm:px-6 py-5 space-y-5">';
-  h+='<div class="flex flex-wrap items-center gap-2"><span class="text-[10.5px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border '+st.pill+'">'+st.label+'</span>'+(p.priority?'<span class="text-[11px] text-on-surface-variant/60">priority '+p.priority+'</span>':'')+(p.urgency?'<span class="text-[11px] font-mono '+(/asap/i.test(p.urgency)?"text-on-error-container":"text-on-surface-variant/60")+'">'+esc(p.urgency)+'</span>':'')+'</div>';
+  h+='<div class="flex flex-wrap items-center gap-2"><span class="text-[10.5px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border '+st.pill+'">'+st.label+'</span>'+(isHeld(p)?'<span class="text-[11px] text-primary font-semibold flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">pause_circle</span>On hold</span>':'')+(p.priority?'<span class="text-[11px] text-on-surface-variant/60">priority '+p.priority+'</span>':'')+(p.urgency?'<span class="text-[11px] font-mono '+(/asap/i.test(p.urgency)?"text-on-error-container":"text-on-surface-variant/60")+'">'+esc(p.urgency)+'</span>':'')+'</div>';
+  // On-hold / Off-hold control (user-owned override, persisted to settings — survives brain syncs)
+  h+=holdControlHTML(p,true);
   // Mark done / undo for the task(s) linked to this project
   const linked=(DATA.tasks||[]).filter(t=>t.projectId===p.id);
   if(linked.length){
@@ -856,9 +901,9 @@ function renderProjects(){
   const ps=DATA.projects||[];
   const filt=STATE.projFilter||"all";
   const order=["waiting-on-you","in-progress","done","parked"];
-  const sorted=ps.slice().sort((a,b)=>{ const o=pstate(a.state).order-pstate(b.state).order; if(o) return o; const pa=typeof a.priority==="number"?a.priority:99, pb=typeof b.priority==="number"?b.priority:99; return pa-pb; });
-  const shown=sorted.filter(p=>filt==="all"||p.state===filt);
-  const chip=(key,label)=>{ const n=key==="all"?ps.length:ps.filter(p=>p.state===key).length; const on=filt===key;
+  const sorted=ps.slice().sort((a,b)=>{ const o=pstate(effState(a)).order-pstate(effState(b)).order; if(o) return o; const pa=typeof a.priority==="number"?a.priority:99, pb=typeof b.priority==="number"?b.priority:99; return pa-pb; });
+  const shown=sorted.filter(p=>filt==="all"||effState(p)===filt);
+  const chip=(key,label)=>{ const n=key==="all"?ps.length:ps.filter(p=>effState(p)===key).length; const on=filt===key;
     return '<button data-act="proj-filter" data-key="'+key+'" class="pressable flex-shrink-0 text-[12px] font-semibold px-3.5 py-1.5 rounded-full border '+(on?"bg-primary text-on-primary border-primary":"bg-surface-container/50 text-on-surface-variant/75 border-outline-variant hover:border-primary/40")+'">'+label+' <span class="'+(on?"text-on-primary/70":"text-on-surface-variant/40")+' font-mono">'+n+'</span></button>'; };
   let H='<div class="rise"><div class="mb-3 px-1"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Projects</h2><p class="text-[12px] text-on-surface-variant/60 mt-0.5">Your real pipeline — synced from the command center. Tap a card for status, next action and its live link.</p></div>';
   H+='<div class="flex gap-2 overflow-x-auto pb-2 mb-3 -mx-1 px-1">'+chip("all","All")+chip("waiting-on-you","Needs you")+chip("in-progress","In motion")+chip("done","Done")+chip("parked","Parked")+'</div>';
@@ -903,6 +948,8 @@ function fmtSnooze(iso){ try{ return new Date(iso).toLocaleDateString(undefined,
 function fmtSnoozeLong(iso){ try{ return new Date(iso).toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"}); }catch(_e){ return String(iso); } }
 function fmtAgo(iso){ if(!iso) return ""; const d=new Date(iso); if(isNaN(d)) return ""; let s=Math.floor((Date.now()-d.getTime())/1000); if(s<0)s=0; if(s<60) return "just now"; const m=Math.floor(s/60); if(m<60) return m+" min"+(m===1?"":"s")+" ago"; const h=Math.floor(m/60); if(h<24) return h+" hour"+(h===1?"":"s")+" ago"; const dd=Math.floor(h/24); if(dd<30) return dd+" day"+(dd===1?"":"s")+" ago"; return d.toLocaleDateString(undefined,{month:"short",day:"numeric"}); }
 
+// "synced" stamp — DATE + TIME (e.g. "Jun 4, 2:30 PM") so a glance shows how fresh the data is.
+function fmtSynced(iso){ try{ return new Date(iso).toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}); }catch(_e){ return ""; } }
 // A task's optional long-form description — surfaced behind the eye affordance, never inline.
 function taskDesc(t){ return String((t && (t.description||t.notes||t.detail||t.summary)) || "").trim(); }
 function taskRow(t){
@@ -1638,6 +1685,7 @@ document.addEventListener("click",(e)=>{
   if(el.dataset.act==="open-project"){ const p=projById(el.dataset.id); if(p) projectModal(p); }
   else if(el.dataset.act==="open-task"){ const t=findTaskById(el.dataset.id); if(t) taskModal(t); }
   else if(el.dataset.act==="proj-filter"){ STATE.projFilter=el.dataset.key; rerender("projects"); }
+  else if(el.dataset.act==="proj-hold"){ e.stopPropagation(); toggleProjectHold(el.dataset.id); }
   else if(el.dataset.act==="edit-goal"){ const p=projById(el.dataset.id); if(p) goalEditModal(p); }
   else if(el.dataset.act==="goal-save"){ saveGoalEdit(el.dataset.id); }
   else if(el.dataset.act==="edit-northstar"){ northStarModal(); }
@@ -1686,6 +1734,25 @@ document.addEventListener("click",(e)=>{
 });
 
 /* ───── SETTINGS: calendar visibility (user-owned, persisted to settings column) ───── */
+// Google connection panel — connected → "Connected ✓" (+ account, date) with Reconnect/Disconnect;
+// otherwise the Connect prompt. No nag once a token is stored.
+function googleConnPanel(){
+  if(googleConnected()){
+    const email=GOOGLE_CONN.account_email?esc(GOOGLE_CONN.account_email):"your Google account";
+    const since=GOOGLE_CONN.connected_at?(" · connected "+esc(fmtSynced(GOOGLE_CONN.connected_at))):"";
+    return '<div class="rounded-xl border border-green/30 bg-green/[0.06] px-3.5 py-3 mb-3 flex items-start gap-2.5">'+
+        '<span class="material-symbols-outlined text-green text-[20px] ms-fill flex-shrink-0">check_circle</span>'+
+        '<div class="min-w-0"><p class="text-[13px] font-bold text-green leading-tight">Connected ✓</p>'+
+        '<p class="text-[11.5px] text-on-surface-variant/65 truncate">'+email+since+'</p></div></div>'+
+      '<p class="text-[12px] text-on-surface-variant/55 mb-3">Live calendar sync is on. Reconnect to refresh access, or disconnect to revoke it.</p>'+
+      '<div class="grid grid-cols-2 gap-2">'+
+        '<button data-act="connect-google" class="pressable flex items-center justify-center gap-2 rounded-xl border border-outline-variant bg-surface-container/50 hover:border-primary/40 font-bold text-[12.5px] py-2.5"><span class="material-symbols-outlined text-[17px]">refresh</span>Reconnect</button>'+
+        '<button data-act="disconnect-google" class="pressable flex items-center justify-center gap-2 rounded-xl border border-on-error-container/30 bg-error-container/15 text-on-error-container hover:brightness-110 font-bold text-[12.5px] py-2.5"><span class="material-symbols-outlined text-[17px]">link_off</span>Disconnect</button>'+
+      '</div>';
+  }
+  return '<p class="text-[12px] text-on-surface-variant/55 mb-3">Connect Google once to enable on-demand <b>live</b> calendar sync (the “Sync now” button). Your refresh token is stored encrypted server-side and never leaves Supabase.</p>'+
+    '<button data-act="connect-google" class="w-full flex items-center justify-center gap-2 rounded-xl bg-primary text-on-primary font-bold text-[13.5px] py-2.5 hover:brightness-110"><span class="material-symbols-outlined text-[18px]">link</span>Connect Google</button>';
+}
 function settingsModal(){
   const cals=allCalendars();
   let h=mhead("Settings","Choose which calendars Maestro shows");
@@ -1705,8 +1772,7 @@ function settingsModal(){
      '<p class="text-[11px] text-on-surface-variant/45 mt-3 flex items-center gap-1.5"><span class="material-symbols-outlined text-[15px]">cloud_done</span>Saved to your account · the brain skips hidden calendars when finding overlaps.</p>'+
      '</div>'+
      '<div><h3 class="text-[11px] font-bold tracking-widest text-on-surface-variant/70 uppercase mb-1">Google connection</h3>'+
-     '<p class="text-[12px] text-on-surface-variant/55 mb-3">Connect Google once to enable on-demand <b>live</b> calendar sync (the “Sync now” button). Your refresh token is stored encrypted server-side and never leaves Supabase.</p>'+
-     '<button data-act="connect-google" class="w-full flex items-center justify-center gap-2 rounded-xl bg-primary text-on-primary font-bold text-[13.5px] py-2.5 hover:brightness-110"><span class="material-symbols-outlined text-[18px]">link</span>Connect Google</button>'+
+     googleConnPanel()+
      '</div></div>';
   openModal(h);
 }
@@ -2075,6 +2141,7 @@ document.addEventListener("click", async (e)=>{
   if(act==="task-respond"){ respondTaskModal(el.dataset.id); return; }
   if(act==="task-respond-send"){ const t=$("#task-respond-box"); const v=t?t.value:""; sendInbox(v, el.dataset.id).then(ok=>{ if(ok) closeModal(); }); return; }
   if(act==="connect-google"){ connectGoogle(); return; }
+  if(act==="disconnect-google"){ disconnectGoogle(); return; }
   if(act==="cal-filter"){ STATE.calFilter=el.dataset.cal; rerender("week"); return; }
   if(act==="open-pending"){ pendingModal(); return; }
   if(act==="withdraw"){ withdraw(el.dataset.id); return; }
@@ -2142,11 +2209,12 @@ async function loadDashboard(){
   await ensureProjectsTasks();   // no-op: projects/tasks come only from the auth-gated Supabase row
   NOW = (DATA.meta && DATA.meta.sample && DATA.meta.generatedAt) ? new Date(DATA.meta.generatedAt) : new Date();
   if(DATA.meta && DATA.meta.location) $("#loc").textContent=DATA.meta.location;
-  $("#synced").textContent = DATA.meta&&DATA.meta.sample ? "sample data" : "synced "+(row&&row.updated_at?new Date(row.updated_at).toLocaleDateString(undefined,{month:"short",day:"numeric"}):"");
+  $("#synced").textContent = DATA.meta&&DATA.meta.sample ? "sample data" : "synced "+(row&&row.updated_at?fmtSynced(row.updated_at):"");
   tick(); setInterval(tick,20000);
   RENDERED={};
   await refreshPending();
   setView(initView, true);
+  loadGoogleConn();            // detect Google connected-state so Settings shows "Connected ✓", not a nag
   liveSync({ silent:true });   // on-demand: refresh the calendar live, don't wait for the scheduled brain
   loadInbox();                 // pull the user's Dispatch messages + light up the inbox badge
   setupRealtime();             // live dashboard + inbox updates (sync button stays as fallback)
@@ -2180,8 +2248,13 @@ async function liveSync(opts){
         RENDERED={}; setView(STATE.view, true);
       }
       $("#synced").textContent = "synced just now";
+      // 200 ⇒ a working Google token exists. Keep the connected-state fresh even if the
+      // maestro_connections read was skipped/failed, so Settings reflects reality.
+      if(GOOGLE_CONN && GOOGLE_CONN.status==="connected"){ /* already known */ }
+      else GOOGLE_CONN = Object.assign({}, GOOGLE_CONN, { status:"connected" });
       if(!opts.silent) toast("Calendar synced — "+(body.count||0)+" events live","sync");
     } else if(res.status===409){
+      GOOGLE_CONN = { status:"disconnected" };   // no token server-side — show the Connect prompt
       if(!opts.silent) toast("Connect Google to enable live sync","link");
     } else if(!opts.silent){
       toast("Live sync unavailable — showing last sync","schedule");
@@ -2207,6 +2280,29 @@ async function connectGoogle(){
     }
     window.location.href = body.url;   // → Google consent → enwrco callback → back here
   }catch(e){ toast("Couldn't start Google connect: "+e.message,"error"); }
+}
+/* Connected-state detection — reads the owner's maestro_connections row (RLS: auth.uid()=user_id).
+   status "connected" ⇒ a Google refresh token is stored server-side, so we show "Connected ✓"
+   instead of nagging to connect. Cheap single-row read; runs on load before Settings can open. */
+function googleConnected(){ return !!(GOOGLE_CONN && GOOGLE_CONN.status==="connected"); }
+async function loadGoogleConn(){
+  if(!USER_ID) return;
+  try{
+    const { data, error } = await sb.from("maestro_connections")
+      .select("status, account_email, connected_at").eq("provider","google").maybeSingle();
+    if(!error) GOOGLE_CONN = data || { status:"none" };
+  }catch(_e){ /* leave as-is; liveSync's 200/409 is a secondary signal */ }
+}
+/* True disconnect — deletes the server-side refresh token (private.google_tokens) and flips the
+   connection status, via an owner-scoped SECURITY DEFINER RPC. After this, calendar-sync returns
+   409 again, consistent with the UI. Reconnect = connectGoogle() (re-consent overwrites the token). */
+async function disconnectGoogle(){
+  if(!USER_ID){ toast("Sign in first","lock"); return; }
+  const { error } = await sb.rpc("disconnect_google");
+  if(error){ toast("Couldn’t disconnect: "+error.message,"error"); return; }
+  GOOGLE_CONN = { status:"disconnected" };
+  settingsModal();   // re-render the panel → back to the Connect button
+  toast("Google disconnected","link_off");
 }
 function showScreen(name){ ["login","forgot","reset"].forEach(s=>{ var el=$("#"+s); if(el) el.classList.toggle("hidden", s!==name); }); $("#app").classList.add("hidden"); }
 function showLogin(msg){ showScreen("login"); const er=$("#login-error"); if(msg){ er.textContent=msg; er.classList.remove("hidden"); } else { er.classList.add("hidden"); } }

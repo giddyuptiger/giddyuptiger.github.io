@@ -977,7 +977,7 @@ function taskRow(t){
   // Wrapped for swipe-left → snooze: a hidden "Snooze" hint sits behind; the inner .task-swipe
   // layer translates left under the finger (see initTaskSwipe). touch-action:pan-y keeps vertical
   // scrolling native while we own the horizontal drag.
-  return '<div class="relative rounded-xl" data-task-row data-id="'+esc(t.id)+'">'+
+  return '<div class="relative rounded-xl mr-1.5 mb-1.5 last:mb-0" data-task-row data-id="'+esc(t.id)+'">'+
     '<div class="task-swipe-hint absolute inset-y-0 right-0 flex items-center gap-1.5 pr-5 text-primary pointer-events-none" style="opacity:0"><span class="material-symbols-outlined text-[20px]">snooze</span><span class="text-[11.5px] font-bold uppercase tracking-wide">Snooze</span></div>'+
     '<div class="task-swipe flex items-stretch rounded-xl overflow-hidden hover:bg-surface-container/40 transition-colors" style="touch-action:pan-y">'+
       '<div class="flex items-center gap-2.5 flex-1 min-w-0 pl-3 pr-2 py-2.5">'+check+body+twoMinBadge+snzPill+'</div>'+

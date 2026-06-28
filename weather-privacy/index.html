@@ -3,21 +3,113 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex">
-<title>WEATHER — Privacy Policy moved</title>
-<link rel="canonical" href="https://giddyuptiger.github.io/weather/privacy/">
-<meta http-equiv="refresh" content="0; url=/weather/privacy/">
-<script>window.location.replace("/weather/privacy/");</script>
+<title>WEATHER — Privacy Policy</title>
 <style>
-  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;max-width:640px;margin:0 auto;padding:2rem 1.25rem;line-height:1.5;color:#1a1a1a;background:#fff}
-  @media (prefers-color-scheme: dark){body{color:#e6e6e6;background:#111}a{color:#79b8ff}}
-  a{color:#0366d6}
+  :root { color-scheme: light dark; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 2rem 1.25rem 4rem;
+    line-height: 1.6;
+    color: #1a1a1a;
+    background: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { color: #e6e6e6; background: #111; }
+    a { color: #79b8ff; }
+    h2, h3 { color: #f0f0f0; }
+    .meta { color: #888; }
+  }
+  h1 { font-size: 1.75rem; margin-bottom: 0.25rem; }
+  h2 { font-size: 1.25rem; margin-top: 2rem; }
+  h3 { font-size: 1rem; margin-top: 1.25rem; }
+  .meta { color: #666; font-size: 0.9rem; margin-bottom: 1.5rem; }
+  ul { padding-left: 1.25rem; }
+  li { margin: 0.4rem 0; }
+  a { color: #0366d6; }
+  code { background: rgba(127,127,127,0.15); padding: 0.05em 0.3em; border-radius: 3px; font-size: 0.9em; }
 </style>
 </head>
 <body>
-<h1>This page has moved</h1>
-<p>The WEATHER privacy policy now lives at
-<a href="/weather/privacy/">https://giddyuptiger.github.io/weather/privacy/</a>.</p>
-<p>You should be redirected automatically. If not, tap the link above.</p>
+<h1>WEATHER Privacy Policy</h1>
+<p class="meta">Effective date: May 19, 2026</p>
+
+<p>WEATHER is a private journaling and connection app for couples. This policy explains what data the app collects, how it's used, who it's shared with, and your rights. We try to keep it short and honest.</p>
+
+<h2>Who we are</h2>
+<p>WEATHER is built and operated by Jeremy Irons (sole developer). Contact: <a href="mailto:jeremydirons@gmail.com">jeremydirons@gmail.com</a>.</p>
+
+<h2>What we collect</h2>
+
+<h3>Account information</h3>
+<ul>
+  <li><strong>Email address</strong> — used for sign-in via a one-time magic link. We do not store passwords.</li>
+  <li><strong>Display name</strong> — the name shown to you and your partner inside the app.</li>
+  <li><strong>Device push token</strong> — if you allow notifications, a token from Apple Push Notification service / Firebase Cloud Messaging is stored so we can deliver pushes (e.g., a love note from your partner).</li>
+</ul>
+
+<h3>What you write in the app</h3>
+<p>Everything you record in WEATHER is stored so it can sync across your devices and (when you choose) be visible to your paired partner:</p>
+<ul>
+  <li>Daily check-ins (feeling, optional description, impact tags, reflection)</li>
+  <li>Tension and somatic logs (signals, context, intensity, optional notes)</li>
+  <li>Pauses (duration, what triggered them, whether you grounded after)</li>
+  <li>Phrases you've logged and who said them</li>
+  <li>Repairs and love notes</li>
+  <li>Addenda — notes you append to past entries</li>
+  <li>Custom vocabulary you've added (your own signal, context, or phrase labels)</li>
+</ul>
+
+<h3>Optional cycle tracking</h3>
+<p>If you turn on cycle tracking, we store the date of your last cycle start and your typical cycle length. You choose how much (if any) of this is visible to your partner: <strong>private</strong>, <strong>day count only</strong>, or <strong>full band</strong>. You can change this at any time, or turn cycle tracking off entirely.</p>
+
+<h3>App preferences</h3>
+<ul>
+  <li>Timezone, quiet hours, breath pattern preference</li>
+  <li>Partnership ID and pairing-code state (6-digit codes, valid 10 minutes, single use)</li>
+  <li>Sharing-pause state (whether sharing with your partner is currently paused)</li>
+</ul>
+
+<h2>What we share with your partner</h2>
+<p>WEATHER is designed for two people. Pairing is explicit: you and your partner enter a one-time code to link your accounts. Once paired:</p>
+<ul>
+  <li>Each entry has a visibility setting — <strong>private</strong> or <strong>shared with partner</strong>. You control this per entry.</li>
+  <li>Some entry types default to shared (check-ins, phrases, repairs, pauses); tension entries default to private. You can change defaults and override per entry.</li>
+  <li>Cycle tracking sharing follows the level you chose above.</li>
+  <li>You can pause sharing at any time, which hides new entries from your partner until you resume.</li>
+</ul>
+<p>We do not share your data with any other user, ever. Only your explicitly paired partner can see what you mark as shared.</p>
+
+<h2>Third-party services we use</h2>
+<ul>
+  <li><strong>Supabase</strong> — hosts our database and authentication. Your account and your entries live here.</li>
+  <li><strong>Firebase Cloud Messaging</strong> (Google) — delivers push notifications. Only your device token is stored on Google's side.</li>
+  <li><strong>Sentry</strong> — crash and error reporting. When the app crashes, a diagnostic report (stack trace, app version, device model) is sent to help us fix bugs. Sentry is configured to scrub personal data from reports.</li>
+</ul>
+<p>That's the entire list. We do not use advertising SDKs, attribution trackers, or product analytics. We do not sell or rent your data to anyone, and we do not use your data to train AI models.</p>
+
+<h2>How long we keep your data</h2>
+<p>Your data is kept as long as your account exists. When you delete your account, your profile, entries, pairing, and tokens are removed from our database (cascade delete). Backups may retain data for up to 30 days before being overwritten.</p>
+
+<h2>Your rights</h2>
+<ul>
+  <li><strong>Access</strong> — you can see all your data inside the app, or request a copy by email.</li>
+  <li><strong>Correction</strong> — you can edit any entry directly in the app.</li>
+  <li><strong>Deletion</strong> — you can delete individual entries in the app, or request full account deletion by email.</li>
+  <li><strong>Unpair</strong> — you can end a partnership at any time from settings.</li>
+</ul>
+<p>If you live in the EU, UK, or California, you have additional rights under GDPR, UK GDPR, and CCPA — including the right to portability and the right to lodge a complaint with your local data protection authority. Email us to exercise any of these.</p>
+
+<h2>Children</h2>
+<p>WEATHER is not directed at children under 13 (or 16 in the EU). We do not knowingly collect data from children. If we learn that a child has signed up, we will delete the account.</p>
+
+<h2>Changes to this policy</h2>
+<p>If we change this policy, we'll update the effective date at the top. Material changes will be surfaced in the app before they take effect.</p>
+
+<h2>Contact</h2>
+<p>Questions, requests, or concerns: <a href="mailto:jeremydirons@gmail.com">jeremydirons@gmail.com</a>.</p>
+
+<p style="margin-top:3rem;"><a href="/">← All privacy policies</a></p>
 </body>
 </html>

@@ -223,6 +223,7 @@ const esc = s => (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;
 let DATA=null, NOW=new Date(), STATE={ view:"overview", calFilter:"all", setupExpanded:{}, noteSel:null, noteOpen:{}, tripOpen:{}, showPastTrips:false }, RENDERED={}, PENDING=[], USER_ID=null;
 let RUNS=[], RUNS_TIMER=null;
 let GOOGLE_CONN=null;   // {status, account_email, connected_at} from maestro_connections (provider=google) — null = unknown/not-loaded
+let SLACK_CONN=null;    // {webhook, connected_at, label} read from THIS user's own maestro_dashboard row — null = unknown/not-loaded
 let DOCS=null, DOCS_LOADING=false;   // Notes vault (maestro_docs) — lazy-loaded, RLS-scoped to the owner
 
 const KIND = {
@@ -977,7 +978,7 @@ function taskRow(t){
   // Wrapped for swipe-left → snooze: a hidden "Snooze" hint sits behind; the inner .task-swipe
   // layer translates left under the finger (see initTaskSwipe). touch-action:pan-y keeps vertical
   // scrolling native while we own the horizontal drag.
-  return '<div class="relative rounded-xl" data-task-row data-id="'+esc(t.id)+'">'+
+  return '<div class="relative rounded-xl mr-1.5 mb-1.5 last:mb-0" data-task-row data-id="'+esc(t.id)+'">'+
     '<div class="task-swipe-hint absolute inset-y-0 right-0 flex items-center gap-1.5 pr-5 text-primary pointer-events-none" style="opacity:0"><span class="material-symbols-outlined text-[20px]">snooze</span><span class="text-[11.5px] font-bold uppercase tracking-wide">Snooze</span></div>'+
     '<div class="task-swipe flex items-stretch rounded-xl overflow-hidden hover:bg-surface-container/40 transition-colors" style="touch-action:pan-y">'+
       '<div class="flex items-center gap-2.5 flex-1 min-w-0 pl-3 pr-2 py-2.5">'+check+body+twoMinBadge+snzPill+'</div>'+
@@ -1753,6 +1754,40 @@ function googleConnPanel(){
   return '<p class="text-[12px] text-on-surface-variant/55 mb-3">Connect Google once to enable on-demand <b>live</b> calendar sync (the “Sync now” button). Your refresh token is stored encrypted server-side and never leaves Supabase.</p>'+
     '<button data-act="connect-google" class="w-full flex items-center justify-center gap-2 rounded-xl bg-primary text-on-primary font-bold text-[13.5px] py-2.5 hover:brightness-110"><span class="material-symbols-outlined text-[18px]">link</span>Connect Google</button>';
 }
+
+/* ───── SLACK: per-user check-in delivery ─────
+   This is YOUR PERSONAL Slack connection. The webhook you paste is saved on your own
+   account row (RLS: only you can read or write it) and Maestro's check-in heartbeats are
+   delivered to YOUR Slack — nobody else's. There is no shared/global Slack. */
+function slackConnected(){ return !!(SLACK_CONN && SLACK_CONN.webhook); }
+function slackValid(u){ return /^https:\/\/hooks\.slack\.com\/services\/[A-Za-z0-9/_-]+$/.test((u||"").trim()); }
+function slackMask(u){ try{ const tail=String(u).split("/services/")[1]||""; return "hooks.slack.com/services/"+(tail?tail.slice(0,4)+"…"+tail.slice(-4):"•••"); }catch(_e){ return "hooks.slack.com/services/•••"; } }
+function slackConnPanel(){
+  if(slackConnected()){
+    const label = SLACK_CONN.label ? esc(SLACK_CONN.label) : "Your Slack";
+    const since = SLACK_CONN.connected_at ? (" · connected "+esc(fmtSynced(SLACK_CONN.connected_at))) : "";
+    return '<div class="rounded-xl border border-green/30 bg-green/[0.06] px-3.5 py-3 mb-3 flex items-start gap-2.5">'+
+        '<span class="material-symbols-outlined text-green text-[20px] ms-fill flex-shrink-0">check_circle</span>'+
+        '<div class="min-w-0"><p class="text-[13px] font-bold text-green leading-tight">Connected ✓ <span class="font-semibold text-on-surface-variant/70">· your check-ins go here</span></p>'+
+        '<p class="text-[11.5px] text-on-surface-variant/65 truncate">'+label+' · '+esc(slackMask(SLACK_CONN.webhook))+since+'</p></div></div>'+
+      '<p class="text-[12px] text-on-surface-variant/55 mb-3">Maestro posts each check-in to this webhook. Send a test to confirm, or disconnect to stop delivery to your Slack.</p>'+
+      '<div class="grid grid-cols-2 gap-2">'+
+        '<button data-act="slack-test" class="pressable flex items-center justify-center gap-2 rounded-xl border border-outline-variant bg-surface-container/50 hover:border-primary/40 font-bold text-[12.5px] py-2.5"><span class="material-symbols-outlined text-[17px]">send</span>Send test</button>'+
+        '<button data-act="slack-disconnect" class="pressable flex items-center justify-center gap-2 rounded-xl border border-on-error-container/30 bg-error-container/15 text-on-error-container hover:brightness-110 font-bold text-[12.5px] py-2.5"><span class="material-symbols-outlined text-[17px]">link_off</span>Disconnect</button>'+
+      '</div>';
+  }
+  return '<p class="text-[12px] text-on-surface-variant/55 mb-3">Connect <b>your own</b> Slack to get Maestro check-ins (in progress / needs you / just finished) delivered straight to a channel you choose. This is personal to your account — only you receive your check-ins.</p>'+
+    '<ol class="text-[11.5px] text-on-surface-variant/60 mb-3 pl-4 list-decimal space-y-0.5">'+
+      '<li>Go to <a href="https://api.slack.com/apps" target="_blank" rel="noopener" class="text-primary underline decoration-primary/40 hover:decoration-primary">api.slack.com/apps</a> → <b>Create New App</b> → From scratch.</li>'+
+      '<li>Open <b>Incoming Webhooks</b>, turn it <b>On</b>, then <b>Add New Webhook to Workspace</b>.</li>'+
+      '<li>Pick the channel you want check-ins in and <b>Allow</b>.</li>'+
+      '<li>Copy the <code class="px-1 rounded bg-surface-container-high text-primary/90 font-mono text-[11px]">https://hooks.slack.com/services/…</code> URL and paste it below.</li>'+
+    '</ol>'+
+    '<input id="slack-label-input" type="text" placeholder="Label (optional, e.g. #maestro in Acme)" class="w-full mb-2 rounded-xl bg-surface-container-low/70 border hairline px-3.5 py-2.5 text-[13px] text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary/50">'+
+    '<input id="slack-webhook-input" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://hooks.slack.com/services/T…/B…/…" class="w-full mb-2 rounded-xl bg-surface-container-low/70 border hairline px-3.5 py-2.5 text-[13px] font-mono text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary/50">'+
+    '<button data-act="slack-save" class="w-full flex items-center justify-center gap-2 rounded-xl bg-primary text-on-primary font-bold text-[13.5px] py-2.5 hover:brightness-110"><span class="material-symbols-outlined text-[18px]">link</span>Connect my Slack</button>'+
+    '<p class="text-[11px] text-on-surface-variant/45 mt-2 flex items-center gap-1.5"><span class="material-symbols-outlined text-[15px]">lock</span>Saved only to your account (RLS-protected). Treat the URL like a password.</p>';
+}
 function settingsModal(){
   const cals=allCalendars();
   let h=mhead("Settings","Choose which calendars Maestro shows");
@@ -1773,6 +1808,9 @@ function settingsModal(){
      '</div>'+
      '<div><h3 class="text-[11px] font-bold tracking-widest text-on-surface-variant/70 uppercase mb-1">Google connection</h3>'+
      googleConnPanel()+
+     '</div>'+
+     '<div><h3 class="text-[11px] font-bold tracking-widest text-on-surface-variant/70 uppercase mb-1">Slack check-ins</h3>'+
+     slackConnPanel()+
      '</div></div>';
   openModal(h);
 }
@@ -2142,6 +2180,9 @@ document.addEventListener("click", async (e)=>{
   if(act==="task-respond-send"){ const t=$("#task-respond-box"); const v=t?t.value:""; sendInbox(v, el.dataset.id).then(ok=>{ if(ok) closeModal(); }); return; }
   if(act==="connect-google"){ connectGoogle(); return; }
   if(act==="disconnect-google"){ disconnectGoogle(); return; }
+  if(act==="slack-save"){ saveSlack(); return; }
+  if(act==="slack-test"){ testSlack(); return; }
+  if(act==="slack-disconnect"){ disconnectSlack(); return; }
   if(act==="cal-filter"){ STATE.calFilter=el.dataset.cal; rerender("week"); return; }
   if(act==="open-pending"){ pendingModal(); return; }
   if(act==="withdraw"){ withdraw(el.dataset.id); return; }
@@ -2215,6 +2256,7 @@ async function loadDashboard(){
   await refreshPending();
   setView(initView, true);
   loadGoogleConn();            // detect Google connected-state so Settings shows "Connected ✓", not a nag
+  loadSlackConn();             // detect per-user Slack connected-state for the Settings panel
   liveSync({ silent:true });   // on-demand: refresh the calendar live, don't wait for the scheduled brain
   loadInbox();                 // pull the user's Dispatch messages + light up the inbox badge
   setupRealtime();             // live dashboard + inbox updates (sync button stays as fallback)
@@ -2303,6 +2345,57 @@ async function disconnectGoogle(){
   GOOGLE_CONN = { status:"disconnected" };
   settingsModal();   // re-render the panel → back to the Connect button
   toast("Google disconnected","link_off");
+}
+
+/* ───── SLACK (per-user check-in delivery) ─────
+   Read/write only THIS user's own webhook, on their own RLS-protected maestro_dashboard row.
+   There is no global webhook: each user's check-ins go to the webhook they save here. */
+async function loadSlackConn(){
+  if(!USER_ID) return;
+  try{
+    const { data, error } = await sb.from("maestro_dashboard")
+      .select("slack_webhook_url, slack_connected_at, slack_label").eq("user_id", USER_ID).maybeSingle();
+    if(!error && data) SLACK_CONN = { webhook:data.slack_webhook_url||null, connected_at:data.slack_connected_at||null, label:data.slack_label||null };
+    else SLACK_CONN = { webhook:null };
+  }catch(_e){ SLACK_CONN = SLACK_CONN || { webhook:null }; }
+}
+async function saveSlack(){
+  if(!USER_ID){ toast("Sign in first","lock"); return; }
+  const inp=$("#slack-webhook-input"); const lab=$("#slack-label-input");
+  const url=(inp?inp.value:"").trim(); const label=(lab?lab.value:"").trim();
+  if(!url){ toast("Paste your Slack webhook URL first","info"); return; }
+  if(!slackValid(url)){ toast("That doesn’t look like a Slack webhook — it should start with https://hooks.slack.com/services/","error"); return; }
+  const now=new Date().toISOString();
+  const { error } = await sb.from("maestro_dashboard")
+    .update({ slack_webhook_url:url, slack_connected_at:now, slack_label:(label||null) }).eq("user_id", USER_ID);
+  if(error){ toast("Couldn’t save: "+error.message,"error"); return; }
+  SLACK_CONN={ webhook:url, connected_at:now, label:(label||null) };
+  settingsModal();   // re-render → connected state with Send test / Disconnect
+  toast("Slack connected — your check-ins will arrive here","check_circle");
+  testSlack({ silent:true });   // immediate confirmation post
+}
+async function testSlack(opts){
+  opts=opts||{};
+  if(!slackConnected()){ toast("Connect your Slack first","info"); return; }
+  try{
+    const { data:{ session } } = await sb.auth.getSession();
+    if(!session){ toast("Sign in first","lock"); return; }
+    const res = await fetch(SUPABASE_URL+"/functions/v1/maestro-slack-test", {
+      method:"POST", headers:{ apikey:SUPABASE_ANON, authorization:"Bearer "+session.access_token }
+    });
+    const body = await res.json().catch(()=>({}));
+    if(res.ok && body.ok){ toast("Test sent — check your Slack ✓","send"); }
+    else { toast("Test failed: "+(body.message||body.error||("HTTP "+res.status)),"error"); }
+  }catch(e){ toast("Couldn’t send test: "+e.message,"error"); }
+}
+async function disconnectSlack(){
+  if(!USER_ID){ toast("Sign in first","lock"); return; }
+  const { error } = await sb.from("maestro_dashboard")
+    .update({ slack_webhook_url:null, slack_connected_at:null, slack_label:null }).eq("user_id", USER_ID);
+  if(error){ toast("Couldn’t disconnect: "+error.message,"error"); return; }
+  SLACK_CONN={ webhook:null };
+  settingsModal();   // re-render → back to the paste-your-webhook form
+  toast("Slack disconnected — check-ins paused","link_off");
 }
 function showScreen(name){ ["login","forgot","reset"].forEach(s=>{ var el=$("#"+s); if(el) el.classList.toggle("hidden", s!==name); }); $("#app").classList.add("hidden"); }
 function showLogin(msg){ showScreen("login"); const er=$("#login-error"); if(msg){ er.textContent=msg; er.classList.remove("hidden"); } else { er.classList.add("hidden"); } }

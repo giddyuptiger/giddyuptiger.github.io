@@ -609,11 +609,9 @@ function renderOverview(){
       conflicts.map(c=>'<div class="flex items-center justify-between gap-3 flex-wrap"><p class="text-[13px] text-on-surface/85"><span class="font-mono text-[11px] text-on-error-container/80">'+fmtTime(c.a.start)+'</span> <b>'+esc(c.a.title)+'</b> overlaps <b>'+esc(c.b.title)+'</b></p><div class="flex items-center gap-2 flex-shrink-0">'+affBtn("resched",c.b.id,{op:"shift",minutes:60},"schedule","Queue: push 1h")+'<button data-act="dismiss-conflict" data-cid="'+esc(c.cid)+'" title="Stop flagging this overlap" class="pressable flex items-center gap-1.5 text-[12.5px] font-semibold px-3 py-1.5 rounded-full border border-outline-variant text-on-surface-variant/80 hover:border-green/40 hover:text-green"><span class="material-symbols-outlined text-[16px]">do_not_disturb_on</span>It’s fine</button></div></div>').join("")+
     '</div></div>';
   });
-  // ── Accomplished today — summarized digest of today's completed task runs, at the bottom ──
-  H += safeBlock("Accomplished today", ()=> accomplishedTodayHTML());
   H += footerHTML();
   $("#view-overview").innerHTML=H;
-  syncRunsSection();   // keep the live-runs strip at the top of Overview
+  syncActivityItem();   // single activity item pinned at the top of Overview
 }
 function calLegendFilter(){
   const present=[...new Set(eventsAll().map(e=>e.calendar).filter(Boolean))];
@@ -1410,50 +1408,31 @@ function respondTaskModal(taskId){
   openModal(h);
 }
 
-/* ───── LIVE RUNS — step-based progress bars fed by maestro_runs (realtime; Sync = fallback) ─────
-   One row in maestro_runs = one task execution. We surface ACTIVE runs (queued/running) plus any
-   that finished in the last few seconds, so the bar visibly lands on Done/Error before it drops.
-   HONESTY RULE: the bar never reads 100% until status==='done'. ETA is a rough average of past
-   finished runs with a similar title or identical step-count, labelled "est", hidden if no history. */
-const RUN_FINISHED_LINGER_MS = 9000;
-function runNorm(s){ return String(s||"").trim().toLowerCase().replace(/\s+/g," "); }
+/* ───── TASK/RUN REGISTRY — maestro_runs, owner-scoped via RLS. One row = one task execution.
+   Loaded here; surfaced by the single Activity item (see below). Realtime keeps it live, the 20s
+   poll is the fallback. Dispatch writes rows via the maestro-task edge function. ───── */
 async function loadRuns(){
   if(!USER_ID) return;
   try{
     const { data, error } = await sb.from("maestro_runs")
-      .select("id,title,status,steps_total,steps_done,current_step,started_at,updated_at,finished_at,eta_seconds,source")
+      .select("id,title,status,steps_total,steps_done,current_step,started_at,updated_at,finished_at,eta_seconds,source,result_note,deliverable_url,session_id,run_key,run_date")
       .eq("user_id", USER_ID)               // explicit owner scope (matches realtime filter); RLS is the real boundary, this is defense-in-depth so another user's runs can never surface even if a policy regresses
       .order("started_at",{ascending:false}).limit(60);
     if(error) return;                       // RLS / transient — keep last known, no regression
     RUNS = data || [];
-    syncRunsSection();
-    syncAccomplishedSection();   // live-refresh the Accomplished-today digest as runs complete
+    syncActivityItem();          // refresh the single top activity item
+    refreshOpenRunModal();       // live-refresh the activity panel if it's open
   }catch(_e){ /* offline — realtime or the next poll catches up */ }
 }
-function runsActive(){
-  const now=Date.now();
-  return RUNS.filter(r=>{
-    if(r.status==="running" || r.status==="queued") return true;
-    if((r.status==="done"||r.status==="error") && r.finished_at && (now-new Date(r.finished_at).getTime()<RUN_FINISHED_LINGER_MS)) return true;
-    return false;
-  }).sort((a,b)=> new Date(a.started_at)-new Date(b.started_at));
-}
-// est TOTAL seconds, averaged over past finished runs with a similar title or identical step-count
-function runEtaTotal(r){
-  const hist=RUNS.filter(x=> x.status==="done" && x.finished_at && x.id!==r.id &&
-      ((r.title && x.title && runNorm(x.title)===runNorm(r.title)) || (r.steps_total && x.steps_total===r.steps_total)))
-    .map(x=> (new Date(x.finished_at)-new Date(x.started_at))/1000).filter(s=>s>0);
-  if(!hist.length) return null;
-  return hist.reduce((a,b)=>a+b,0)/hist.length;
-}
-function runPct(r){
-  if(r.status==="done") return 100;
-  const t=r.steps_total||0;
-  if(t<=0) return null;                      // unknown total → indeterminate bar
-  let pct=(r.steps_done||0)/t*100;
-  if(pct>99) pct=99;                         // never 100% until status==='done'
-  return Math.max(0,pct);
-}
+/* ───── ACTIVITY — a SINGLE item at the top of Overview that rolls up today's task/session runs
+   (maestro_runs, owner-scoped via RLS). Quiet when nothing ran today; when there's activity it
+   shows one line ("4 running · 3 completed today") with a live dot. Tap it → a panel of today's
+   runs (newest first, status dot + start/finish times); tap a run → a detail view with the result
+   written as a readable note (markdown → clean HTML, never raw) plus a button to the deliverable.
+   Completed runs PERSIST for the LA day and reset on the day boundary. Dispatch populates this via
+   the maestro-task edge function (a row at spin-up, updated with result_note + deliverable on
+   finish); realtime + the 20s poll keep it live. Internal plumbing (heartbeat / self-heal / audit /
+   brain) is filtered out so Jeremy sees his own work, not cron noise. ───── */
 function fmtDur(secs){
   secs=Math.max(0,Math.round(secs));
   const m=Math.floor(secs/60), s=secs%60;
@@ -1461,164 +1440,137 @@ function fmtDur(secs){
   if(m<60) return s? (m+"m "+s+"s") : (m+"m");
   const h=Math.floor(m/60); return h+"h "+(m%60)+"m";
 }
-function runCardHTML(r){
-  const pct=runPct(r);
-  const isDone=r.status==="done", isErr=r.status==="error";
-  const indeterminate=(pct===null && !isDone && !isErr);
-  const barColor=isErr? "#ef5350" : (isDone? "#36c275" : "#C5E45C");
-  const pill = isDone ? '<span class="text-[10px] font-bold uppercase tracking-wider text-green bg-green/10 px-2 py-0.5 rounded-full">Done</span>'
-             : isErr  ? '<span class="text-[10px] font-bold uppercase tracking-wider text-on-error-container bg-error-container/30 px-2 py-0.5 rounded-full">Error</span>'
-             : r.status==="queued" ? '<span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 bg-surface-container-high px-2 py-0.5 rounded-full">Queued</span>'
-             : '<span class="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded-full">Running</span>';
-  const stepText = r.steps_total ? '<span data-run-steps="'+esc(r.id)+'">'+Math.min(r.steps_done||0,r.steps_total)+'/'+r.steps_total+'</span> · ' : '';
-  const cur = r.current_step ? esc(r.current_step) : (isDone?"Finished":(isErr?"Failed":"Working…"));
-  const width = isDone ? "100%" : (indeterminate ? "42%" : (pct||0)+"%");
-  const barInner = '<div data-run-bar="'+esc(r.id)+'" class="h-full rounded-full transition-all duration-500'+(indeterminate?" run-indet":"")+'" style="width:'+width+';background:'+barColor+'"></div>';
-  return '<div class="rounded-2xl border hairline bg-surface-container-low/60 p-3.5 sm:p-4" data-run-card="'+esc(r.id)+'">'+
-      '<div class="flex items-center gap-2 mb-2">'+
-        '<span class="material-symbols-outlined text-[18px] '+(isErr?"text-on-error-container":(isDone?"text-green":"text-primary"))+'">'+(isDone?"task_alt":(isErr?"error":"bolt"))+'</span>'+
-        '<p class="text-[13.5px] font-bold text-on-surface truncate flex-1">'+esc(r.title||"Task run")+'</p>'+pill+
-      '</div>'+
-      '<div class="h-2 rounded-full bg-surface-container-high overflow-hidden mb-1.5">'+barInner+'</div>'+
-      '<div class="flex items-center justify-between gap-3 text-[11.5px]">'+
-        '<span class="text-on-surface-variant/70 truncate flex items-center min-w-0">'+stepText+'<span data-run-cur="'+esc(r.id)+'" class="truncate">'+cur+'</span></span>'+
-        '<span class="font-mono text-on-surface-variant/55 flex-shrink-0 flex items-center gap-1.5"><span data-run-elapsed="'+esc(r.id)+'"></span><span data-run-eta="'+esc(r.id)+'" class="text-on-surface-variant/45"></span></span>'+
-      '</div>'+
-    '</div>';
+// LA calendar date (YYYY-MM-DD) for a timestamp — the day the activity item scopes by.
+function laDateStr(d){ try{ return new Date(d).toLocaleDateString("en-CA",{timeZone:"America/Los_Angeles"}); }catch(_e){ return ""; } }
+// Internal run-type noise we never surface as "Jeremy's activity": cron plumbing by source, plus
+// self-heal / smoke-test / seed / demo phrasing in the title.
+const RUN_HIDE_SOURCES=new Set(["heartbeat","self-heal","selfheal","audit","maestro-audit","brain","maestro-brain","cron"]);
+const ACC_NOISE_RE=/\b(self[\s-]?heal|smoke[\s-]?test|health[\s-]?check|heartbeat|keep[\s-]?alive|no[\s-]?op|warm[\s-]?up|reindex|backfill|seed(?:ing|ed)?\s+(?:demo|data|run|the\b)|demo\s+(?:seed|data|run|account)|internal\s+sync|cron\s+job|dry[\s-]?run)\b/i;
+function isNoiseRun(r){
+  if(RUN_HIDE_SOURCES.has(String(r.source||"").toLowerCase())) return true;
+  return ACC_NOISE_RE.test(String(r.title||""));
 }
-function runsSectionHTML(){
-  const act=runsActive();
-  if(!act.length) return "";
-  return '<div id="runs-section" class="rise mb-5">'+
-    '<div class="flex items-center gap-2 mb-2.5"><span class="material-symbols-outlined text-primary text-[18px]">pending</span>'+
-      '<h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Live runs</h2>'+
-      '<span class="text-[11px] text-on-surface-variant/50 font-mono">'+act.length+' active</span></div>'+
-    '<div class="space-y-2.5">'+act.map(runCardHTML).join("")+'</div></div>';
+// Today's runs (LA day): anything still active always shows; finished runs show if they belong to
+// today. Newest first (by started_at). Noise filtered.
+function todaysRuns(){
+  const today=laDateStr(NOW);
+  return (RUNS||[]).filter(r=>{
+    if(isNoiseRun(r)) return false;
+    if(r.status==="running"||r.status==="queued") return true;
+    const ds = r.run_date ? String(r.run_date).slice(0,10) : laDateStr(r.finished_at||r.started_at);
+    return ds===today;
+  }).sort((a,b)=> new Date(b.started_at)-new Date(a.started_at));
 }
-// Insert / update / remove #runs-section as the first child of the Overview view, without
-// disturbing the rest of the overview render (which rebuilds via innerHTML).
-function syncRunsSection(){
-  const existing=document.getElementById("runs-section");
-  const html=runsSectionHTML();
+function runCounts(){
+  let running=0,done=0,error=0;
+  todaysRuns().forEach(r=>{ if(r.status==="running"||r.status==="queued") running++; else if(r.status==="done") done++; else if(r.status==="error") error++; });
+  return {running,done,error};
+}
+function rollupText(c){
+  const p=[];
+  if(c.running>0) p.push(c.running+" running");
+  if(c.done>0)    p.push(c.done+" completed");
+  if(c.error>0)   p.push(c.error+" failed");
+  if(!p.length) return "";
+  return p.join(" · ")+((c.done>0||c.error>0)?" today":" now");
+}
+// clock time for a run timestamp (reuses the app's fmtTime)
+function runTimeText(r){
+  const start=fmtTime(r.started_at);
+  if((r.status==="done"||r.status==="error") && r.finished_at) return start+" → "+fmtTime(r.finished_at);
+  return "started "+start;
+}
+function statusDot(r){
+  if(r.status==="done") return '<span class="material-symbols-outlined text-green text-[19px] ms-fill flex-shrink-0">check_circle</span>';
+  if(r.status==="error") return '<span class="material-symbols-outlined text-[19px] flex-shrink-0" style="color:#ef5350">error</span>';
+  return '<span class="material-symbols-outlined text-primary text-[19px] animate-spin flex-shrink-0">progress_activity</span>';   // running / queued
+}
+// ── the single top item ──
+function activityItemHTML(){
+  const rs=todaysRuns(); if(!rs.length) return "";   // QUIET — nothing ran today
+  const c=runCounts(), live=c.running>0;
+  const dot = live
+    ? '<span class="w-2 h-2 rounded-full bg-primary pulse-dot flex-shrink-0"></span>'
+    : '<span class="material-symbols-outlined text-primary text-[18px] flex-shrink-0">bolt</span>';
+  return '<button id="activity-item" data-act="open-activity" title="Today’s task activity" class="rise w-full mb-5 flex items-center gap-3 rounded-2xl border hairline bg-surface-container-low/60 hover:border-primary/40 pressable px-4 py-3 text-left">'+
+      dot+
+      '<span class="text-[13.5px] font-semibold text-on-surface flex-1 min-w-0 truncate">'+esc(rollupText(c))+'</span>'+
+      '<span class="text-[10.5px] font-bold tracking-[0.18em] text-primary/70 uppercase hidden sm:inline flex-shrink-0">Activity</span>'+
+      '<span class="material-symbols-outlined text-on-surface-variant/40 text-[20px] flex-shrink-0">chevron_right</span>'+
+    '</button>';
+}
+// Insert / replace / remove #activity-item as the first child of the Overview view, in place —
+// without re-rendering the rest of the tab.
+function syncActivityItem(){
+  const ov=$("#view-overview"); if(!ov) return;
+  const existing=document.getElementById("activity-item");
+  const html=activityItemHTML();
   if(existing){
     if(!html){ existing.remove(); return; }
-    const tmp=document.createElement("div"); tmp.innerHTML=html;
-    existing.replaceWith(tmp.firstElementChild);
+    const tmp=document.createElement("div"); tmp.innerHTML=html; existing.replaceWith(tmp.firstElementChild);
   } else if(html){
-    const ov=$("#view-overview");
-    if(ov){ const tmp=document.createElement("div"); tmp.innerHTML=html; ov.insertBefore(tmp.firstElementChild, ov.firstChild); }
+    const tmp=document.createElement("div"); tmp.innerHTML=html; ov.insertBefore(tmp.firstElementChild, ov.firstChild);
   }
-  updateRunDynamics();
 }
-// Per-second live bits: elapsed timer + ETA countdown. Cheap — touches text/style only.
-function updateRunDynamics(){
-  const cards=document.querySelectorAll("[data-run-card]");
-  if(!cards.length) return;
-  const now=Date.now();
-  cards.forEach(card=>{
-    const id=card.getAttribute("data-run-card");
-    const r=RUNS.find(x=>String(x.id)===String(id)); if(!r) return;
-    const elapsed=(now-new Date(r.started_at).getTime())/1000;
-    const elEl=card.querySelector('[data-run-elapsed="'+CSS.escape(id)+'"]');
-    if(elEl){
-      const shown=((r.status==="done"||r.status==="error") && r.finished_at)
-        ? (new Date(r.finished_at)-new Date(r.started_at))/1000 : elapsed;
-      elEl.textContent=fmtDur(shown);
-    }
-    const etaEl=card.querySelector('[data-run-eta="'+CSS.escape(id)+'"]');
-    if(etaEl){
-      if(r.status==="running"){
-        const total=runEtaTotal(r);
-        etaEl.textContent = total ? (total-elapsed>5 ? "· ~"+fmtDur(total-elapsed)+" left (est)" : "· wrapping up (est)") : "";
-      } else etaEl.textContent="";
-    }
-  });
+// ── the panel (today's runs, newest first) ──
+function activityPanelInner(){
+  const rs=todaysRuns();
+  if(!rs.length) return '<p class="text-[13px] text-on-surface-variant/55 px-1 py-6 flex items-center gap-2"><span class="material-symbols-outlined text-on-surface-variant/40 text-[18px]">nightlight</span>Nothing ran today yet — tasks land here as they spin up.</p>';
+  return '<div class="space-y-1.5">'+rs.map(r=>
+    '<button data-act="open-run" data-id="'+esc(r.id)+'" class="pressable w-full text-left flex items-center gap-3 rounded-xl border hairline bg-surface-container/40 hover:border-primary/30 px-3.5 py-3">'+
+      statusDot(r)+
+      '<span class="min-w-0 flex-1"><span class="block text-[13.5px] font-bold text-on-surface truncate">'+esc(r.title||"Task run")+'</span>'+
+        '<span class="block text-[11.5px] font-mono text-on-surface-variant/55 mt-0.5">'+esc(runTimeText(r))+'</span></span>'+
+      (r.deliverable_url?'<span class="material-symbols-outlined text-on-surface-variant/35 text-[16px] flex-shrink-0">link</span>':'')+
+      '<span class="material-symbols-outlined text-on-surface-variant/40 text-[18px] flex-shrink-0">chevron_right</span>'+
+    '</button>').join("")+'</div>';
 }
+function openActivityPanel(){
+  const c=runCounts(), sub=rollupText(c)||"No activity today";
+  openModal(mhead("Today’s activity", esc(sub))+'<div id="run-modal-body" data-run-modal="panel" class="px-4 sm:px-5 py-4">'+activityPanelInner()+'</div>');
+}
+// ── the detail view (result note as readable HTML + deliverable button) ──
+function runStatusPill(r){
+  if(r.status==="done") return '<span class="text-[10px] font-bold uppercase tracking-wider text-green bg-green/10 px-2 py-0.5 rounded-full">Completed</span>';
+  if(r.status==="error") return '<span class="text-[10px] font-bold uppercase tracking-wider text-on-error-container bg-error-container/30 px-2 py-0.5 rounded-full">Failed</span>';
+  if(r.status==="queued") return '<span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 bg-surface-container-high px-2 py-0.5 rounded-full">Queued</span>';
+  return '<span class="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded-full">Running</span>';
+}
+function runDetailInner(r){
+  const running=(r.status==="running"||r.status==="queued");
+  let h='<button data-act="open-activity" class="pressable inline-flex items-center gap-1.5 text-[12px] font-semibold text-on-surface-variant/70 hover:text-primary mb-4"><span class="material-symbols-outlined text-[16px]">arrow_back</span>All activity</button>';
+  h+='<div class="flex flex-wrap items-center gap-2 mb-4">'+runStatusPill(r)+
+     '<span class="text-[11.5px] font-mono text-on-surface-variant/55">'+esc(runTimeText(r))+'</span>'+
+     (running?'<span class="text-[11.5px] font-mono text-primary/70" data-run-elapsed="'+esc(r.id)+'"></span>':'')+'</div>';
+  // Result — the readable note. Rendered markdown → clean HTML (buildNoteParts), never raw markdown.
+  h+='<div class="rounded-2xl border hairline bg-surface-container/40 p-4 sm:p-5">'+
+     '<div class="flex items-center gap-2 mb-2"><span class="material-symbols-outlined text-primary text-[16px]">description</span><span class="text-[11px] font-bold tracking-widest text-primary uppercase">Result</span></div>';
+  const note=String(r.result_note||"").trim();
+  if(note){ h+='<div class="text-[13.5px]">'+buildNoteParts(note).html+'</div>'; }
+  else if(running){ h+='<p class="text-[13px] text-on-surface-variant/55 flex items-center gap-2"><span class="material-symbols-outlined text-primary text-[16px] animate-spin">progress_activity</span>Working… the result note lands here when it finishes.</p>'; }
+  else { h+='<p class="text-[13px] text-on-surface-variant/55">No result note was written for this run.</p>'; }
+  h+='</div>';
+  if(r.deliverable_url){
+    h+='<a href="'+esc(r.deliverable_url)+'" target="_blank" rel="noopener noreferrer" class="pressable mt-4 w-full flex items-center justify-center gap-2 font-bold text-[13.5px] py-2.5 rounded-xl bg-primary text-on-primary hover:brightness-110"><span class="material-symbols-outlined text-[18px]">open_in_new</span>Open deliverable</a>';
+  }
+  return h;
+}
+function openRunDetail(id){
+  const r=RUNS.find(x=>String(x.id)===String(id)); if(!r) return;
+  openModal(mhead(esc(r.title||"Task run"), (r.source&&r.source!=="dispatch")?esc(r.source):"Task run")+'<div id="run-modal-body" data-run-modal="detail:'+esc(id)+'" class="px-5 sm:px-6 py-5">'+runDetailInner(r)+'</div>');
+}
+// Live-refresh the PANEL when runs change while it's open. The detail view is left as a stable
+// snapshot so reading a note is never interrupted mid-scroll.
+function refreshOpenRunModal(){
+  const m=$("#modal"); if(!m || !m.classList.contains("open")) return;
+  const body=document.getElementById("run-modal-body"); if(!body) return;
+  if(body.getAttribute("data-run-modal")==="panel") body.innerHTML=activityPanelInner();
+}
+// 1s ticker: updates only the elapsed clock on a running run's open detail view. Cheap, text-only.
 function tickRuns(){
-  // If the active set changed (a finished run aged out, or a new run appeared), rebuild; else just refresh.
-  const before=Array.from(document.querySelectorAll("[data-run-card]")).map(c=>c.getAttribute("data-run-card")).join(",");
-  const after=runsActive().map(r=>String(r.id)).join(",");
-  if(before!==after) syncRunsSection(); else updateRunDynamics();
-}
-
-/* ───── ACCOMPLISHED TODAY — a SUMMARIZED digest of today's COMPLETED task runs (maestro_runs),
-   owner-scoped, on the America/Los_Angeles day boundary. Dispatch task runs already register +
-   complete in maestro_runs, so this populates automatically going forward. We GROUP by project /
-   theme and collapse internal noise (self-heal / seed / demo / sync / health checks) plus near-
-   duplicate runs, so Jeremy sees real accomplishments — not every granular micro-step. Reads live
-   from RUNS, so it fills in as runs complete (realtime → loadRuns → syncAccomplishedSection). ───── */
-// Match RUN-TYPE noise (self-heal / seed / demo / health checks / internal plumbing), NOT any
-// real accomplishment that merely mentions one of these words — e.g. "cleared App Store
-// demo-profile risk" must survive. So we anchor on run-type phrases, not bare keywords.
-const ACC_NOISE_RE=/\b(self[\s-]?heal|smoke[\s-]?test|health[\s-]?check|heartbeat|keep[\s-]?alive|no[\s-]?op|warm[\s-]?up|reindex|backfill|seed(?:ing|ed)?\s+(?:demo|data|run|the\b)|demo\s+(?:seed|data|run|account)|internal\s+sync|cron\s+job|dry[\s-]?run)\b/i;
-// A run counts as "today" if its finished_at, rendered in Los Angeles time, equals today's LA date.
-function laDateStr(d){ try{ return new Date(d).toLocaleDateString("en-CA",{timeZone:"America/Los_Angeles"}); }catch(_e){ return ""; } }
-// Project / theme for a run: an explicit "Project — …" / "Project: …" prefix wins; else match a
-// known project name found in the title; else "Other".
-function accProject(r){
-  const t=String(r.title||"").trim();
-  let m=t.match(/^\s*([^—:|>]{2,40}?)\s*(?:—|:|\||›|>)\s+/);
-  if(m) return m[1].trim();
-  const names=((DATA&&DATA.projects)||[]).map(p=>p.name).filter(Boolean).sort((a,b)=>String(b).length-String(a).length);
-  const lt=t.toLowerCase();
-  const hit=names.find(n=> lt.includes(String(n).toLowerCase()));
-  return hit || "Other";
-}
-// The accomplishment phrase = the run title with its project prefix stripped off.
-function accAction(r, proj){
-  let t=String(r.title||"").trim();
-  t=t.replace(/^\s*[^—:|>]{2,40}?\s*(?:—|:|\||›|>)\s+/,"");
-  if(proj && proj!=="Other"){ const re=new RegExp("^"+proj.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"[\\s:—|>-]*","i"); t=t.replace(re,""); }
-  return t.replace(/\s+/g," ").trim();
-}
-function accomplishedToday(){
-  const today=laDateStr(NOW);
-  let done=(RUNS||[]).filter(r=> r.status==="done" && r.finished_at && laDateStr(r.finished_at)===today);
-  done=done.filter(r=> !ACC_NOISE_RE.test(String(r.title||"")));   // drop internal noise / self-heal / demo / seed
-  const order=[], groups=new Map();
-  done.forEach(r=>{ const proj=accProject(r), action=accAction(r,proj); if(!action) return;
-    if(!groups.has(proj)){ groups.set(proj,[]); order.push(proj); }
-    groups.get(proj).push(action); });
-  const norm=s=>String(s).toLowerCase().replace(/[^a-z0-9 ]+/g,"").replace(/\s+/g," ").trim();
-  const entries=[];
-  order.forEach(proj=>{ const seen=new Set(), uniq=[];
-    groups.get(proj).forEach(a=>{ const k=norm(a); if(k && !seen.has(k)){ seen.add(k); uniq.push(a); } });   // collapse near-duplicate runs
-    if(uniq.length) entries.push({proj, acts:uniq}); });
-  return entries;
-}
-function accomplishedTodayHTML(){
-  const entries=accomplishedToday();
-  const cap=s=> s? s.charAt(0).toUpperCase()+s.slice(1) : s;
-  const total=entries.reduce((n,e)=>n+e.acts.length,0);
-  let inner="";
-  if(!entries.length){
-    inner='<p class="text-[13px] text-on-surface-variant/55 px-1 py-2.5 flex items-center gap-2"><span class="material-symbols-outlined text-on-surface-variant/40 text-[18px]">nightlight</span>Nothing wrapped up yet today — completed task runs land here.</p>';
-  } else {
-    const MAXG=5, MAXP=5;
-    const shown=entries.slice(0,MAXG);
-    inner='<div class="space-y-2.5">'+shown.map(e=>{
-      const raw=e.acts.slice(0,MAXP);
-      const phrases=raw.map((a,i)=> esc(i===0?cap(a):a));
-      let line=phrases.join(", ");
-      const extra=e.acts.length-raw.length;
-      if(extra>0) line+=' <span class="text-on-surface-variant/45">+'+extra+' more</span>';
-      return '<div class="flex items-start gap-2.5">'+
-        '<span class="material-symbols-outlined text-green text-[18px] mt-[1px] flex-shrink-0 ms-fill">check_circle</span>'+
-        '<p class="text-[13px] leading-snug min-w-0"><span class="font-bold text-on-surface">'+esc(e.proj)+'</span> <span class="text-on-surface-variant/35">—</span> <span class="text-on-surface/80">'+line+'</span></p></div>';
-    }).join("")+'</div>';
-    const moreG=entries.length-shown.length;
-    if(moreG>0) inner+='<p class="text-[11.5px] text-on-surface-variant/45 mt-2.5 pl-7">+'+moreG+' more project'+(moreG>1?"s":"")+'</p>';
-  }
-  return '<div id="accomplished-section" class="rise rounded-2xl border hairline bg-surface-container-low/60 p-4 sm:p-5 mb-5" style="animation-delay:.22s">'+
-    '<div class="flex items-center justify-between mb-3"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase flex items-center gap-2"><span class="material-symbols-outlined text-[18px]">verified</span>Accomplished today</h2>'+
-    (total?'<span class="text-[11px] text-on-surface-variant/50 font-mono">'+total+' done</span>':'')+'</div>'+
-    inner+'</div>';
-}
-// Live refresh: swap the section in place when runs change, without re-rendering all of Overview.
-function syncAccomplishedSection(){
-  const ex=document.getElementById("accomplished-section"); if(!ex) return;
-  const tmp=document.createElement("div"); tmp.innerHTML=accomplishedTodayHTML();
-  const next=tmp.firstElementChild; if(next) ex.replaceWith(next);
+  const el=document.querySelector("#run-modal-body [data-run-elapsed]"); if(!el) return;
+  const r=RUNS.find(x=>String(x.id)===el.getAttribute("data-run-elapsed")); if(!r||!r.started_at) return;
+  el.textContent="· "+fmtDur((Date.now()-new Date(r.started_at).getTime())/1000);
 }
 
 /* ───── REALTIME — live dashboard + inbox via Supabase postgres_changes (sync button stays as fallback) ───── */
@@ -1733,6 +1685,8 @@ document.addEventListener("click",(e)=>{
   else if(el.dataset.act==="note-open"){ openNote(el.dataset.path); }
   else if(el.dataset.act==="note-folder"){ const p=el.dataset.path; STATE.noteOpen[p]=!STATE.noteOpen[p]; rerender("notes"); }
   else if(el.dataset.act==="note-wiki"){ e.preventDefault(); const d=resolveDoc(el.dataset.target); if(d) openNote(d.path); else toast("No note found for “"+el.dataset.target+"”","search"); }
+  else if(el.dataset.act==="open-activity"){ openActivityPanel(); }
+  else if(el.dataset.act==="open-run"){ openRunDetail(el.dataset.id); }
 });
 
 /* ───── SETTINGS: calendar visibility (user-owned, persisted to settings column) ───── */
@@ -2303,8 +2257,8 @@ async function loadDashboard(){
   liveSync({ silent:true });   // on-demand: refresh the calendar live, don't wait for the scheduled brain
   loadInbox();                 // pull the user's Dispatch messages + light up the inbox badge
   setupRealtime();             // live dashboard + inbox updates (sync button stays as fallback)
-  loadRuns();                  // live task-run progress bars from maestro_runs
-  if(!RUNS_TIMER) RUNS_TIMER=setInterval(tickRuns,1000);   // 1s elapsed/ETA ticker (no network)
+  loadRuns();                  // today's task/run registry → the Activity item
+  if(!RUNS_TIMER) RUNS_TIMER=setInterval(tickRuns,1000);   // 1s elapsed ticker for an open run detail (no network)
   setInterval(loadRuns, 20000);                            // sync fallback if realtime drops
 }
 

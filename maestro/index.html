@@ -489,9 +489,11 @@ function actionLabel(a){
   return a.type;
 }
 async function refreshPending(){
-  const { data, error } = await sb.from("maestro_actions").select("id,type,payload,status,created_at").eq("status","pending").order("created_at",{ascending:false});
-  PENDING = error? [] : (data||[]);
-  const pill=$("#pending-pill"); if(PENDING.length){ pill.classList.remove("hidden"); pill.classList.add("flex"); $("#pending-count").textContent=PENDING.length; } else { pill.classList.add("hidden"); pill.classList.remove("flex"); }
+  try{
+    const { data, error } = await sb.from("maestro_actions").select("id,type,payload,status,created_at").eq("status","pending").order("created_at",{ascending:false});
+    PENDING = error? [] : (data||[]);
+  }catch(_e){ /* transient network — keep last-known PENDING; NEVER throw (a reject here must not abort boot) */ }
+  const pill=$("#pending-pill"); if(pill){ if(PENDING && PENDING.length){ pill.classList.remove("hidden"); pill.classList.add("flex"); $("#pending-count").textContent=PENDING.length; } else { pill.classList.add("hidden"); pill.classList.remove("flex"); } }
 }
 function pendingModal(){
   let h=mhead("Queued for Maestro", PENDING.length+" change"+(PENDING.length===1?"":"s")+" waiting for the next sync");
@@ -611,7 +613,9 @@ function renderOverview(){
   });
   H += footerHTML();
   $("#view-overview").innerHTML=H;
-  syncActivityItem();   // single activity item pinned at the top of Overview
+  // Fail-safe: the activity item runs AFTER the body is in the DOM, so a fault here must never
+  // bubble up (it would trip setView's catch and replace the good Overview with the error card).
+  try{ syncActivityItem(); }catch(_e){ console.warn("activity item render failed:", _e); }   // single activity item pinned at the top of Overview
 }
 function calLegendFilter(){
   const present=[...new Set(eventsAll().map(e=>e.calendar).filter(Boolean))];
@@ -2144,9 +2148,10 @@ function setView(name, force){
   STATE.view=name;
   const fn={overview:renderOverview,projects:renderProjects,tasks:renderTasks,week:renderWeek,travel:renderTravel,notes:renderNotes,inbox:renderInbox}[name];
   if(!RENDERED[name]||force){
-    try{ fn(); }
-    catch(err){ console.error("render failed:", name, err); var v=$("#view-"+name); if(v) v.innerHTML=viewErrorHTML(name); }
-    RENDERED[name]=true;
+    // Mark RENDERED only on SUCCESS. If a render throws, leave it false so the next navigation
+    // (or realtime/poll tick) re-renders and recovers, instead of the view being stuck.
+    try{ fn(); RENDERED[name]=true; }
+    catch(err){ console.error("render failed:", name, err); RENDERED[name]=false; var v=$("#view-"+name); if(v) v.innerHTML=viewErrorHTML(name); }
   }
   $$(".view").forEach(v=>v.classList.toggle("active", v.id==="view-"+name));
   $$(".tab").forEach(t=>t.dataset.active = t.dataset.view===name?"1":"0");
@@ -2249,8 +2254,12 @@ async function loadDashboard(){
   $("#synced").textContent = DATA.meta&&DATA.meta.sample ? "sample data" : "synced "+(row&&row.updated_at?fmtSynced(row.updated_at):"");
   tick(); setInterval(tick,20000);
   RENDERED={};
-  await refreshPending();
+  // Paint the view from DATA IMMEDIATELY. Never gate the first render on a non-essential network
+  // read: refreshPending only lights up the "Queued" pill, but awaiting it here used to stall the
+  // first paint for seconds on a flaky/slow mobile connection (supabase-js retries the failing
+  // fetch), leaving the body blank until the user toggled tabs. Render now, load the pill after.
   setView(initView, true);
+  refreshPending();            // fire-and-forget; updates the pill in place when it resolves (never throws — see def)
   loadGoogleConn();            // detect Google connected-state so Settings shows "Connected ✓", not a nag
   loadSlackConn();             // detect per-user Slack connected-state for the Settings panel
   loadDiscordConn();           // detect per-user Discord connected-state for the Settings panel

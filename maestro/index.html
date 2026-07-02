@@ -222,6 +222,7 @@ const $$ = (s,r)=> Array.from((r||document).querySelectorAll(s));
 const esc = s => (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 let DATA=null, NOW=new Date(), STATE={ view:"overview", calFilter:"all", setupExpanded:{}, noteSel:null, noteOpen:{}, tripOpen:{}, showPastTrips:false }, RENDERED={}, PENDING=[], USER_ID=null;
 let RUNS=[], RUNS_TIMER=null;
+let DECISIONS=[];
 let GOOGLE_CONN=null;   // {status, account_email, connected_at} from maestro_connections (provider=google) — null = unknown/not-loaded
 let SLACK_CONN=null;    // {webhook, connected_at, label} read from THIS user's own maestro_dashboard row — null = unknown/not-loaded
 let DISCORD_CONN=null;  // {webhook, connected_at, label} read from THIS user's own maestro_dashboard row — null = unknown/not-loaded
@@ -616,6 +617,7 @@ function renderOverview(){
   // Fail-safe: the activity item runs AFTER the body is in the DOM, so a fault here must never
   // bubble up (it would trip setView's catch and replace the good Overview with the error card).
   try{ syncActivityItem(); }catch(_e){ console.warn("activity item render failed:", _e); }   // single activity item pinned at the top of Overview
+  try{ syncDecisionsSection(); }catch(_e){ console.warn("decisions render failed:", _e); }   // "Needs you" decision cards, just below the activity item
 }
 function calLegendFilter(){
   const present=[...new Set(eventsAll().map(e=>e.calendar).filter(Boolean))];
@@ -1577,6 +1579,98 @@ function tickRuns(){
   el.textContent="· "+fmtDur((Date.now()-new Date(r.started_at).getTime())/1000);
 }
 
+/* ───── DECISIONS — "Needs you" cards on Overview: an open question + a row of tappable options
+   (or a free-text answer), owner-scoped via RLS. Tapping writes the choice to the row and flips it
+   to answered (optimistic — the card drops immediately, reverts on write error). Dispatch creates
+   the rows via the maestro-decision edge function and reads the answers back. Realtime + the 20s
+   poll keep it live. STATUS.md stays the backing source of truth. ───── */
+async function loadDecisions(){
+  if(!USER_ID) return;
+  try{
+    const { data, error } = await sb.from("maestro_decisions")
+      .select("id,decision_key,question,context,options,allow_free_text,free_text_label,answer,answer_label,answered_at,status,project,project_id,created_at")
+      .eq("user_id", USER_ID)               // explicit owner scope; RLS is the real boundary (defense-in-depth)
+      .eq("status","open")
+      .order("created_at",{ascending:true}).limit(40);
+    if(error) return;                       // RLS / transient — keep last known, no regression
+    DECISIONS = data || [];
+    syncDecisionsSection();
+  }catch(_e){ /* offline — realtime or the next poll catches up */ }
+}
+function decisionCardHTML(d){
+  const opts = Array.isArray(d.options)? d.options : [];
+  const q = buildNoteParts(String(d.question||"")).html;      // markdown → clean HTML
+  const ctx = String(d.context||"").trim();
+  const buttons = opts.map(o=>
+    '<button data-act="decide-option" data-id="'+esc(d.id)+'" data-value="'+esc(o.value)+'" data-label="'+esc(o.label)+'" class="pressable inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/[0.06] hover:bg-primary/15 hover:border-primary/50 px-3.5 py-2 text-[13px] font-semibold text-on-surface">'+esc(o.label)+'</button>'
+  ).join("");
+  let free="";
+  if(d.allow_free_text){
+    free = '<div class="flex items-center gap-2 mt-2.5">'+
+      '<input type="text" data-decide-input="'+esc(d.id)+'" placeholder="'+esc(d.free_text_label||"Type an answer…")+'" class="flex-1 min-w-0 rounded-xl border hairline bg-surface-container/60 px-3 py-2 text-[13px] text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary/50 outline-none">'+
+      '<button data-act="decide-free" data-id="'+esc(d.id)+'" class="pressable flex-shrink-0 rounded-xl bg-primary text-on-primary font-bold text-[13px] px-3.5 py-2 hover:brightness-110">Send</button></div>';
+  }
+  return '<div class="rounded-2xl border border-primary/25 bg-primary/[0.05] p-4 sm:p-5" data-decision="'+esc(d.id)+'">'+
+    '<div class="flex items-center gap-2 mb-2"><span class="material-symbols-outlined text-primary text-[18px]">how_to_reg</span>'+
+      '<span class="text-[11px] font-bold tracking-[0.18em] text-primary uppercase">Needs you</span>'+
+      (d.project?'<span class="ml-auto text-[10.5px] font-semibold text-on-surface-variant/55 truncate max-w-[45%]">'+esc(d.project)+'</span>':'')+
+    '</div>'+
+    '<div class="text-[14px] leading-snug text-on-surface mb-1">'+q+'</div>'+
+    (ctx?'<div class="text-[12.5px] text-on-surface-variant/70 mb-3 leading-snug">'+buildNoteParts(ctx).html+'</div>':'<div class="mb-3"></div>')+
+    '<div class="flex flex-wrap items-center gap-2">'+buttons+
+      '<button data-act="decide-dismiss" data-id="'+esc(d.id)+'" title="Skip this decision" class="pressable ml-auto inline-flex items-center gap-1 text-[12px] font-semibold text-on-surface-variant/50 hover:text-on-surface-variant/85 px-2 py-1"><span class="material-symbols-outlined text-[15px]">close</span>Skip</button>'+
+    '</div>'+free+
+  '</div>';
+}
+function decisionsSectionHTML(){
+  const open=(DECISIONS||[]).filter(d=>d.status==="open");
+  if(!open.length) return "";                                 // QUIET — nothing to decide
+  return '<div id="decisions-section" class="rise mb-5 space-y-3" style="animation-delay:.02s">'+
+    '<div class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-[18px]">how_to_vote</span>'+
+      '<h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Decisions</h2>'+
+      '<span class="text-[11px] text-on-surface-variant/50 font-mono">'+open.length+' open</span></div>'+
+    open.map(decisionCardHTML).join("")+'</div>';
+}
+// Insert / replace / remove #decisions-section right AFTER the activity item (else as first child),
+// in place — without re-rendering the rest of the tab.
+function syncDecisionsSection(){
+  const ov=$("#view-overview"); if(!ov) return;
+  const existing=document.getElementById("decisions-section");
+  const html=decisionsSectionHTML();
+  if(existing){
+    if(!html){ existing.remove(); return; }
+    const tmp=document.createElement("div"); tmp.innerHTML=html; existing.replaceWith(tmp.firstElementChild);
+  } else if(html){
+    const tmp=document.createElement("div"); tmp.innerHTML=html; const node=tmp.firstElementChild;
+    const act=document.getElementById("activity-item");
+    if(act && act.parentNode===ov) ov.insertBefore(node, act.nextSibling);
+    else ov.insertBefore(node, ov.firstChild);
+  }
+}
+// Answer a decision — optimistic (drop the card now), owner-scoped write, revert on failure.
+async function answerDecision(id, value, label){
+  const d=(DECISIONS||[]).find(x=>String(x.id)===String(id)); if(!d) return;
+  const prev=DECISIONS.slice();
+  DECISIONS = DECISIONS.filter(x=>String(x.id)!==String(id));
+  syncDecisionsSection();
+  const t=new Date().toISOString();
+  const { error } = await sb.from("maestro_decisions")
+    .update({ answer:value, answer_label:label, answered_at:t, status:"answered", updated_at:t })
+    .eq("id", id).eq("user_id", USER_ID);
+  if(error){ DECISIONS=prev; syncDecisionsSection(); toast("Couldn’t save that answer — try again","error"); return; }
+  toast("Answer saved — "+label, "check_circle");
+}
+async function dismissDecision(id){
+  const prev=DECISIONS.slice();
+  DECISIONS = DECISIONS.filter(x=>String(x.id)!==String(id));
+  syncDecisionsSection();
+  const { error } = await sb.from("maestro_decisions")
+    .update({ status:"dismissed", updated_at:new Date().toISOString() })
+    .eq("id", id).eq("user_id", USER_ID);
+  if(error){ DECISIONS=prev; syncDecisionsSection(); toast("Couldn’t skip — try again","error"); return; }
+  toast("Skipped","do_not_disturb_on");
+}
+
 /* ───── REALTIME — live dashboard + inbox via Supabase postgres_changes (sync button stays as fallback) ───── */
 let RT_CHANNELS=[];
 function teardownRealtime(){ RT_CHANNELS.forEach(c=>{ try{ sb.removeChannel(c); }catch(_e){} }); RT_CHANNELS=[]; }
@@ -1633,7 +1727,10 @@ async function setupRealtime(){
     const runsCh = sb.channel("rt-runs-"+USER_ID)
       .on("postgres_changes", { event:"*", schema:"public", table:"maestro_runs", filter:"user_id=eq."+USER_ID }, ()=>{ loadRuns(); })
       .subscribe();
-    RT_CHANNELS=[inboxCh, dashCh, runsCh];
+    const decCh = sb.channel("rt-decisions-"+USER_ID)
+      .on("postgres_changes", { event:"*", schema:"public", table:"maestro_decisions", filter:"user_id=eq."+USER_ID }, ()=>{ loadDecisions(); })
+      .subscribe();
+    RT_CHANNELS=[inboxCh, dashCh, runsCh, decCh];
   }catch(_e){ /* realtime unavailable — sync button + on-load fetch remain the fallback */ }
 }
 
@@ -1691,6 +1788,9 @@ document.addEventListener("click",(e)=>{
   else if(el.dataset.act==="note-wiki"){ e.preventDefault(); const d=resolveDoc(el.dataset.target); if(d) openNote(d.path); else toast("No note found for “"+el.dataset.target+"”","search"); }
   else if(el.dataset.act==="open-activity"){ openActivityPanel(); }
   else if(el.dataset.act==="open-run"){ openRunDetail(el.dataset.id); }
+  else if(el.dataset.act==="decide-option"){ answerDecision(el.dataset.id, el.dataset.value, el.dataset.label); }
+  else if(el.dataset.act==="decide-free"){ const inp=document.querySelector('[data-decide-input="'+el.dataset.id+'"]'); const v=inp?inp.value.trim():""; if(!v){ toast("Type an answer first","edit"); if(inp) inp.focus(); return; } answerDecision(el.dataset.id, v, v); }
+  else if(el.dataset.act==="decide-dismiss"){ dismissDecision(el.dataset.id); }
 });
 
 /* ───── SETTINGS: calendar visibility (user-owned, persisted to settings column) ───── */
@@ -2267,8 +2367,10 @@ async function loadDashboard(){
   loadInbox();                 // pull the user's Dispatch messages + light up the inbox badge
   setupRealtime();             // live dashboard + inbox updates (sync button stays as fallback)
   loadRuns();                  // today's task/run registry → the Activity item
+  loadDecisions();             // open decisions → the "Needs you" cards
   if(!RUNS_TIMER) RUNS_TIMER=setInterval(tickRuns,1000);   // 1s elapsed ticker for an open run detail (no network)
   setInterval(loadRuns, 20000);                            // sync fallback if realtime drops
+  setInterval(loadDecisions, 20000);                       // decisions sync fallback
 }
 
 /* ───── on-demand / live calendar sync (Part 2) ─────

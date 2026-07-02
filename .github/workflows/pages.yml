@@ -1,0 +1,45 @@
+# Deploy the repo's existing static content to GitHub Pages via GitHub Actions.
+#
+# This repo hosts several independent static sites at the root (maestro/, primal-dashboard/, prs/,
+# etc.), each already built and committed. There is NO per-site build step — we just publish the
+# whole repo as-is. This replaces the legacy "Deploy from a branch" Jekyll build, which had been
+# failing intermittently ("Page build failed") and blocking every deploy.
+#
+# ONE-TIME OWNER SETTING REQUIRED for this to take effect:
+#   Repo Settings -> Pages -> Build and deployment -> Source -> "GitHub Actions"
+# (That switch is owner-only and cannot be set via API/token.)
+name: Deploy static site to Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment; don't cancel an in-progress publish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Upload entire repo as the Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

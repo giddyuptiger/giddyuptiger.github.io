@@ -20,10 +20,11 @@ permissions:
   pages: write
   id-token: write
 
-# Allow one concurrent deployment; don't cancel an in-progress publish.
+# Allow one concurrent deployment; a newer push CANCELS the older queued/in-progress run
+# (cleanly, not as a failure) so rapid-fire deploys don't spam superseded-run failures.
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   deploy:

@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hyphal Codex — an instrument</title>
+<style>
+  :root {
+    --panel: #111114;
+    --panel-text: #EDEDED;
+    --panel-muted: #7A7A82;
+    --accent: #39FF6A;
+    --line: #24242a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden;
+    font-family: "SF Mono", "JetBrains Mono", "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    background: #0A0A0C; color: var(--panel-text); }
+  #stage { position: fixed; inset: 0; }
+  canvas#c { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: crosshair; }
+
+  /* ---- title lockup, Randy-style: tracked uppercase + mono spec line ---- */
+  #brand { position: fixed; top: 22px; left: 26px; pointer-events: none; mix-blend-mode: difference; }
+  #brand .t { font-size: 13px; letter-spacing: .42em; font-weight: 600; color: #fff; }
+  #brand .s { font-size: 10px; letter-spacing: .22em; color: #bbb; margin-top: 6px; }
+
+  /* ---- control panel ---- */
+  #panel { position: fixed; top: 18px; right: 18px; width: 268px;
+    background: rgba(17,17,20,.86); backdrop-filter: blur(8px);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 14px 12px;
+    font-size: 11px; user-select: none; box-shadow: 0 18px 50px rgba(0,0,0,.45); }
+  #panel h1 { font-size: 10px; letter-spacing: .28em; margin: 0 0 2px; color: #fff; font-weight: 700; }
+  #panel .sub { font-size: 9px; letter-spacing: .16em; color: var(--panel-muted); margin-bottom: 12px; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 9px 0; }
+  .row label { color: var(--panel-muted); letter-spacing: .08em; }
+  .row .val { color: var(--accent); font-variant-numeric: tabular-nums; min-width: 34px; text-align: right; }
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 128px; height: 2px;
+    background: var(--line); border-radius: 2px; outline: none; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px;
+    border-radius: 50%; background: var(--accent); cursor: pointer; box-shadow: 0 0 6px rgba(57,255,106,.6); }
+  .divider { height: 1px; background: var(--line); margin: 12px 0; }
+  .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  button { font-family: inherit; font-size: 10px; letter-spacing: .12em; text-transform: uppercase;
+    padding: 8px 6px; background: #1a1a1f; color: var(--panel-text); border: 1px solid var(--line);
+    border-radius: 7px; cursor: pointer; transition: .12s; }
+  button:hover { background: #23232a; border-color: #3a3a44; }
+  button.primary { background: var(--accent); color: #06120a; border-color: var(--accent); font-weight: 700; }
+  button.primary:hover { filter: brightness(1.08); }
+  button.on { border-color: var(--accent); color: var(--accent); }
+  .seg { display: flex; gap: 6px; }
+  .seg button { flex: 1; }
+  .hint { font-size: 9px; letter-spacing: .1em; color: var(--panel-muted); margin-top: 10px; line-height: 1.5; }
+  .count { position: fixed; bottom: 16px; left: 26px; font-size: 10px; letter-spacing: .2em;
+    color: #555; mix-blend-mode: difference; }
+  a.credit { position: fixed; bottom: 16px; right: 22px; font-size: 9px; letter-spacing: .18em;
+    color: #555; text-decoration: none; mix-blend-mode: difference; }
+</style>
+</head>
+<body>
+<div id="stage"><canvas id="c"></canvas></div>
+
+<div id="brand">
+  <div class="t">HYPHAL&nbsp;&nbsp;CODEX</div>
+  <div class="s" id="specline">INSTRUMENT&nbsp;01 · SYSTEM → COMPONENT → REUSE</div>
+</div>
+
+<div id="panel">
+  <h1>HYPHAL CODEX</h1>
+  <div class="sub">BLOB-NETWORK INSTRUMENT · v1.0</div>
+
+  <div class="row"><label>MERGE / BLUR</label><input id="blur" type="range" min="4" max="22" step="1"><span class="val" id="blur_v"></span></div>
+  <div class="row"><label>THRESHOLD</label><input id="contrast" type="range" min="10" max="44" step="1"><span class="val" id="contrast_v"></span></div>
+  <div class="row"><label>NODE SIZE</label><input id="node" type="range" min="3" max="14" step="0.5"><span class="val" id="node_v"></span></div>
+  <div class="row"><label>SEGMENT</label><input id="seg" type="range" min="14" max="60" step="1"><span class="val" id="seg_v"></span></div>
+  <div class="row"><label>BRANCHING</label><input id="branch" type="range" min="0" max="0.5" step="0.01"><span class="val" id="branch_v"></span></div>
+  <div class="row"><label>WANDER</label><input id="wander" type="range" min="0" max="1.4" step="0.05"><span class="val" id="wander_v"></span></div>
+
+  <div class="divider"></div>
+  <div class="row"><label>MODE</label>
+    <div class="seg" style="width:150px">
+      <button id="m_grow" class="on">GROW</button>
+      <button id="m_brush">BRUSH</button>
+    </div>
+  </div>
+  <div class="row"><label>SPEC LABELS</label><button id="annot" style="width:150px" class="on">ON</button></div>
+  <div class="row"><label>ACCENT</label>
+    <div class="seg" style="width:150px">
+      <button id="a_green" class="on">GREEN</button>
+      <button id="a_mag">MAGENTA</button>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <div class="btns">
+    <button id="play">PAUSE</button>
+    <button id="reseed">RESEED</button>
+    <button id="clear">CLEAR</button>
+    <button id="export" class="primary">EXPORT PNG</button>
+  </div>
+  <div class="hint">GROW: watches the network branch on its own.<br>BRUSH: click-drag to paint blobs onto the canvas.<br>Keys: <b>Space</b> play/pause · <b>B</b> brush · <b>G</b> grow · <b>E</b> export · <b>R</b> reseed · <b>C</b> clear</div>
+</div>
+
+<div class="count" id="count">NODES 0000 · EDGES 0000</div>
+<a class="credit" href="https://www.instagram.com/rndyrbrts/" target="_blank" rel="noopener">AFTER @RNDYRBRTS</a>
+
+<!-- gooey metaball filter: blur, then threshold the ALPHA channel so overlapping
+     shapes fuse into one crisp organic edge. stdDeviation + the alpha multiplier
+     are driven live by the MERGE/BLUR and THRESHOLD sliders. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <filter id="goo" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+    <feGaussianBlur id="goo_blur" in="SourceGraphic" stdDeviation="11" result="b"/>
+    <feColorMatrix id="goo_mat" in="b" type="matrix"
+      values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 26 -11.7"/>
+  </filter>
+</defs></svg>
+
+<script>
+/* =====================================================================
+   HYPHAL CODEX — a generative "blob network" instrument.
+   Aesthetic reverse-engineered from Randy Roberts (@rndyrbrts):
+   near-black metaball blobs + branching hyphal links on a cream canvas,
+   one saturated accent, monospace spec labels.
+
+   Method mirrors his stated loop: a design-token SYSTEM drives a reusable
+   COMPONENT you can REUSE / re-skin. Tokens live at the top (and in
+   tokens.json). The metaball look uses the classic "blur then threshold"
+   gooey trick so adjacent nodes fuse into organic tendrils.
+   ===================================================================== */
+
+// ---- SYSTEM: design tokens (inlined so the file runs from file://) ----
+const TOKENS = {
+  palette: { canvas:"#EFEBE1", ink:"#0A0A0C", accent:"#39FF6A", accentAlt:"#FF2D9B" },
+  blob:    { blur:11, contrast:26, nodeRadius:7, radiusJitter:0.35, glossHighlight:true },
+  network: { segment:34, branchProb:0.16, wander:0.55, spawnPerTick:3, crowdRadius:18,
+             maxNodes:1400, linkWidth:1.15, showAnnotations:true },
+  brush:   { spacing:14, linkToNearest:true },
+  finish:  { grain:0.05, vignette:0.14, label:"HYPHAL CODEX" }
+};
+
+// ---- live parameters (bound to UI, seeded from tokens) ----
+const P = {
+  blur: TOKENS.blob.blur,
+  contrast: TOKENS.blob.contrast,
+  nodeRadius: TOKENS.blob.nodeRadius,
+  segment: TOKENS.network.segment,
+  branchProb: TOKENS.network.branchProb,
+  wander: TOKENS.network.wander,
+  annotations: TOKENS.network.showAnnotations,
+  accent: TOKENS.palette.accent,
+  mode: "grow",       // "grow" | "brush"
+  playing: true
+};
+
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+let DPR = Math.min(window.devicePixelRatio || 1, 2);
+let W = 0, H = 0;
+
+// offscreen buffer for the metaball (blur+threshold) pass
+const buf = document.createElement('canvas');
+const bctx = buf.getContext('2d');
+
+// ---- the network: nodes (with radius) + edges + growing tips ----
+let nodes = [];   // {x,y,r}
+let edges = [];   // [i,j]
+let tips  = [];   // {node, dir} active growth fronts
+let grid  = new Map(); // spatial hash for crowd checks
+const CELL = 26;
+
+function key(x,y){ return ((x/CELL)|0) + ',' + ((y/CELL)|0); }
+function gpush(i){ const n=nodes[i]; const k=key(n.x,n.y); if(!grid.has(k)) grid.set(k,[]); grid.get(k).push(i); }
+function nearCount(x,y,rad){
+  let n=0; const c0=(x/CELL)|0, r0=(y/CELL)|0, span=Math.ceil(rad/CELL);
+  for(let cx=c0-span;cx<=c0+span;cx++) for(let cy=r0-span;cy<=r0+span;cy++){
+    const arr=grid.get(cx+','+cy); if(!arr) continue;
+    for(const i of arr){ const nn=nodes[i]; if((nn.x-x)**2+(nn.y-y)**2 < rad*rad) n++; }
+  }
+  return n;
+}
+function nearestNode(x,y,maxD){
+  let best=-1, bd=maxD*maxD;
+  const c0=(x/CELL)|0, r0=(y/CELL)|0, span=Math.ceil(maxD/CELL);
+  for(let cx=c0-span;cx<=c0+span;cx++) for(let cy=r0-span;cy<=r0+span;cy++){
+    const arr=grid.get(cx+','+cy); if(!arr) continue;
+    for(const i of arr){ const nn=nodes[i]; const d=(nn.x-x)**2+(nn.y-y)**2; if(d<bd){bd=d;best=i;} }
+  }
+  return best;
+}
+
+function addNode(x,y,r){
+  const i = nodes.length;
+  nodes.push({ x, y, r: r!=null ? r : P.nodeRadius*(1 + (Math.random()-0.5)*2*TOKENS.blob.radiusJitter) });
+  gpush(i);
+  return i;
+}
+
+function seed(n){
+  reset();
+  const cx = W/(2*DPR), cy = H/(2*DPR);
+  const k = n||3;
+  for(let s=0;s<k;s++){
+    const a = (s/k)*Math.PI*2 + Math.random();
+    const x = cx + Math.cos(a)*30, y = cy + Math.sin(a)*30;
+    const idx = addNode(x,y);
+    tips.push({ node: idx, dir: a });
+  }
+}
+function reset(){ nodes=[]; edges=[]; tips=[]; grid=new Map(); }
+
+// ---- GROW: hyphal branching — each tip extends a segment, sometimes forks ----
+function growStep(){
+  if(nodes.length > TOKENS.network.maxNodes){ return; }
+  const next = [];
+  for(const tip of tips){
+    const parent = nodes[tip.node];
+    // wander the heading
+    let dir = tip.dir + (Math.random()-0.5)*P.wander;
+    const seg = P.segment*(0.7+Math.random()*0.6);
+    const nx = parent.x + Math.cos(dir)*seg;
+    const ny = parent.y + Math.sin(dir)*seg;
+    // bounds + crowd control: retire the tip if it wanders off or into density
+    const margin = 20;
+    if(nx<margin||ny<margin||nx>W/DPR-margin||ny>H/DPR-margin){ continue; }
+    if(nearCount(nx,ny,TOKENS.network.crowdRadius) > 3){
+      // fuse into the nearby structure and stop this tip
+      const j = nearestNode(nx,ny,TOKENS.network.crowdRadius*1.6);
+      if(j>=0 && j!==tip.node) edges.push([tip.node,j]);
+      continue;
+    }
+    const ni = addNode(nx,ny);
+    edges.push([tip.node, ni]);
+    next.push({ node: ni, dir });
+    // fork
+    if(Math.random() < P.branchProb){
+      next.push({ node: ni, dir: dir + (Math.random()<0.5?-1:1)*(0.5+Math.random()*0.6) });
+    }
+  }
+  tips = next;
+  // if growth stalled, drop a fresh seed so the canvas keeps evolving
+  if(tips.length===0 && nodes.length < TOKENS.network.maxNodes && P.mode==="grow"){
+    const x = 60+Math.random()*(W/DPR-120), y = 60+Math.random()*(H/DPR-120);
+    const idx=addNode(x,y); tips.push({node:idx, dir:Math.random()*Math.PI*2});
+  }
+}
+
+// ---- BRUSH: paint blobs along a drag path ----
+let painting=false, lastPx=null;
+function paintAt(x,y){
+  if(lastPx){ const d=Math.hypot(x-lastPx.x,y-lastPx.y); if(d<TOKENS.brush.spacing) return; }
+  const j = TOKENS.brush.linkToNearest ? nearestNode(x,y, P.segment*2.2) : -1;
+  const i = addNode(x,y, P.nodeRadius*(1.1+Math.random()*0.5));
+  if(j>=0) edges.push([i,j]);
+  lastPx = {x,y};
+}
+
+// ---- RENDER ----
+function draw(){
+  // 1) background cream
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.fillStyle = TOKENS.palette.canvas;
+  ctx.fillRect(0,0,W/DPR,H/DPR);
+
+  // 2) metaball pass. Draw solid ink shapes (nodes + thick links) into an offscreen
+  //    buffer, then composite the WHOLE buffer ONCE through an SVG gooey filter
+  //    (feGaussianBlur -> feColorMatrix alpha threshold). Compositing once is essential:
+  //    canvas ctx.filter runs per draw-op, so filtering circles individually would NOT
+  //    merge them. One drawImage runs blur+threshold over the union -> crisp fused blobs.
+  bctx.setTransform(DPR,0,0,DPR,0,0);
+  bctx.clearRect(0,0,W/DPR,H/DPR);
+  bctx.fillStyle = TOKENS.palette.ink;
+  bctx.strokeStyle = TOKENS.palette.ink;
+  bctx.lineCap='round'; bctx.lineJoin='round';
+  bctx.lineWidth = Math.max(2, P.nodeRadius*1.4);   // fat links so tendrils fuse
+  bctx.beginPath();
+  for(const [a,b] of edges){ const na=nodes[a], nb=nodes[b]; if(!na||!nb)continue; bctx.moveTo(na.x,na.y); bctx.lineTo(nb.x,nb.y); }
+  bctx.stroke();
+  for(const n of nodes){ bctx.beginPath(); bctx.arc(n.x, n.y, n.r, 0, Math.PI*2); bctx.fill(); }
+
+  ctx.save();
+  ctx.setTransform(1,0,0,1,0,0);        // buf is device-resolution; blit 1:1
+  ctx.filter = 'url(#goo)';
+  ctx.drawImage(buf, 0, 0);
+  ctx.restore();
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.filter = 'none';
+
+  // 3) gloss highlight — a soft inner light on each blob for the "liquid" read
+  if(TOKENS.blob.glossHighlight){
+    ctx.globalCompositeOperation = 'overlay';
+    for(const n of nodes){
+      const g = ctx.createRadialGradient(n.x-n.r*0.4, n.y-n.r*0.5, 0, n.x, n.y, n.r*2.4);
+      g.addColorStop(0,'rgba(255,255,255,0.16)'); g.addColorStop(1,'rgba(255,255,255,0)');
+      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(n.x,n.y,n.r*2.4,0,Math.PI*2); ctx.fill();
+    }
+    ctx.globalCompositeOperation='source-over';
+  }
+
+  // 4) crisp connective network on top — the "spec / systems diagram" layer
+  ctx.strokeStyle = 'rgba(10,10,12,0.55)';
+  ctx.lineWidth = TOKENS.network.linkWidth;
+  ctx.beginPath();
+  for(const [a,b] of edges){ const na=nodes[a], nb=nodes[b]; if(!na||!nb)continue; ctx.moveTo(na.x,na.y); ctx.lineTo(nb.x,nb.y); }
+  ctx.stroke();
+
+  // 5) node annotations + accent tips
+  if(P.annotations){
+    ctx.fillStyle = P.accent;
+    for(const tip of tips){ const n=nodes[tip.node]; if(!n)continue;
+      ctx.beginPath(); ctx.arc(n.x,n.y,2.2,0,Math.PI*2); ctx.fill(); }
+    ctx.font = '9px "SF Mono", ui-monospace, monospace';
+    ctx.fillStyle = 'rgba(10,10,12,0.5)';
+    const step = Math.max(1, (nodes.length/26)|0);
+    for(let i=0;i<nodes.length;i+=step){ const n=nodes[i];
+      ctx.beginPath(); ctx.arc(n.x,n.y,1.4,0,Math.PI*2); ctx.fill();
+      ctx.fillText('n'+String(i).padStart(3,'0'), n.x+5, n.y-4);
+    }
+  }
+
+  // 6) finish — grain + vignette
+  applyFinish();
+  // spec label bottom-right of canvas
+  ctx.font='10px "SF Mono", ui-monospace, monospace';
+  ctx.fillStyle='rgba(10,10,12,0.45)';
+  ctx.textAlign='right';
+  ctx.fillText(TOKENS.finish.label + ' · ' + nodes.length + 'n / ' + edges.length + 'e', W/DPR-18, H/DPR-16);
+  ctx.textAlign='left';
+}
+
+// grain + vignette cached to a small tile for speed
+let grainTile=null;
+function buildGrain(){
+  const s=140; grainTile=document.createElement('canvas'); grainTile.width=s; grainTile.height=s;
+  const g=grainTile.getContext('2d'); const id=g.createImageData(s,s);
+  for(let i=0;i<id.data.length;i+=4){ const v=(Math.random()*255)|0; id.data[i]=id.data[i+1]=id.data[i+2]=v; id.data[i+3]=255; }
+  g.putImageData(id,0,0);
+}
+function applyFinish(){
+  if(TOKENS.finish.grain>0){
+    if(!grainTile) buildGrain();
+    ctx.save(); ctx.globalAlpha=TOKENS.finish.grain; ctx.globalCompositeOperation='multiply';
+    const pat=ctx.createPattern(grainTile,'repeat'); ctx.fillStyle=pat; ctx.fillRect(0,0,W/DPR,H/DPR); ctx.restore();
+  }
+  if(TOKENS.finish.vignette>0){
+    const g=ctx.createRadialGradient(W/(2*DPR),H/(2*DPR),Math.min(W,H)/(3*DPR), W/(2*DPR),H/(2*DPR),Math.max(W,H)/DPR);
+    g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,`rgba(0,0,0,${TOKENS.finish.vignette})`);
+    ctx.fillStyle=g; ctx.fillRect(0,0,W/DPR,H/DPR);
+  }
+}
+
+// ---- loop ----
+let acc=0;
+function loop(){
+  if(P.playing && P.mode==="grow"){ growStep(); }
+  draw();
+  document.getElementById('count').textContent =
+    'NODES '+String(nodes.length).padStart(4,'0')+' · EDGES '+String(edges.length).padStart(4,'0');
+  requestAnimationFrame(loop);
+}
+
+// ---- sizing ----
+function resize(){
+  DPR = Math.min(window.devicePixelRatio||1, 2);
+  const vw = window.innerWidth || document.documentElement.clientWidth || 1280;
+  const vh = window.innerHeight || document.documentElement.clientHeight || 720;
+  W = Math.max(1, Math.floor(vw*DPR)); H = Math.max(1, Math.floor(vh*DPR));
+  c.width=W; c.height=H; buf.width=W; buf.height=H;
+}
+window.addEventListener('resize', ()=>{ resize(); updateGoo(); if(nodes.length) draw(); });
+
+// ---- input ----
+c.addEventListener('pointerdown', e=>{ if(P.mode!=="brush")return; painting=true; lastPx=null; paintAt(e.clientX,e.clientY); });
+c.addEventListener('pointermove', e=>{ if(P.mode==="brush"&&painting) paintAt(e.clientX,e.clientY); });
+window.addEventListener('pointerup', ()=>{ painting=false; });
+
+// ---- UI wiring ----
+const gooBlur = document.getElementById('goo_blur');
+const gooMat  = document.getElementById('goo_mat');
+function updateGoo(){
+  // stdDeviation in device px (buffer is drawn at DPR); threshold ~alpha 0.45
+  gooBlur.setAttribute('stdDeviation', (P.blur*DPR*0.5).toFixed(2));
+  const K = P.contrast;
+  gooMat.setAttribute('values', '1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 '+K+' '+(-(K*0.45)).toFixed(2));
+}
+
+const bind = (id, prop, fmt, after) => {
+  const el=document.getElementById(id), out=document.getElementById(id+'_v');
+  el.value = P[prop]; out.textContent = fmt?fmt(P[prop]):P[prop];
+  el.addEventListener('input', ()=>{ P[prop]=parseFloat(el.value); out.textContent=fmt?fmt(P[prop]):P[prop]; if(after) after(); });
+};
+bind('blur','blur', null, updateGoo); bind('contrast','contrast', null, updateGoo); bind('node','nodeRadius', v=>v.toFixed(1));
+bind('seg','segment'); bind('branch','branchProb', v=>v.toFixed(2)); bind('wander','wander', v=>v.toFixed(2));
+
+const setMode = m => {
+  P.mode=m;
+  document.getElementById('m_grow').classList.toggle('on', m==='grow');
+  document.getElementById('m_brush').classList.toggle('on', m==='brush');
+  document.getElementById('specline').innerHTML =
+    (m==='grow'?'INSTRUMENT 01 · AUTONOMOUS GROWTH':'INSTRUMENT 01 · BRUSH → PAINT') + ' · SYSTEM → COMPONENT → REUSE';
+  c.style.cursor = m==='brush' ? 'crosshair' : 'default';
+};
+document.getElementById('m_grow').onclick = ()=>setMode('grow');
+document.getElementById('m_brush').onclick = ()=>setMode('brush');
+
+document.getElementById('annot').onclick = e=>{ P.annotations=!P.annotations; e.target.classList.toggle('on',P.annotations); e.target.textContent=P.annotations?'ON':'OFF'; };
+document.getElementById('a_green').onclick = ()=>{ P.accent=TOKENS.palette.accent; document.documentElement.style.setProperty('--accent',P.accent); document.getElementById('a_green').classList.add('on'); document.getElementById('a_mag').classList.remove('on'); };
+document.getElementById('a_mag').onclick = ()=>{ P.accent=TOKENS.palette.accentAlt; document.documentElement.style.setProperty('--accent',P.accent); document.getElementById('a_mag').classList.add('on'); document.getElementById('a_green').classList.remove('on'); };
+
+const playBtn=document.getElementById('play');
+playBtn.onclick=()=>{ P.playing=!P.playing; playBtn.textContent=P.playing?'PAUSE':'PLAY'; };
+document.getElementById('reseed').onclick=()=>{ seed(3); };
+document.getElementById('clear').onclick=()=>{ reset(); };
+
+document.getElementById('export').onclick=()=>{
+  // render one clean frame at 2x for a crisp export
+  const link=document.createElement('a');
+  link.download='hyphal-codex-'+Date.now()+'.png';
+  link.href=c.toDataURL('image/png');
+  link.click();
+};
+
+// keyboard
+window.addEventListener('keydown', e=>{
+  if(e.code==='Space'){ e.preventDefault(); playBtn.click(); }
+  else if(e.key==='b'||e.key==='B') setMode('brush');
+  else if(e.key==='g'||e.key==='G') setMode('grow');
+  else if(e.key==='e'||e.key==='E') document.getElementById('export').click();
+  else if(e.key==='r'||e.key==='R') seed(3);
+  else if(e.key==='c'||e.key==='C') reset();
+});
+
+// ---- boot ----
+resize(); buildGrain(); updateGoo(); seed(3); loop();
+</script>
+</body>
+</html>

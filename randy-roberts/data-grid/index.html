@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Grid — an instrument</title>
+<style>
+  :root { --panel:#111114; --panel-text:#EDEDED; --panel-muted:#7A7A82; --accent:#39FF6A; --line:#24242a; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; overflow:hidden;
+    font-family:"SF Mono","JetBrains Mono","IBM Plex Mono",ui-monospace,Menlo,monospace;
+    background:#0A0A0C; color:var(--panel-text); }
+  canvas#c { position:absolute; inset:0; width:100%; height:100%; display:block; }
+  #brand { position:fixed; top:22px; left:26px; pointer-events:none; mix-blend-mode:difference; }
+  #brand .t { font-size:13px; letter-spacing:.42em; font-weight:600; color:#fff; }
+  #brand .s { font-size:10px; letter-spacing:.22em; color:#bbb; margin-top:6px; }
+  #panel { position:fixed; top:18px; right:18px; width:268px; background:rgba(17,17,20,.86);
+    backdrop-filter:blur(8px); border:1px solid var(--line); border-radius:12px; padding:14px 14px 12px;
+    font-size:11px; user-select:none; box-shadow:0 18px 50px rgba(0,0,0,.45); }
+  #panel h1 { font-size:10px; letter-spacing:.28em; margin:0 0 2px; color:#fff; font-weight:700; }
+  #panel .sub { font-size:9px; letter-spacing:.16em; color:var(--panel-muted); margin-bottom:12px; }
+  .row { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:9px 0; }
+  .row label { color:var(--panel-muted); letter-spacing:.08em; }
+  .row .val { color:var(--accent); font-variant-numeric:tabular-nums; min-width:34px; text-align:right; }
+  input[type=range] { -webkit-appearance:none; appearance:none; width:128px; height:2px; background:var(--line); border-radius:2px; outline:none; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:12px; height:12px; border-radius:50%; background:var(--accent); cursor:pointer; box-shadow:0 0 6px rgba(57,255,106,.6); }
+  .divider { height:1px; background:var(--line); margin:12px 0; }
+  .btns { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+  button { font-family:inherit; font-size:10px; letter-spacing:.12em; text-transform:uppercase; padding:8px 6px;
+    background:#1a1a1f; color:var(--panel-text); border:1px solid var(--line); border-radius:7px; cursor:pointer; transition:.12s; }
+  button:hover { background:#23232a; border-color:#3a3a44; }
+  button.primary { background:var(--accent); color:#06120a; border-color:var(--accent); font-weight:700; }
+  button.on { border-color:var(--accent); color:var(--accent); }
+  .seg { display:flex; gap:6px; } .seg button { flex:1; }
+  .hint { font-size:9px; letter-spacing:.1em; color:var(--panel-muted); margin-top:10px; line-height:1.5; }
+  .count { position:fixed; bottom:16px; left:26px; font-size:10px; letter-spacing:.2em; color:#555; mix-blend-mode:difference; }
+  a.credit { position:fixed; bottom:16px; right:22px; font-size:9px; letter-spacing:.18em; color:#555; text-decoration:none; mix-blend-mode:difference; }
+  a.back { position:fixed; top:24px; right:300px; font-size:9px; letter-spacing:.2em; color:#666; text-decoration:none; mix-blend-mode:difference; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="brand"><div class="t">DATA&nbsp;&nbsp;GRID</div><div class="s" id="specline">INSTRUMENT&nbsp;02 · FIELD → CELL → READOUT</div></div>
+<a class="back" href="../">← INDEX</a>
+
+<div id="panel">
+  <h1>DATA GRID</h1>
+  <div class="sub">MATRIX-HEATMAP INSTRUMENT · v1.0</div>
+  <div class="row"><label>DENSITY</label><input id="density" type="range" min="14" max="64" step="1"><span class="val" id="density_v"></span></div>
+  <div class="row"><label>FLOW</label><input id="flow" type="range" min="0" max="3" step="0.05"><span class="val" id="flow_v"></span></div>
+  <div class="row"><label>SCALE</label><input id="scale" type="range" min="0.4" max="4" step="0.1"><span class="val" id="scale_v"></span></div>
+  <div class="row"><label>CONTRAST</label><input id="gamma" type="range" min="0.4" max="3" step="0.1"><span class="val" id="gamma_v"></span></div>
+  <div class="row"><label>HOT CUTOFF</label><input id="hot" type="range" min="0.6" max="0.98" step="0.01"><span class="val" id="hot_v"></span></div>
+  <div class="divider"></div>
+  <div class="row"><label>GLYPHS</label>
+    <div class="seg" style="width:170px">
+      <button id="g_hex" class="on">HEX</button><button id="g_num">NUM</button><button id="g_block">BLOCK</button>
+    </div></div>
+  <div class="row"><label>SCANLINE</label><button id="scan" style="width:170px" class="on">ON</button></div>
+  <div class="row"><label>ACCENT</label>
+    <div class="seg" style="width:170px"><button id="a_green" class="on">GREEN</button><button id="a_mag">MAGENTA</button></div></div>
+  <div class="divider"></div>
+  <div class="btns">
+    <button id="play">PAUSE</button><button id="reseed">RESEED</button>
+    <button id="freeze">SNAP HOLD</button><button id="export" class="primary">EXPORT PNG</button>
+  </div>
+  <div class="hint">An animated data field sampled into a cell grid — value → green intensity + a monospace readout, with hot cells flaring in the accent.<br>Keys: <b>Space</b> play/pause · <b>E</b> export · <b>R</b> reseed</div>
+</div>
+
+<div class="count" id="count">CELLS 0000 · FRAME 0000</div>
+<a class="credit" href="https://www.instagram.com/rndyrbrts/" target="_blank" rel="noopener">AFTER @RNDYRBRTS</a>
+
+<script>
+/* =====================================================================
+   DATA GRID — Instrument 02. Randy Roberts (@rndyrbrts) aesthetic:
+   green-on-dark scientific readout grids. An animated value-noise field
+   is sampled into a cell matrix; each cell -> green intensity + a mono
+   glyph, with "hot" cells flaring in the accent and a scanline sweep.
+   Same tokens.json / control scaffold as Instrument 01 (System->Component->Reuse).
+   ===================================================================== */
+const TOKENS = {
+  palette:{ bg:"#0A0A0C", accent:"#39FF6A", accentAlt:"#FF2D9B" },
+  grid:{ density:30, scale:1.4, flow:0.8, gamma:1.5, hotCutoff:0.86, glyphs:"hex", scanline:true },
+  finish:{ grain:0.05, vignette:0.16, label:"DATA GRID" }
+};
+const P = { density:TOKENS.grid.density, scale:TOKENS.grid.scale, flow:TOKENS.grid.flow,
+  gamma:TOKENS.grid.gamma, hot:TOKENS.grid.hotCutoff, glyphs:TOKENS.grid.glyphs,
+  scanline:TOKENS.grid.scanline, accent:TOKENS.palette.accent, playing:true };
+
+const c=document.getElementById('c'), ctx=c.getContext('2d');
+let DPR=Math.min(window.devicePixelRatio||1,2), W=0,H=0, T=0, FRAME=0, SEED=1234, cellCount=0;
+
+// cheap hash value-noise (2 octaves) sampled at (x,y,t)
+function hash(x,y){ let n=Math.sin(x*127.1+y*311.7+SEED*0.013)*43758.5453; return n-Math.floor(n); }
+function vnoise(x,y){
+  const xi=Math.floor(x), yi=Math.floor(y), xf=x-xi, yf=y-yi;
+  const u=xf*xf*(3-2*xf), v=yf*yf*(3-2*yf);
+  const a=hash(xi,yi), b=hash(xi+1,yi), cc=hash(xi,yi+1), d=hash(xi+1,yi+1);
+  return a*(1-u)*(1-v)+b*u*(1-v)+cc*(1-u)*v+d*u*v;
+}
+function field(nx,ny,t){
+  // layered moving noise + a slow diagonal wave for structure
+  let val = vnoise(nx*P.scale + t*0.6, ny*P.scale - t*0.2)*0.6
+          + vnoise(nx*P.scale*2.3 - t*0.3, ny*P.scale*2.3 + t*0.5)*0.3
+          + (Math.sin((nx+ny)*P.scale*0.9 + t*1.3)*0.5+0.5)*0.1;
+  val = Math.pow(Math.min(1,Math.max(0,val)), P.gamma);
+  return val;
+}
+const HEX="0123456789ABCDEF";
+const BLOCKS=[' ','░','░','▒','▒','▓','▓','█','█'];
+function glyphFor(v){
+  if(P.glyphs==='block') return BLOCKS[Math.min(8,(v*8)|0)];
+  if(P.glyphs==='num') return String(Math.min(99,(v*100)|0)).padStart(2,'0');
+  return HEX[(v*15.99)|0] + HEX[((v*255)|0)&15];
+}
+function accentRGB(){ const h=P.accent; return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]; }
+
+function draw(){
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  const w=W/DPR, h=H/DPR;
+  ctx.fillStyle=TOKENS.palette.bg; ctx.fillRect(0,0,w,h);
+  const cell=P.density, cols=Math.ceil(w/cell), rows=Math.ceil(h/cell);
+  cellCount=cols*rows;
+  const [ar,ag,ab]=accentRGB();
+  const fs=Math.max(7, Math.min(cell*0.5, 15));
+  ctx.font=fs+'px "SF Mono", ui-monospace, monospace';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  const scanY = P.scanline ? (h * ((T*0.12)%1)) : -1e9;
+  for(let j=0;j<rows;j++){
+    for(let i=0;i<cols;i++){
+      const nx=i/cols*8, ny=j/rows*8*(h/w||1);
+      const v=field(nx,ny,T);
+      const cx=i*cell, cy=j*cell;
+      // cell background block (faint) for the higher values
+      if(v>0.16){
+        ctx.fillStyle='rgba('+ar+','+ag+','+ab+','+(0.06+v*0.20).toFixed(3)+')';
+        ctx.fillRect(cx+1,cy+1,cell-2,cell-2);
+      }
+      const hot = v>=P.hot;
+      // glyph
+      let r,g,b,al;
+      if(hot){ r=255;g=255;b=255; al=1; }        // hottest cells punch white
+      else { r=ar; g=ag; b=ab; al=0.30+v*0.65; }
+      // scanline brighten
+      if(Math.abs(cy+cell/2 - scanY) < cell*1.2){ al=Math.min(1,al+0.35); }
+      ctx.fillStyle='rgba('+r+','+g+','+b+','+al.toFixed(3)+')';
+      ctx.fillText(glyphFor(v), cx+cell/2, cy+cell/2);
+      if(hot){ // accent ring on hot cells
+        ctx.strokeStyle='rgba('+ar+','+ag+','+ab+',0.9)'; ctx.lineWidth=1;
+        ctx.strokeRect(cx+1.5,cy+1.5,cell-3,cell-3);
+      }
+    }
+  }
+  // scanline glow bar
+  if(P.scanline){
+    const g=ctx.createLinearGradient(0,scanY-cell,0,scanY+cell);
+    g.addColorStop(0,'rgba('+ar+','+ag+','+ab+',0)');
+    g.addColorStop(0.5,'rgba('+ar+','+ag+','+ab+',0.10)');
+    g.addColorStop(1,'rgba('+ar+','+ag+','+ab+',0)');
+    ctx.fillStyle=g; ctx.fillRect(0,scanY-cell,w,cell*2);
+  }
+  applyFinish(w,h);
+  ctx.font='10px "SF Mono", ui-monospace, monospace'; ctx.textAlign='right'; ctx.textBaseline='alphabetic';
+  ctx.fillStyle='rgba('+ar+','+ag+','+ab+',0.5)';
+  ctx.fillText(TOKENS.finish.label+' · '+cols+'×'+rows+' · t'+T.toFixed(1), w-18, h-16);
+  ctx.textAlign='left';
+}
+
+let grainTile=null;
+function buildGrain(){ const s=140; grainTile=document.createElement('canvas'); grainTile.width=s; grainTile.height=s;
+  const g=grainTile.getContext('2d'); const id=g.createImageData(s,s);
+  for(let i=0;i<id.data.length;i+=4){ const v=(hash(i,7)*255)|0; id.data[i]=id.data[i+1]=id.data[i+2]=v; id.data[i+3]=255; }
+  g.putImageData(id,0,0); }
+function applyFinish(w,h){
+  if(TOKENS.finish.grain>0){ if(!grainTile) buildGrain();
+    ctx.save(); ctx.globalAlpha=TOKENS.finish.grain; ctx.globalCompositeOperation='overlay';
+    ctx.fillStyle=ctx.createPattern(grainTile,'repeat'); ctx.fillRect(0,0,w,h); ctx.restore(); }
+  if(TOKENS.finish.vignette>0){ const g=ctx.createRadialGradient(w/2,h/2,Math.min(w,h)/3,w/2,h/2,Math.max(w,h)/1.1);
+    g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'rgba(0,0,0,'+TOKENS.finish.vignette+')');
+    ctx.fillStyle=g; ctx.fillRect(0,0,w,h); }
+}
+
+function loop(){ if(P.playing){ T+=0.016*P.flow; FRAME++; } draw();
+  document.getElementById('count').textContent='CELLS '+String(cellCount).padStart(4,'0')+' · FRAME '+String(FRAME).padStart(4,'0');
+  requestAnimationFrame(loop); }
+
+function resize(){ DPR=Math.min(window.devicePixelRatio||1,2);
+  const vw=window.innerWidth||document.documentElement.clientWidth||1280;
+  const vh=window.innerHeight||document.documentElement.clientHeight||720;
+  W=Math.max(1,Math.floor(vw*DPR)); H=Math.max(1,Math.floor(vh*DPR)); c.width=W; c.height=H; draw(); }
+window.addEventListener('resize', resize);
+
+const bind=(id,prop,fmt)=>{ const el=document.getElementById(id),out=document.getElementById(id+'_v');
+  el.value=P[prop]; out.textContent=fmt?fmt(P[prop]):P[prop];
+  el.addEventListener('input',()=>{ P[prop]=parseFloat(el.value); out.textContent=fmt?fmt(P[prop]):P[prop]; if(!P.playing) draw(); }); };
+bind('density','density'); bind('flow','flow',v=>v.toFixed(2)); bind('scale','scale',v=>v.toFixed(1));
+bind('gamma','gamma',v=>v.toFixed(1)); bind('hot','hot',v=>v.toFixed(2));
+
+const glyphBtns={hex:'g_hex',num:'g_num',block:'g_block'};
+function setGlyph(k){ P.glyphs=k; for(const kk in glyphBtns) document.getElementById(glyphBtns[kk]).classList.toggle('on',kk===k); if(!P.playing) draw(); }
+document.getElementById('g_hex').onclick=()=>setGlyph('hex');
+document.getElementById('g_num').onclick=()=>setGlyph('num');
+document.getElementById('g_block').onclick=()=>setGlyph('block');
+document.getElementById('scan').onclick=e=>{ P.scanline=!P.scanline; e.target.classList.toggle('on',P.scanline); e.target.textContent=P.scanline?'ON':'OFF'; if(!P.playing)draw(); };
+document.getElementById('a_green').onclick=()=>{ P.accent=TOKENS.palette.accent; document.documentElement.style.setProperty('--accent',P.accent); document.getElementById('a_green').classList.add('on'); document.getElementById('a_mag').classList.remove('on'); };
+document.getElementById('a_mag').onclick=()=>{ P.accent=TOKENS.palette.accentAlt; document.documentElement.style.setProperty('--accent',P.accent); document.getElementById('a_mag').classList.add('on'); document.getElementById('a_green').classList.remove('on'); };
+
+const playBtn=document.getElementById('play');
+playBtn.onclick=()=>{ P.playing=!P.playing; playBtn.textContent=P.playing?'PAUSE':'PLAY'; };
+document.getElementById('reseed').onclick=()=>{ SEED=(Math.abs(Math.sin(T*13.7+FRAME)*99999)|0)+1; draw(); };
+document.getElementById('freeze').onclick=()=>{ P.playing=false; playBtn.textContent='PLAY'; draw(); };
+document.getElementById('export').onclick=()=>{ const a=document.createElement('a'); a.download='data-grid-'+FRAME+'.png'; a.href=c.toDataURL('image/png'); a.click(); };
+window.addEventListener('keydown',e=>{ if(e.code==='Space'){e.preventDefault();playBtn.click();}
+  else if(e.key==='e'||e.key==='E') document.getElementById('export').click();
+  else if(e.key==='r'||e.key==='R') document.getElementById('reseed').click(); });
+
+resize(); buildGrain(); loop();
+</script>
+</body>
+</html>

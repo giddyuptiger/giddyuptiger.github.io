@@ -37,6 +37,7 @@
   a.credit { position:fixed; bottom:16px; right:22px; font-size:9px; letter-spacing:.18em; color:#556; text-decoration:none; mix-blend-mode:difference; }
   a.back { position:fixed; top:24px; right:300px; font-size:9px; letter-spacing:.2em; color:#889; text-decoration:none; mix-blend-mode:difference; }
 </style>
+<link rel="stylesheet" href="../shared/mobile-drawer.css">
 </head>
 <body>
 <canvas id="c"></canvas>
@@ -159,7 +160,8 @@ function drawPanel(pan, w, h){
   const pw=pan.w*w*scale, ph=pan.h*h*scale;
   const par = P.depth*(1.2-pan.z);
   const px = w/2 + pan.bx*w*0.32 + gazeX*par*w*0.10 + Math.sin(T*0.3+pan.phase)*P.drift*10;
-  const py = h/2 + pan.by*h*0.32 + gazeY*par*h*0.10 + Math.cos(T*0.26+pan.phase)*P.drift*8;
+  const vcy = (window.matchMedia('(max-width:600px)').matches ? h*0.36 : h*0.5); // lift scene above the mobile drawer
+  const py = vcy + pan.by*h*0.30 + gazeY*par*h*0.10 + Math.cos(T*0.26+pan.phase)*P.drift*8;
   // render widget to offscreen at panel size (crisp), optionally blur far panels
   const rw=Math.max(40,Math.round(pw)), rh=Math.max(30,Math.round(ph));
   pcan.width=rw; pcan.height=rh; pctx.clearRect(0,0,rw,rh);
@@ -185,6 +187,7 @@ function roundRect(g,x,y,w,h,r){ r=Math.min(r,w/2,h/2); g.beginPath(); g.moveTo(
 function draw(){
   ctx.setTransform(DPR,0,0,DPR,0,0);
   const w=W/DPR, h=H/DPR; const [ar,ag,ab]=accentRGB();
+  const mob=window.matchMedia('(max-width:600px)').matches; const VC = mob ? h*0.36 : h*0.5;
   // gaze easing (auto-drift if idle handled by pointer setting tgX/tgY; else lissajous)
   gazeX+=(tgX-gazeX)*0.06; gazeY+=(tgY-gazeY)*0.06;
   // passthrough background — dark vertical gradient + ambient bokeh
@@ -199,7 +202,7 @@ function draw(){
     ctx.fillStyle=bk; ctx.fillRect(0,0,w,h); }
   // horizon perspective grid (lower half)
   if(P.grid>0){
-    const vx=w/2 + gazeX*40, vy=h*0.52 + gazeY*20; // vanishing point
+    const vx=w/2 + gazeX*40, vy=(mob?h*0.42:h*0.52) + gazeY*20; // vanishing point
     ctx.strokeStyle='rgba('+ar+','+ag+','+ab+','+(0.12*P.grid).toFixed(3)+')'; ctx.lineWidth=1;
     for(let i=-10;i<=10;i++){ ctx.beginPath(); ctx.moveTo(vx,vy); ctx.lineTo(w/2+i*(w/9), h+20); ctx.stroke(); }
     for(let r=1;r<=8;r++){ const yy=vy + (h-vy)*(r*r/64); ctx.globalAlpha=1-r/9;
@@ -209,7 +212,7 @@ function draw(){
   // panels (far to near)
   for(const pan of panels) drawPanel(pan,w,h);
   // reticle at gaze center
-  const rx=w/2+gazeX*w*0.06, ry=h/2+gazeY*h*0.06;
+  const rx=w/2+gazeX*w*0.06, ry=VC+gazeY*h*0.06;
   ctx.strokeStyle='rgba(255,255,255,0.25)'; ctx.lineWidth=1;
   ctx.beginPath(); ctx.arc(rx,ry,5,0,7); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(rx-11,ry); ctx.lineTo(rx-7,ry); ctx.moveTo(rx+7,ry); ctx.lineTo(rx+11,ry);
@@ -274,5 +277,6 @@ window.addEventListener('keydown',e=>{ if(e.code==='Space'){e.preventDefault();p
 
 resize(); layout(); loop();
 </script>
+<script src="../shared/mobile-drawer.js"></script>
 </body>
 </html>

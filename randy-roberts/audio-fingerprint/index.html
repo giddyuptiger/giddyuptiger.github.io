@@ -37,6 +37,7 @@
   a.credit { position:fixed; bottom:16px; right:22px; font-size:9px; letter-spacing:.18em; color:#666; text-decoration:none; mix-blend-mode:difference; }
   a.back { position:fixed; top:24px; right:300px; font-size:9px; letter-spacing:.2em; color:#666; text-decoration:none; mix-blend-mode:difference; }
 </style>
+<link rel="stylesheet" href="../shared/mobile-drawer.css">
 </head>
 <body>
 <canvas id="c"></canvas>
@@ -150,8 +151,10 @@ function draw(){
   const N = (P.source==='demo') ? synth() : readLive();
   const bins=Math.min(P.spokes, N);
   const [ar,ag,ab]=accentRGB();
-  const cx=w/2, cy=h/2;
-  const baseR=Math.min(w,h)*0.13, maxR=Math.min(w,h)*0.40;
+  // on phones the control drawer covers the lower screen, so lift the fingerprint into the top area
+  const mob = window.matchMedia('(max-width:600px)').matches;
+  const cx=w/2, cy=mob ? h*0.32 : h*0.5;
+  const baseR=Math.min(w,h)*0.13, maxR=Math.min(w,h)*(mob?0.34:0.40);
 
   // dominant bin
   let mx=0,mi=0,sum=0; for(let i=0;i<bins;i++){ if(spectrum[i]>mx){mx=spectrum[i];mi=i;} sum+=spectrum[i]; }
@@ -261,5 +264,6 @@ window.addEventListener('keydown',e=>{ if(e.code==='Space'){e.preventDefault();p
 
 resize(); buildGrain(); loop();
 </script>
+<script src="../shared/mobile-drawer.js"></script>
 </body>
 </html>

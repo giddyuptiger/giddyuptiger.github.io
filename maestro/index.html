@@ -1902,8 +1902,14 @@ document.addEventListener("click",(e)=>{
     e.preventDefault();
     const target=el.dataset.target||"";
     closeModal(); setView("notes");
-    const openIt=()=>{ const d=resolveDoc(target); if(d) openNote(d.path); else toast("Couldn’t find that note: "+target.split("/").pop(),"search"); };
-    if(DOCS===null){ Promise.resolve(loadDocs()).then(openIt); } else openIt();
+    if(DOCS===null && typeof loadDocs==="function") loadDocs();   // kick a load (no-ops if already in flight)
+    let tries=0;
+    const openIt=()=>{
+      if(DOCS===null){ if(tries++<40){ setTimeout(openIt,100); return; } }   // wait up to ~4s for the vault
+      const d=resolveDoc(target);
+      if(d) openNote(d.path); else toast("Couldn’t find that note: "+target.split("/").pop(),"search");
+    };
+    openIt();
   }
 });
 

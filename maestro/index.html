@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Maestro build: 2026-07-05-notes-tts-v4 (Notes: search + overflow/nav/order + speed + per-section play + tap-scrolls-to-article-top) -->
+<!-- Maestro build: 2026-07-05-coach-v1 (Daily Coach: Coaching view — today's update + tap-to-verify cards + weekly/monthly summaries w/ drill-down; fed by maestro-coach edge fn) -->
 <html class="dark" lang="en">
 <head>
 <meta charset="UTF-8">
@@ -176,6 +176,7 @@
         <a href="#tasks" data-act="nav" data-view="tasks" class="tab pressable">Tasks</a>
         <a href="#week" data-act="nav" data-view="week" class="tab pressable">Week</a>
         <a href="#notes" data-act="nav" data-view="notes" class="tab pressable">Notes</a>
+        <a href="#coaching" data-act="nav" data-view="coaching" class="tab pressable">Coaching</a>
         <a href="#inbox" data-act="nav" data-view="inbox" class="tab pressable">Inbox</a>
       </nav>
       <div class="flex items-center gap-2">
@@ -196,6 +197,7 @@
     <section id="view-week" class="view"></section>
     <section id="view-travel" class="view"></section>
     <section id="view-notes" class="view"></section>
+    <section id="view-coaching" class="view"></section>
     <section id="view-inbox" class="view"></section>
   </main>
 
@@ -205,6 +207,7 @@
     <a href="#tasks" data-act="nav" data-view="tasks" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">checklist</span>Tasks</a>
     <a href="#week" data-act="nav" data-view="week" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">calendar_month</span>Week</a>
     <a href="#notes" data-act="nav" data-view="notes" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">menu_book</span>Notes</a>
+    <a href="#coaching" data-act="nav" data-view="coaching" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">psychology</span>Coaching</a>
   </nav>
 </div>
 
@@ -234,6 +237,7 @@ let GOOGLE_CONN=null;   // {status, account_email, connected_at} from maestro_co
 let SLACK_CONN=null;    // {webhook, connected_at, label} read from THIS user's own maestro_dashboard row — null = unknown/not-loaded
 let DISCORD_CONN=null;  // {webhook, connected_at, label} read from THIS user's own maestro_dashboard row — null = unknown/not-loaded
 let DOCS=null, DOCS_LOADING=false;   // Notes vault (maestro_docs) — lazy-loaded, RLS-scoped to the owner
+let COACHING=null, COACHING_LOADING=false;   // Daily Coach log (maestro_coaching_log) — lazy-loaded, RLS-scoped
 let NOTE_Q="", NOTE_Q_TIMER=null;    // Notes search query + debounce timer (live-filters title + body)
 
 const KIND = {
@@ -1679,6 +1683,76 @@ async function dismissDecision(id){
   toast("Skipped","do_not_disturb_on");
 }
 
+/* ───── COACHING (Focus) — the Daily Coach view: today's update, verify-questions (tap-to-answer),
+   and a stack of weekly/monthly summaries with drill-down. Fed by maestro_coaching_log (owner RLS),
+   written each morning by the maestro-coach edge function. Coach question cards are maestro_decisions
+   (project "Coach") and reuse the Decisions answer path. ───── */
+async function loadCoaching(){
+  if(!USER_ID || COACHING_LOADING) return;
+  COACHING_LOADING=true;
+  try{
+    const { data, error } = await sb.from("maestro_coaching_log")
+      .select("id,entry_type,entry_date,title,body_md,next_step,focus_three,waiting_on,status,period_start,period_end,rolled_up_into,ai_generated,updated_at")
+      .eq("user_id", USER_ID)                 // explicit owner scope; RLS is the real boundary
+      .order("entry_date",{ascending:false}).limit(120);
+    if(!error) COACHING = data||[];
+  }catch(_e){ if(COACHING===null) COACHING=[]; }
+  COACHING_LOADING=false;
+  if(STATE.view==="coaching") rerender("coaching");
+}
+function coachTodayHTML(d){
+  if(!d) return '<div class="rounded-2xl border hairline bg-surface-container-low/60 p-5 text-[13px] text-on-surface-variant/60 mb-5"><span class="material-symbols-outlined text-primary/70 text-[18px] align-middle mr-1">psychology</span>No coaching update yet today — it lands each morning.</div>';
+  const three=Array.isArray(d.focus_three)?d.focus_three:[];
+  return '<div class="rise rounded-2xl border hairline bg-surface-container-low/60 p-4 sm:p-5 mb-5">'+
+    '<div class="flex items-center justify-between mb-3"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase flex items-center gap-2"><span class="material-symbols-outlined text-[18px]">psychology</span>Today’s coaching</h2>'+
+      '<span class="text-[11px] font-mono text-on-surface-variant/45">'+esc(d.entry_date||"")+(d.ai_generated?"":" · basic")+'</span></div>'+
+    (d.next_step?'<div class="rounded-xl accent-edge bg-primary/[0.06] p-3.5 mb-3"><p class="text-[10.5px] font-bold tracking-widest text-primary uppercase mb-0.5">Next step</p><p class="text-[14px] font-semibold text-on-surface leading-snug break-words">'+esc(d.next_step)+'</p></div>':'')+
+    (three.length?'<div class="mb-3"><p class="text-[10.5px] font-bold tracking-widest text-on-surface-variant/55 uppercase mb-1.5">This week’s 3</p><div class="space-y-1">'+three.slice(0,3).map((t,i)=>'<div class="flex items-start gap-2 text-[13px] text-on-surface/85"><span class="w-4 h-4 rounded-full bg-primary/15 text-primary text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-[2px]">'+(i+1)+'</span><span class="min-w-0 break-words">'+esc(t)+'</span></div>').join("")+'</div></div>':'')+
+    (d.body_md?'<div class="notes-body text-[13.5px] border-t hairline pt-3">'+buildNoteParts(d.body_md).html+'</div>':'')+
+    (d.waiting_on?'<div class="mt-3 pt-3 border-t hairline text-[12.5px] text-on-surface-variant/70 break-words"><span class="material-symbols-outlined text-[15px] align-middle mr-1 text-primary/60">hourglass_top</span>Waiting on you: '+esc(d.waiting_on)+'</div>':'')+
+  '</div>';
+}
+function coachSummaryRowHTML(s){
+  const icon = s.entry_type==="monthly"?"calendar_month":"date_range";
+  return '<button data-act="open-coach-summary" data-id="'+esc(s.id)+'" class="pressable w-full text-left flex items-center gap-3 rounded-xl border hairline bg-surface-container/40 hover:border-primary/30 px-3.5 py-3">'+
+    '<span class="material-symbols-outlined text-primary/70 text-[19px] flex-shrink-0">'+icon+'</span>'+
+    '<span class="min-w-0 flex-1"><span class="block text-[13.5px] font-bold text-on-surface truncate">'+esc(s.title||(s.entry_type+" summary"))+'</span>'+
+      '<span class="block text-[11px] font-mono text-on-surface-variant/50 mt-0.5">'+esc(s.entry_type)+' · '+esc(s.period_start||"")+' → '+esc(s.period_end||s.entry_date||"")+'</span></span>'+
+    '<span class="material-symbols-outlined text-on-surface-variant/40 text-[18px] flex-shrink-0">chevron_right</span></button>';
+}
+function renderCoaching(){
+  if(COACHING===null){ if(!COACHING_LOADING) loadCoaching();
+    $("#view-coaching").innerHTML='<div class="rise"><div class="mb-4 px-1"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Coaching</h2></div><div class="rounded-2xl border hairline bg-surface-container-low/60 p-6 flex items-center gap-3 text-on-surface-variant/70"><span class="material-symbols-outlined animate-spin text-primary">progress_activity</span><span class="text-[13px]">Loading your coach…</span></div></div>';
+    return; }
+  const all=COACHING||[];
+  const today=all.filter(e=>e.entry_type==="daily")[0]||null;   // already sorted desc
+  const summaries=all.filter(e=>e.entry_type==="weekly"||e.entry_type==="monthly");
+  const cards=(DECISIONS||[]).filter(d=>d.status==="open" && d.project==="Coach");
+  let H='<div class="rise"><div class="mb-3 px-1"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Coaching</h2><p class="text-[12px] text-on-surface-variant/60 mt-0.5">Your daily coach — today’s focus, questions to answer, and your weekly &amp; monthly summaries.</p></div>';
+  H += coachTodayHTML(today);
+  if(cards.length){
+    H += '<div class="mb-5 space-y-3"><div class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-[18px]">how_to_reg</span><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Verify with a tap</h2><span class="text-[11px] text-on-surface-variant/50 font-mono">'+cards.length+'</span></div>'+cards.map(decisionCardHTML).join("")+'</div>';
+  }
+  if(summaries.length){
+    H += '<div class="rounded-2xl border hairline bg-surface-container-low/60 p-4 sm:p-5 mb-5"><div class="flex items-center justify-between mb-3"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase flex items-center gap-2"><span class="material-symbols-outlined text-[18px]">history_edu</span>Summaries</h2></div><div class="space-y-1.5">'+summaries.map(coachSummaryRowHTML).join("")+'</div></div>';
+  }
+  H += footerHTML()+'</div>';
+  $("#view-coaching").innerHTML=H;
+}
+function openCoachSummary(id){
+  const s=(COACHING||[]).find(x=>String(x.id)===String(id)); if(!s) return;
+  const kids=(COACHING||[]).filter(x=>String(x.rolled_up_into)===String(id)).sort((a,b)=>String(a.entry_date).localeCompare(String(b.entry_date)));
+  let h=mhead(esc(s.title||"Summary"), esc((s.entry_type||"")+" · "+(s.period_start||"")+" → "+(s.period_end||s.entry_date||"")));
+  h+='<div class="px-5 sm:px-6 py-5">';
+  h+= s.body_md ? '<div class="notes-body text-[13.5px]">'+buildNoteParts(s.body_md).html+'</div>' : '<p class="text-[13px] text-on-surface-variant/60">No detail.</p>';
+  if(kids.length){
+    h+='<div class="mt-4 pt-4 border-t hairline"><p class="text-[10.5px] font-bold tracking-widest text-on-surface-variant/55 uppercase mb-2">Days folded in ('+kids.length+')</p><div class="space-y-1.5">'+
+      kids.map(d=>'<div class="rounded-xl border hairline bg-surface-container/40 px-3 py-2"><p class="text-[11px] font-mono text-on-surface-variant/50">'+esc(d.entry_date)+'</p><p class="text-[12.5px] text-on-surface/85 leading-snug break-words">'+esc(d.next_step||"")+'</p></div>').join("")+'</div></div>';
+  }
+  h+='</div>';
+  openModal(h);
+}
+
 /* ───── REALTIME — live dashboard + inbox via Supabase postgres_changes (sync button stays as fallback) ───── */
 let RT_CHANNELS=[];
 function teardownRealtime(){ RT_CHANNELS.forEach(c=>{ try{ sb.removeChannel(c); }catch(_e){} }); RT_CHANNELS=[]; }
@@ -1736,9 +1810,12 @@ async function setupRealtime(){
       .on("postgres_changes", { event:"*", schema:"public", table:"maestro_runs", filter:"user_id=eq."+USER_ID }, ()=>{ loadRuns(); })
       .subscribe();
     const decCh = sb.channel("rt-decisions-"+USER_ID)
-      .on("postgres_changes", { event:"*", schema:"public", table:"maestro_decisions", filter:"user_id=eq."+USER_ID }, ()=>{ loadDecisions(); })
+      .on("postgres_changes", { event:"*", schema:"public", table:"maestro_decisions", filter:"user_id=eq."+USER_ID }, ()=>{ loadDecisions(); if(STATE.view==="coaching") rerender("coaching"); })
       .subscribe();
-    RT_CHANNELS=[inboxCh, dashCh, runsCh, decCh];
+    const coachCh = sb.channel("rt-coach-"+USER_ID)
+      .on("postgres_changes", { event:"*", schema:"public", table:"maestro_coaching_log", filter:"user_id=eq."+USER_ID }, ()=>{ loadCoaching(); })
+      .subscribe();
+    RT_CHANNELS=[inboxCh, dashCh, runsCh, decCh, coachCh];
   }catch(_e){ /* realtime unavailable — sync button + on-load fetch remain the fallback */ }
 }
 
@@ -1800,6 +1877,7 @@ document.addEventListener("click",(e)=>{
   else if(el.dataset.act==="decide-option"){ answerDecision(el.dataset.id, el.dataset.value, el.dataset.label); }
   else if(el.dataset.act==="decide-free"){ const inp=document.querySelector('[data-decide-input="'+el.dataset.id+'"]'); const v=inp?inp.value.trim():""; if(!v){ toast("Type an answer first","edit"); if(inp) inp.focus(); return; } answerDecision(el.dataset.id, v, v); }
   else if(el.dataset.act==="decide-dismiss"){ dismissDecision(el.dataset.id); }
+  else if(el.dataset.act==="open-coach-summary"){ openCoachSummary(el.dataset.id); }
 });
 
 /* Notes live search — one delegated input handler (survives re-renders; never rebuilds the input,
@@ -2321,7 +2399,7 @@ function viewErrorHTML(name){
 }
 /* ───── router ───── */
 function showSkeleton(name){
-  if(["overview","projects","tasks","week","travel","notes","inbox"].indexOf(name)<0) name="overview";
+  if(["overview","projects","tasks","week","travel","notes","coaching","inbox"].indexOf(name)<0) name="overview";
   $$(".view").forEach(v=>v.classList.toggle("active", v.id==="view-"+name));
   $$(".tab").forEach(t=>t.dataset.active = t.dataset.view===name?"1":"0");
   $$(".bnav").forEach(t=>t.dataset.active = t.dataset.view===name?"1":"0");
@@ -2329,7 +2407,7 @@ function showSkeleton(name){
   $("#view-"+name).innerHTML='<div class="space-y-4"><div class="h-7 w-44 rounded bg-surface-container-high animate-pulse mb-1"></div>'+card+card+card+card+'</div>';
 }
 function setView(name, force){
-  if(["overview","projects","tasks","week","travel","notes","inbox"].indexOf(name)<0) name="overview";
+  if(["overview","projects","tasks","week","travel","notes","coaching","inbox"].indexOf(name)<0) name="overview";
   // Scroll discipline: a genuine NAVIGATION (switching views, or any unforced call from the
   // hashchange handler) jumps to the top. An in-place RE-RENDER of the view you're already on
   // (force=true, same view — e.g. checking a task off, snooze, set-priority, a realtime data
@@ -2340,7 +2418,7 @@ function setView(name, force){
   const keepScroll = !!force && sameView;
   const y = window.scrollY;
   STATE.view=name;
-  const fn={overview:renderOverview,projects:renderProjects,tasks:renderTasks,week:renderWeek,travel:renderTravel,notes:renderNotes,inbox:renderInbox}[name];
+  const fn={overview:renderOverview,projects:renderProjects,tasks:renderTasks,week:renderWeek,travel:renderTravel,notes:renderNotes,coaching:renderCoaching,inbox:renderInbox}[name];
   if(!RENDERED[name]||force){
     // Mark RENDERED only on SUCCESS. If a render throws, leave it false so the next navigation
     // (or realtime/poll tick) re-renders and recovers, instead of the view being stuck.
@@ -2462,6 +2540,7 @@ async function loadDashboard(){
   setupRealtime();             // live dashboard + inbox updates (sync button stays as fallback)
   loadRuns();                  // today's task/run registry → the Activity item
   loadDecisions();             // open decisions → the "Needs you" cards
+  loadCoaching();              // daily coach: today's update + weekly/monthly summaries
   if(!RUNS_TIMER) RUNS_TIMER=setInterval(tickRuns,1000);   // 1s elapsed ticker for an open run detail (no network)
   setInterval(loadRuns, 20000);                            // sync fallback if realtime drops
   setInterval(loadDecisions, 20000);                       // decisions sync fallback

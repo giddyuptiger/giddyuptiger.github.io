@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Maestro build: 2026-07-05-notes-fixes-v2 (Notes: live search + wrap/no-overflow + nav clearance + in-order read-aloud) -->
+<!-- Maestro build: 2026-07-05-notes-tts-v3 (Notes: search + overflow/nav/order fixes + read-aloud speed 1x/1.5x/2x + per-section play) -->
 <html class="dark" lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1791,6 +1791,7 @@ document.addEventListener("click",(e)=>{
   else if(el.dataset.act==="tts-prev-sec"){ TTS.prevSec(); }
   else if(el.dataset.act==="tts-next-sec"){ TTS.nextSec(); }
   else if(el.dataset.act==="tts-jump"){ TTS.jump(parseInt(el.dataset.sec,10)||0); }
+  else if(el.dataset.act==="tts-rate"){ TTS.setRate(el.dataset.rate); }
   else if(el.dataset.act==="note-open"){ openNote(el.dataset.path); }
   else if(el.dataset.act==="note-folder"){ const p=el.dataset.path; STATE.noteOpen[p]=!STATE.noteOpen[p]; rerender("notes"); }
   else if(el.dataset.act==="note-wiki"){ e.preventDefault(); const d=resolveDoc(el.dataset.target); if(d) openNote(d.path); else toast("No note found for “"+el.dataset.target+"”","search"); }
@@ -2051,7 +2052,9 @@ function buildNoteParts(md){
       const pi=addPart(hm[2]);
       const navCls = interactive ? ' cursor-pointer hover:text-primary tts-h' : '';
       const navAtt = interactive ? (' data-act="tts-jump" data-sec="'+sec+'" title="Read from here"') : '';
-      html+='<h'+lv+' id="tts-sec-'+sec+'"'+navAtt+dataAttr(pi)+' class="font-bold text-on-surface mt-4 mb-2 '+(HSZ[lv]||"text-[13px]")+navCls+'">'+mdInline(esc(hm[2]))+'</h'+lv+'>'; i++; continue; }
+      // Per-section play button: taps read-aloud FROM this heading (heading → its content → onward).
+      const secPlay = interactive ? '<button data-act="tts-jump" data-sec="'+sec+'" title="Read from this section" aria-label="Read from this section" class="tts-sec-play pressable inline-flex items-center justify-center flex-shrink-0 w-5 h-5 rounded-full bg-primary/12 text-primary hover:bg-primary/25"><span class="material-symbols-outlined text-[14px]">play_arrow</span></button>' : '';
+      html+='<h'+lv+' id="tts-sec-'+sec+'"'+dataAttr(pi)+' class="font-bold text-on-surface mt-4 mb-2 flex items-center gap-1.5 '+(HSZ[lv]||"text-[13px]")+'">'+secPlay+'<span'+navAtt+' class="min-w-0'+navCls+'">'+mdInline(esc(hm[2]))+'</span></h'+lv+'>'; i++; continue; }
     if(/^(\s*[-*_]){3,}\s*$/.test(line)){ closeLists(); html+='<hr class="my-4 border-outline-variant/30">'; i++; continue; }
     if(/^>\s?/.test(line)){ closeLists(); let q=""; while(i<lines.length && /^>\s?/.test(lines[i])){ q+=lines[i].replace(/^>\s?/,"")+"\n"; i++; }
       const pi=addPart(q); html+='<blockquote'+dataAttr(pi)+' class="border-l-2 border-primary/40 pl-3 my-2 text-on-surface-variant/80 italic">'+mdInline(esc(q.trim()))+'</blockquote>'; continue; }
@@ -2075,7 +2078,7 @@ function mdToSpeech(md){ return buildNoteParts(md).parts.map(p=>p.text).join("\n
    current index — giving jump-to-heading, section/part skip, and progress highlight. ── */
 const TTS = {
   supported: (typeof window!=="undefined" && "speechSynthesis" in window && typeof SpeechSynthesisUtterance!=="undefined"),
-  state:"idle", path:null, utter:null, _ka:null, parts:[], sections:[], idx:0,
+  state:"idle", path:null, utter:null, _ka:null, parts:[], sections:[], idx:0, rate:1,
   _pickVoice(){
     try{
       const vs=window.speechSynthesis.getVoices()||[]; if(!vs.length) return null;
@@ -2100,7 +2103,7 @@ const TTS = {
     if(this.utter){ this.utter.onend=null; this.utter.onerror=null; }
     this.idx=i; this.state="playing";
     try{ window.speechSynthesis.cancel(); }catch(e){}
-    const u=new SpeechSynthesisUtterance(this.parts[i].text); u.lang="en-US"; u.rate=0.95; u.pitch=1.0;
+    const u=new SpeechSynthesisUtterance(this.parts[i].text); u.lang="en-US"; u.rate=this.rate||1; u.pitch=1.0;
     const v=this._pickVoice(); if(v) u.voice=v;
     u.onend=()=>{ if(this.utter===u && this.state==="playing") this._speakFrom(this.idx+1); };   // auto-advance
     u.onerror=()=>{ if(this.utter===u && this.state==="playing") this._speakFrom(this.idx+1); };
@@ -2122,6 +2125,12 @@ const TTS = {
     if(first!=null && this.idx>first){ this._speakFrom(first); return; }                 // restart current section
     for(let k=s-1;k>=0;k--){ const f=this._firstOfSec(k); if(f!=null){ this._speakFrom(f); return; } } },
   jump(sec){ if(!this.supported) return; const f=this._firstOfSec(sec); if(f!=null) this._speakFrom(f); },
+  // Playback speed. Web Speech can't change an in-flight utterance's rate, so if we're mid-read we
+  // restart the CURRENT part at the new rate (in place — no skip, thanks to the _speakFrom guard).
+  setRate(r){ r=Number(r)||1; this.rate=r; this._syncRate(); if(this.state==="playing") this._speakFrom(this.idx); },
+  _syncRate(){ document.querySelectorAll('[data-act="tts-rate"]').forEach(b=>{
+    const on=Math.abs(parseFloat(b.dataset.rate)-this.rate)<0.01;
+    b.style.background=on?"#C5E45C":""; b.style.color=on?"#16181B":""; b.style.borderColor=on?"#C5E45C":""; }); },
   stop(){ if(!this.supported) return; this._reset(); },
   _reset(){ this._stopKA(); this.utter=null; this.state="idle"; this.idx=0; try{ window.speechSynthesis.cancel(); }catch(e){} this._hi(); this._sync(); },
   _hi(){
@@ -2258,8 +2267,13 @@ function renderNotes(){
         (hasNav?'<button data-act="tts-next-sec" title="Next section" class="'+rbtn+'"><span class="material-symbols-outlined text-[18px]">skip_next</span></button>':'')+
         '<button id="tts-stop" data-act="tts-stop" title="Stop reading" class="pressable inline-flex items-center gap-1.5 rounded-full border hairline bg-surface-container-low/60 text-on-surface-variant/80 font-semibold text-[12.5px] px-3 py-1.5 hover:bg-surface-container/60 ml-0.5" style="'+(active?"":"display:none")+'">'+
           '<span class="material-symbols-outlined text-[18px]">stop</span><span>Stop</span></button>'+
-        '<span id="tts-status" class="text-[11px] font-semibold text-on-surface-variant/55 ml-1.5"></span></div>'+
-        (hasNav?'<p class="text-[11px] text-on-surface-variant/40 -mt-3 mb-4 flex items-center gap-1"><span class="material-symbols-outlined text-[13px]">touch_app</span>Tap a heading to start reading from that section.</p>':'');
+        '<span id="tts-status" class="text-[11px] font-semibold text-on-surface-variant/55 ml-1.5"></span>'+
+        // playback-speed selector (1× / 1.5× / 2×); active reflects TTS.rate
+        '<span class="inline-flex items-center gap-1 ml-auto">'+
+          [[1,"1×"],[1.5,"1.5×"],[2,"2×"]].map(function(o){ var on=Math.abs((TTS.rate||1)-o[0])<0.01;
+            return '<button data-act="tts-rate" data-rate="'+o[0]+'" title="Read at '+o[1]+' speed" class="pressable inline-flex items-center justify-center rounded-full border hairline text-[11px] font-bold px-2 h-7 text-on-surface-variant/70" style="'+(on?"background:#C5E45C;color:#16181B;border-color:#C5E45C;":"")+'">'+o[1]+'</button>'; }).join("")+
+        '</span></div>'+
+        (hasNav?'<p class="text-[11px] text-on-surface-variant/40 -mt-3 mb-4 flex items-center gap-1"><span class="material-symbols-outlined text-[13px]">play_circle</span>Tap the ▶ next to a heading to read from that section.</p>':'');
     }
     H+='<div class="notes-body text-[13.5px]">'+_np.html+'</div>';
   } else { H+='<p class="text-[13px] text-on-surface-variant/60">Pick a note from the list.</p>'; }

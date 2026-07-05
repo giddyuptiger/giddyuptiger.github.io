@@ -1607,6 +1607,7 @@ async function loadDecisions(){
     if(error) return;                       // RLS / transient — keep last known, no regression
     DECISIONS = data || [];
     syncDecisionsSection();
+    if(STATE.view==="coaching") rerender("coaching");   // coach verify-cards live in the Coaching view too
   }catch(_e){ /* offline — realtime or the next poll catches up */ }
 }
 function decisionCardHTML(d){

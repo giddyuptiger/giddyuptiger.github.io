@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Maestro build: 2026-07-05-coach-v1 (Daily Coach: Coaching view — today's update + tap-to-verify cards + weekly/monthly summaries w/ drill-down; fed by maestro-coach edge fn) -->
+<!-- Maestro build: 2026-07-05-deliverable-notes-v1 (deliverable links: non-web/relative Drive paths open the note in-app instead of 404ing on giddyuptiger.github.io; classifyDeliverable + open-deliverable-note) -->
 <html class="dark" lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1569,9 +1569,28 @@ function runDetailInner(r){
   else { h+='<p class="text-[13px] text-on-surface-variant/55">No result note was written for this run.</p>'; }
   h+='</div>';
   if(r.deliverable_url){
-    h+='<a href="'+esc(r.deliverable_url)+'" target="_blank" rel="noopener noreferrer" class="pressable mt-4 w-full flex items-center justify-center gap-2 font-bold text-[13.5px] py-2.5 rounded-xl bg-primary text-on-primary hover:brightness-110"><span class="material-symbols-outlined text-[18px]">open_in_new</span>Open deliverable</a>';
+    const del=classifyDeliverable(r.deliverable_url);
+    if(del.kind==="note"){
+      // In-app deep link into the Notes tab. Many deliverables are Drive .md docs (maestro_docs),
+      // NOT published web pages — a raw relative path would resolve against giddyuptiger.github.io
+      // and 404. Open the note in-app instead.
+      h+='<button data-act="open-deliverable-note" data-target="'+esc(del.target)+'" class="pressable mt-4 w-full flex items-center justify-center gap-2 font-bold text-[13.5px] py-2.5 rounded-xl bg-primary text-on-primary hover:brightness-110"><span class="material-symbols-outlined text-[18px]">menu_book</span>Open deliverable in Notes</button>';
+    } else {
+      h+='<a href="'+esc(del.href)+'" target="_blank" rel="noopener noreferrer" class="pressable mt-4 w-full flex items-center justify-center gap-2 font-bold text-[13.5px] py-2.5 rounded-xl bg-primary text-on-primary hover:brightness-110"><span class="material-symbols-outlined text-[18px]">open_in_new</span>Open deliverable</a>';
+    }
   }
   return h;
+}
+// Classify a deliverable_url so a tap NEVER 404s against giddyuptiger.github.io. Real web links
+// (http/https) open in a new tab; everything else — an explicit note: deep link, a file:// path, or
+// a bare/relative Drive path like "CLAUDE/Projects/.../Doc.md" — is a Notes doc, opened in-app.
+function classifyDeliverable(raw){
+  let s=String(raw||"").trim();
+  if(/^note:/i.test(s)) return { kind:"note", target:s.replace(/^note:/i,"").trim() };
+  if(/^https?:\/\//i.test(s)) return { kind:"web", href:s.split(/\s+/)[0] };   // first token guards malformed "url  (note)"
+  // non-web value → treat as a Notes target; strip file:// , leading slashes, and the CLAUDE/ vault prefix
+  const target=s.replace(/^file:\/\/+/i,"").replace(/^\/+/,"").replace(/^CLAUDE\//,"");
+  return { kind:"note", target };
 }
 function openRunDetail(id){
   const r=RUNS.find(x=>String(x.id)===String(id)); if(!r) return;
@@ -1879,6 +1898,13 @@ document.addEventListener("click",(e)=>{
   else if(el.dataset.act==="decide-free"){ const inp=document.querySelector('[data-decide-input="'+el.dataset.id+'"]'); const v=inp?inp.value.trim():""; if(!v){ toast("Type an answer first","edit"); if(inp) inp.focus(); return; } answerDecision(el.dataset.id, v, v); }
   else if(el.dataset.act==="decide-dismiss"){ dismissDecision(el.dataset.id); }
   else if(el.dataset.act==="open-coach-summary"){ openCoachSummary(el.dataset.id); }
+  else if(el.dataset.act==="open-deliverable-note"){
+    e.preventDefault();
+    const target=el.dataset.target||"";
+    closeModal(); setView("notes");
+    const openIt=()=>{ const d=resolveDoc(target); if(d) openNote(d.path); else toast("Couldn’t find that note: "+target.split("/").pop(),"search"); };
+    if(DOCS===null){ Promise.resolve(loadDocs()).then(openIt); } else openIt();
+  }
 });
 
 /* Notes live search — one delegated input handler (survives re-renders; never rebuilds the input,

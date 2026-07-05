@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Maestro build: 2026-07-05-notes-search-v1 (Notes tab live search: title + body, debounced) -->
 <html class="dark" lang="en">
 <head>
 <meta charset="UTF-8">
@@ -227,6 +228,7 @@ let GOOGLE_CONN=null;   // {status, account_email, connected_at} from maestro_co
 let SLACK_CONN=null;    // {webhook, connected_at, label} read from THIS user's own maestro_dashboard row — null = unknown/not-loaded
 let DISCORD_CONN=null;  // {webhook, connected_at, label} read from THIS user's own maestro_dashboard row — null = unknown/not-loaded
 let DOCS=null, DOCS_LOADING=false;   // Notes vault (maestro_docs) — lazy-loaded, RLS-scoped to the owner
+let NOTE_Q="", NOTE_Q_TIMER=null;    // Notes search query + debounce timer (live-filters title + body)
 
 const KIND = {
   meeting:{icon:"groups",label:"Meeting"}, shoot:{icon:"photo_camera",label:"Shoot"}, edit:{icon:"movie_edit",label:"Edit"},
@@ -1793,6 +1795,15 @@ document.addEventListener("click",(e)=>{
   else if(el.dataset.act==="decide-dismiss"){ dismissDecision(el.dataset.id); }
 });
 
+/* Notes live search — one delegated input handler (survives re-renders; never rebuilds the input,
+   so typing keeps focus). Debounced ~200ms; empty value restores the full tree. */
+document.addEventListener("input",(e)=>{
+  if(!e.target || e.target.id!=="notes-search") return;
+  const val=e.target.value;
+  clearTimeout(NOTE_Q_TIMER);
+  NOTE_Q_TIMER=setTimeout(()=>{ applyNotesSearch(val); }, 200);
+});
+
 /* ───── SETTINGS: calendar visibility (user-owned, persisted to settings column) ───── */
 // Google connection panel — connected → "Connected ✓" (+ account, date) with Reconnect/Disconnect;
 // otherwise the Connect prompt. No nag once a token is stored.
@@ -2149,6 +2160,42 @@ function renderDocTree(node, prefix){
   });
   return h;
 }
+/* ───── Notes live search — case-insensitive, matches title + body (+ path). Debounced; updates
+   only the list + count so the input keeps focus while typing. Empty query = full folder tree. ───── */
+function docMatches(d, q){
+  if(!q) return true;
+  return String(d.title||"").toLowerCase().includes(q)
+      || String(d.content_md||"").toLowerCase().includes(q)
+      || String(d.path||"").toLowerCase().includes(q);
+}
+function notesMatches(){
+  const q=NOTE_Q.trim().toLowerCase();
+  return q ? (DOCS||[]).filter(d=>docMatches(d,q)) : (DOCS||[]);
+}
+function notesCountHTML(){
+  if(!NOTE_Q.trim()) return "";
+  const n=notesMatches().length;
+  return n+' result'+(n===1?"":"s");
+}
+// The left-column list: the folder TREE when not searching, else a flat list of matches.
+function notesListHTML(){
+  if(!NOTE_Q.trim()) return renderDocTree(buildDocTree(DOCS),"");
+  const hits=notesMatches();
+  if(!hits.length) return '<p class="text-[12px] text-on-surface-variant/50 px-2 py-3">No notes match “'+esc(NOTE_Q.trim())+'”.</p>';
+  return hits.slice().sort((a,b)=>String(a.title||a.path).localeCompare(String(b.title||b.path))).map(d=>{
+    const sel=STATE.noteSel===d.path;
+    return '<button data-act="note-open" data-path="'+esc(d.path)+'" class="pressable w-full flex items-start gap-1.5 px-2 py-1.5 rounded-lg text-left text-[12.5px] '+(sel?"bg-primary/12 text-primary font-semibold":"text-on-surface-variant/80 hover:bg-surface-container/60")+'">'+
+      '<span class="material-symbols-outlined text-[15px] flex-shrink-0 mt-[1px] '+(sel?"text-primary":"text-on-surface-variant/45")+'">description</span>'+
+      '<span class="min-w-0"><span class="block truncate">'+esc(d.title||d.path.split("/").pop())+'</span>'+
+      '<span class="block text-[10.5px] text-on-surface-variant/40 truncate font-mono">'+esc(d.path)+'</span></span></button>';
+  }).join("");
+}
+// Live-refresh just the list + count in place (never re-renders the input → focus/cursor preserved).
+function applyNotesSearch(val){
+  NOTE_Q=val;
+  const list=document.getElementById("notes-list"); if(list) list.innerHTML=notesListHTML();
+  const cnt=document.getElementById("notes-count"); if(cnt){ cnt.textContent=notesCountHTML(); cnt.classList.toggle("hidden", !NOTE_Q.trim()); }
+}
 function renderNotes(){
   // Lazy-load on first visit.
   if(DOCS===null){
@@ -2168,11 +2215,17 @@ function renderNotes(){
     const segs=pref.path.split("/"); let acc="";
     for(let k=0;k<segs.length-1;k++){ acc=acc?acc+"/"+segs[k]:segs[k]; STATE.noteOpen[acc]=true; }
   }
-  const tree=buildDocTree(DOCS);
   const cur=DOCS.find(d=>d.path===STATE.noteSel);
   H+='<div class="grid lg:grid-cols-[20rem_1fr] gap-4">';
-  // left: tree
-  H+='<aside class="rounded-2xl border hairline bg-surface-container-low/50 p-2.5 lg:max-h-[78vh] lg:overflow-y-auto"><div class="space-y-0.5">'+renderDocTree(tree,"")+'</div></aside>';
+  // left: live search + list (folder tree, or flat match list while searching)
+  H+='<aside class="rounded-2xl border hairline bg-surface-container-low/50 p-2.5 lg:max-h-[78vh] lg:overflow-y-auto flex flex-col">'+
+       '<div class="relative mb-2">'+
+         '<span class="material-symbols-outlined text-[16px] text-on-surface-variant/45 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none">search</span>'+
+         '<input id="notes-search" type="search" autocomplete="off" spellcheck="false" placeholder="Search notes…" value="'+esc(NOTE_Q)+'" aria-label="Search notes" class="w-full bg-surface-container/60 border hairline rounded-lg pl-8 pr-3 py-1.5 text-[12.5px] text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary/40">'+
+       '</div>'+
+       '<div id="notes-count" class="px-1 mb-1 text-[10.5px] text-on-surface-variant/45'+(NOTE_Q.trim()?"":" hidden")+'">'+notesCountHTML()+'</div>'+
+       '<div id="notes-list" class="space-y-0.5 min-w-0">'+notesListHTML()+'</div>'+
+     '</aside>';
   // right: reader
   H+='<article class="rounded-2xl border hairline bg-surface-container-low/40 p-4 sm:p-6 min-w-0 lg:max-h-[78vh] lg:overflow-y-auto">';
   let _np=null;

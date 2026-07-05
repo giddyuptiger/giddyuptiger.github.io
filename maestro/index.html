@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Maestro build: 2026-07-05-deliverable-notes-v1 (deliverable links: non-web/relative Drive paths open the note in-app instead of 404ing on giddyuptiger.github.io; classifyDeliverable + open-deliverable-note) -->
+<!-- Maestro build: 2026-07-05-coach-clarify-v1 (coach cards: "Explain this" option → next run re-asks in plain language; clearer tap toast) -->
 <html class="dark" lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1690,7 +1690,8 @@ async function answerDecision(id, value, label){
     .update({ answer:value, answer_label:label, answered_at:t, status:"answered", updated_at:t })
     .eq("id", id).eq("user_id", USER_ID);
   if(error){ DECISIONS=prev; syncDecisionsSection(); toast("Couldn’t save that answer — try again","error"); return; }
-  toast("Answer saved — "+label, "check_circle");
+  if(value==="needs_clarification") toast("Got it — the coach will spell this one out on its next update","psychology");
+  else toast("Answer saved — "+label, "check_circle");
 }
 async function dismissDecision(id){
   const prev=DECISIONS.slice();

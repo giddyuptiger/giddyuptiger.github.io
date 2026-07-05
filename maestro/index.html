@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Maestro build: 2026-07-05-notes-tts-v3 (Notes: search + overflow/nav/order fixes + read-aloud speed 1x/1.5x/2x + per-section play) -->
+<!-- Maestro build: 2026-07-05-notes-tts-v4 (Notes: search + overflow/nav/order + speed + per-section play + tap-scrolls-to-article-top) -->
 <html class="dark" lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2281,7 +2281,24 @@ function renderNotes(){
   $("#view-notes").innerHTML=H;
   if(cur && TTS.supported && _np) TTS.bind(cur, _np);   // wire parts/sections + restore highlight/labels
 }
-function openNote(path){ if(typeof TTS!=="undefined") TTS.stop(); STATE.noteSel=path; const segs=String(path).split("/"); let acc=""; for(let k=0;k<segs.length-1;k++){ acc=acc?acc+"/"+segs[k]:segs[k]; STATE.noteOpen[acc]=true; } rerender("notes"); const a=document.querySelector("#view-notes article"); if(a) a.scrollTop=0; }
+function openNote(path){
+  if(typeof TTS!=="undefined") TTS.stop();
+  STATE.noteSel=path;
+  const segs=String(path).split("/"); let acc="";
+  for(let k=0;k<segs.length-1;k++){ acc=acc?acc+"/"+segs[k]:segs[k]; STATE.noteOpen[acc]=true; }
+  rerender("notes");
+  const a=document.querySelector("#view-notes article");
+  if(a){
+    a.scrollTop=0;   // reset the reader pane's own scroll (desktop side-by-side layout)
+    // Bring the TOP of the opened article into view. On mobile the reader sits BELOW the list, so
+    // tapping a note otherwise expands it below the fold; scroll the page so the article's top is
+    // just under the sticky header. This overrides setView's keep-scroll restore.
+    try{
+      const top=a.getBoundingClientRect().top + (window.pageYOffset||window.scrollY||0) - 76;
+      window.scrollTo(0, Math.max(0, top));
+    }catch(_e){ try{ a.scrollIntoView(true); }catch(_e2){} }
+  }
+}
 
 /* ───── render resilience: isolate failures so one bad section (or one bad render) can't blank
    the tab. safeBlock returns an inline "Retry" card instead of throwing; viewErrorHTML is the

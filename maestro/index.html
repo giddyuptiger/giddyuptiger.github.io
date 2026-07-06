@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Maestro build: 2026-07-05-coach-clarify-v1 (coach cards: "Explain this" option → next run re-asks in plain language; clearer tap toast) -->
+<!-- Maestro build: 2026-07-05-snooze-menu-v1 (snooze restored to the task … menu — was swipe-only/undiscoverable; presets tomorrow/3-days/next-week) -->
 <html class="dark" lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1042,9 +1042,12 @@ function taskModal(t){
 // "…" overflow menu — the two controls that used to be inline (priority horizon + Tell Claude).
 function taskMenuPopover(anchor, id){
   const t=findTaskById(id); if(!t) return;
-  const pm=pmeta(taskPriority(t)), done=taskDone(id);
+  const pm=pmeta(taskPriority(t)), done=taskDone(id), snz=taskSnoozed(t);
   let h='<div class="flex flex-col gap-1 min-w-[172px]">';
   if(!done) h+='<button data-act="task-options" data-id="'+esc(id)+'" class="pressable w-full flex items-center justify-between gap-2 rounded-lg px-2.5 py-2 hover:bg-surface-container-high text-left"><span class="text-[12.5px] font-semibold text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-[16px] text-on-surface-variant/70">flag</span>Priority</span><span class="inline-flex items-center text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border '+pm.badge+'">'+pm.label+'</span></button>';
+  // Snooze — the discoverable control (swipe-left also works). Opens the preset sheet; if already
+  // snoozed, shows the wake date + an un-snooze path inside the sheet.
+  if(!done) h+='<button data-act="open-snooze" data-id="'+esc(id)+'" class="pressable w-full flex items-center justify-between gap-2 rounded-lg px-2.5 py-2 hover:bg-surface-container-high text-left"><span class="text-[12.5px] font-semibold text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-[16px] text-on-surface-variant/70">snooze</span>Snooze</span>'+(snz?'<span class="text-[10px] font-semibold text-primary/80">'+esc(fmtSnooze(t.snoozed_until))+'</span>':'')+'</button>';
   h+='<button data-act="task-respond" data-id="'+esc(id)+'" class="pressable w-full flex items-center gap-2 rounded-lg px-2.5 py-2 hover:bg-surface-container-high text-left text-[12.5px] font-semibold text-primary"><span class="material-symbols-outlined text-[16px]">forum</span>Tell&nbsp;Claude</button>';
   h+='</div>';
   openPopover(anchor, h, id);
@@ -1177,8 +1180,8 @@ function snoozeSheet(taskId){
   h+='<p class="text-[11.5px] text-on-surface-variant/55">Hides from the active board until then, then comes back automatically.</p>';
   const opt=(when,icon,label,sub)=>'<button data-act="snooze" data-id="'+esc(taskId)+'" data-when="'+when+'" class="pressable w-full flex items-center gap-3 rounded-xl border border-outline-variant bg-surface-container/50 hover:border-primary/40 px-3.5 py-3 text-left"><span class="material-symbols-outlined text-[20px] text-primary">'+icon+'</span><span class="flex-1"><span class="block text-[13.5px] font-semibold text-on-surface">'+label+'</span><span class="block text-[11px] text-on-surface-variant/55">'+sub+'</span></span></button>';
   h+='<div class="space-y-2">'+
-       opt("later_today","wb_twilight","Later today","In about 3 hours")+
        opt("tomorrow","wb_sunny","Tomorrow","~9:00 AM")+
+       opt("three_days","event","In 3 days","~9:00 AM")+
        opt("next_week","next_week","Next week","Monday ~9:00 AM")+
      '</div>';
   h+='<div class="flex items-center gap-2 pt-1"><input type="date" id="snooze-date" class="flex-1 bg-surface-container-lowest/80 border hairline rounded-xl px-3 py-2 text-[13px] text-on-surface focus:border-primary/50"><button data-act="snooze-date" data-id="'+esc(taskId)+'" class="pressable text-[12.5px] font-semibold border border-outline-variant bg-surface-container/50 hover:border-primary/40 px-3.5 py-2 rounded-xl">Pick a date…</button></div>';
@@ -1204,7 +1207,7 @@ async function setTaskPriority(id, prio){
 function snoozeAt(days){ const d=new Date(); d.setHours(9,0,0,0); d.setDate(d.getDate()+days); return d.toISOString(); }
 function snoozeLaterToday(){ const d=new Date(); d.setHours(d.getHours()+3,0,0,0); return d.toISOString(); }
 function snoozeNextMonday(){ const d=new Date(); d.setHours(9,0,0,0); const dow=d.getDay(); const add=((8-dow)%7)||7; d.setDate(d.getDate()+add); return d.toISOString(); }
-function snoozeWhen(when){ return when==="later_today"?snoozeLaterToday() : when==="next_week"?snoozeNextMonday() : snoozeAt(1); }
+function snoozeWhen(when){ return when==="later_today"?snoozeLaterToday() : when==="three_days"?snoozeAt(3) : when==="next_week"?snoozeNextMonday() : snoozeAt(1); }
 async function snoozeTask(id, when){
   const t=findTaskById(id); if(!t) return;
   t.snoozed_until = snoozeWhen(when);
@@ -1875,6 +1878,7 @@ document.addEventListener("click",(e)=>{
   else if(el.dataset.act==="task-options"){ taskOptionsModal(el.dataset.id); }
   else if(el.dataset.act==="set-prio"){ setTaskPriority(el.dataset.id, el.dataset.prio); }
   else if(el.dataset.act==="toggle-twomin"){ toggleTwoMin(el.dataset.id); }
+  else if(el.dataset.act==="open-snooze"){ closePopover(); snoozeSheet(el.dataset.id); }
   else if(el.dataset.act==="snooze"){ snoozeTask(el.dataset.id, el.dataset.when); }
   else if(el.dataset.act==="snooze-date"){ snoozeTaskDate(el.dataset.id); }
   else if(el.dataset.act==="unsnooze"){ unsnoozeTask(el.dataset.id); }

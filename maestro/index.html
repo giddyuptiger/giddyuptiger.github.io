@@ -358,7 +358,7 @@ function detectConflicts(){ const map=eventsByDay(), out=[], dis=dismissedConfli
       if(new Date(a.start)<new Date(b.end) && new Date(b.start)<new Date(a.end)){ const cid=conflictId(a,b); if(dis.indexOf(cid)<0) out.push({a,b,key:k,cid}); } } }); return out; }
 
 /* ───── toast + modal ───── */
-function toast(msg, icon){ const t=document.createElement("div"); t.className="toast"; t.innerHTML='<span class="material-symbols-outlined text-primary text-[20px] ms-fill">'+(icon||"check_circle")+'</span><span>'+msg+'</span>'; $("#toasts").appendChild(t); requestAnimationFrame(()=>t.classList.add("show")); setTimeout(()=>{ t.classList.remove("show"); setTimeout(()=>t.remove(),300); },3400); }
+function toast(msg, icon){ const t=document.createElement("div"); t.className="toast"; t.innerHTML='<span class="material-symbols-outlined text-primary text-[20px] ms-fill">'+esc(icon||"check_circle")+'</span><span>'+esc(msg)+'</span>'; $("#toasts").appendChild(t); requestAnimationFrame(()=>t.classList.add("show")); setTimeout(()=>{ t.classList.remove("show"); setTimeout(()=>t.remove(),300); },3400); }
 let lastFocus=null;
 function openModal(html){ closePopover(); $("#modal-content").innerHTML=html; const m=$("#modal"); lastFocus=document.activeElement; m.classList.add("open"); m.setAttribute("aria-hidden","false"); document.body.style.overflow="hidden"; $("#modal-panel").scrollTop=0; const c=$(".mclose"); if(c) c.focus(); }
 /* ───── lightweight popover / tooltip ─────

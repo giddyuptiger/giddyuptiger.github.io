@@ -1,3 +1,12 @@
 # OS junk
 .DS_Store
 Thumbs.db
+
+# Supabase CLI scratch — keep it out of the public repo so nothing sensitive
+# can ever land in .temp (currently only project ref + CLI version).
+supabase/
+
+# Editor / local
+.vscode/
+.idea/
+*.swp

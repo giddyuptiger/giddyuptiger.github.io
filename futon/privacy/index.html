@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Futon — Privacy Policy</title>
+<title>Yonda — Privacy Policy</title>
 <style>
   :root { color-scheme: light dark; }
   body {
@@ -32,74 +32,86 @@
 </style>
 </head>
 <body>
-<h1>Futon Privacy Policy</h1>
-<p class="meta">Effective date: May 19, 2026</p>
+<h1>Yonda Privacy Policy</h1>
+<p class="meta">Effective date: July 13, 2026</p>
 
-<p>Futon is a Japanese-language learning app. It tracks what you're studying so it can space your reviews intelligently, and it generates example sentences and short conversations using an AI model. This policy explains what data Futon collects, who it's shared with, and what your rights are.</p>
+<p>Yonda ("Yonda: Read Real Japanese") is a manga-reading and Japanese-learning app. You scan pages from real manga, Yonda reads the Japanese text and helps you understand it, and it tracks what you've learned over time. This policy is written to be specific about what's captured, where it goes, and who can see it.</p>
 
 <h2>Who we are</h2>
-<p>Futon is built and operated by Jeremy Irons (sole developer). Contact: <a href="mailto:jeremydirons@gmail.com">jeremydirons@gmail.com</a>.</p>
+<p>Yonda is built and operated by Jeremy Irons (sole developer). Contact: <a href="mailto:jeremydirons@gmail.com">jeremydirons@gmail.com</a>.</p>
+
+<h2>Summary</h2>
+<ul>
+  <li>We collect your account info, the photos you scan, and the study data Yonda generates from your activity.</li>
+  <li>Scan photos are processed by Anthropic (Claude) to read the Japanese text in them, and stored privately in your own account folder — never public, never used to train AI models.</li>
+  <li>We don't sell your data, and we don't share it with advertisers.</li>
+  <li>You can delete your account and data in the app, or by emailing us.</li>
+</ul>
 
 <h2>What we collect</h2>
 
 <h3>Account information</h3>
 <ul>
-  <li><strong>Email address</strong> — used for sign-in. Authentication is handled by Supabase Auth.</li>
-  <li><strong>Username</strong> (optional) and <strong>display name</strong></li>
+  <li><strong>Email address</strong> — used for sign-in. Authentication is handled by Supabase Auth; we don't store your password ourselves.</li>
+  <li><strong>Display name / profile info</strong> you choose to add.</li>
 </ul>
 
-<h3>Learning data</h3>
+<h3>Study data</h3>
 <ul>
-  <li>Your study progress — for each item you're learning, the spaced-repetition state (FSRS algorithm parameters, mastery score, scheduled review intervals)</li>
-  <li>Review history — your answers, the format tested (recognition, recall, etc.), response times, and which items you tend to confuse with which</li>
-  <li>Your JLPT target level (N5 through N1, or custom)</li>
-  <li>Your retention target (how often you want to remember items correctly)</li>
+  <li><strong>Vocabulary and kanji you've encountered</strong>, review history, and progress/mastery levels — generated as you use the app, so Yonda can track what you know and space out reviews.</li>
+  <li><strong>Chat history</strong> from the in-app AI conversation feature, where you can ask questions about text you've scanned.</li>
 </ul>
 
-<h3>Personalization</h3>
+<h3>Scan &amp; Read photos</h3>
 <ul>
-  <li>Your interests (a list of topics you've told the app you care about — e.g., food, travel — used to personalize generated example sentences)</li>
-  <li>Whether your profile is set to public (a single boolean)</li>
-  <li>Whether you've opted in to "squad" matching (a single boolean)</li>
+  <li><strong>Photos of manga pages (or other Japanese text) that you capture or choose from your photo library</strong> to scan and read.</li>
+  <li>Each photo is uploaded to a <strong>private storage folder scoped to your account</strong> — other users cannot access it, and it is never made public. Access uses short-lived signed links rather than permanent public URLs.</li>
+  <li><strong>How scanning works:</strong> when you scan a page, the photo is sent to <strong>Anthropic's Claude API</strong> to extract and translate the Japanese text (optical character recognition and reading assistance). Anthropic processes this request to return a result to the app; per Anthropic's API terms, this content is not used to train Anthropic's models. We do not use your scans to train any model ourselves either.</li>
+  <li>The extracted text, translations, and any vocabulary/kanji Yonda identifies from a scan become part of your study data (above).</li>
 </ul>
 
-<h3>AI conversation history</h3>
-<p>When you chat with the AI tutor or have it generate example sentences, your messages and the model's responses are stored so you can return to the conversation later. Generated sentences may be cached server-side and reused across users when the same content would be appropriate (e.g., for a given known-vocabulary set), but your own message history is private to your account.</p>
+<h3>AI chat</h3>
+<p>If you use the in-app AI conversation feature to ask questions about scanned text, your messages and the text you're asking about are sent to Anthropic's Claude API to generate a response, for the same purpose and under the same no-training terms described above.</p>
 
-<h3>Subscription</h3>
-<ul>
-  <li>Your subscription tier (free, trial, pro, or lifetime) and trial expiry date if applicable. Payment is processed by Apple's App Store — we never see your card or Apple ID.</li>
-</ul>
+<h3>Subscription &amp; purchase information</h3>
+<p>Yonda offers optional paid subscriptions (and a lifetime purchase). Purchases are handled entirely by Apple's In-App Purchase system. We receive confirmation of your subscription status and purchase history so we can unlock the features you paid for — we never see or store your payment card details, which stay with Apple.</p>
+
+<h3>Diagnostics</h3>
+<p>Yonda may use a crash-reporting or analytics tool to collect basic technical data (device type, OS version, app version, crash logs, and coarse usage events like "screen opened") to help us fix bugs and understand which features are used — never scan photos, chat content, or account credentials.</p>
+
+<h2>Where your data is stored</h2>
+<p>Account information, study data, and scan photos are stored using <strong>Supabase</strong> (Postgres database and file storage), our backend provider. Photos live in a private, per-account storage bucket protected by row-level security, so only your account can read or write your own files.</p>
 
 <h2>Who can see your data</h2>
 <ul>
-  <li><strong>Your learning progress, review history, conversation history, and account info are private to you.</strong> They are stored under your account with row-level security so other users can't read them.</li>
-  <li><strong>If you set your profile to public</strong>, other users can see your username, display name, and high-level progress (e.g., JLPT level), but not your individual reviews or messages.</li>
-  <li><strong>If you opt in to squad matching</strong>, a nightly job groups you with similar learners. Your squad-mates see your activity feed (e.g., "studied 30 minutes today") but not the content of your reviews or conversations.</li>
+  <li><strong>By default, only you can see your scans, study data, and chat history.</strong> Yonda has no public profiles or feed.</li>
+  <li>Your email address is never shown to other users.</li>
 </ul>
 
 <h2>Third-party services we use</h2>
 <ul>
-  <li><strong>Supabase</strong> — hosts the database, authentication, file storage, edge functions, and realtime channels. All your data lives here.</li>
-  <li><strong>Anthropic (Claude API)</strong> — when you chat with the AI tutor or request a generated example sentence, the relevant context (your message, your known vocabulary, your interests) is sent to Anthropic's API to generate a response. Anthropic does not use this content to train their models when accessed via the API. See <a href="https://www.anthropic.com/legal/privacy">Anthropic's privacy policy</a>.</li>
-  <li><strong>Apple App Store</strong> — handles all subscription payments. We only receive a tier and expiry status; we never see payment details.</li>
+  <li><strong>Supabase</strong> — database, authentication, and file storage. <a href="https://supabase.com/privacy" target="_blank" rel="noopener">Supabase's privacy policy</a>.</li>
+  <li><strong>Anthropic (Claude API)</strong> — reads and translates scanned Japanese text, and powers the AI chat feature. <a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener">Anthropic's privacy policy</a>.</li>
+  <li><strong>Apple (In-App Purchase / StoreKit)</strong> — processes subscription and purchase payments. <a href="https://www.apple.com/legal/privacy/" target="_blank" rel="noopener">Apple's privacy policy</a>.</li>
 </ul>
-<p>That's the entire list. Futon does not use advertising SDKs, attribution trackers, or third-party analytics. We do not sell or rent your data, and we do not use your data to train AI models.</p>
+<p>That's the entire list. We do not sell or rent your data, and we do not use advertising SDKs.</p>
 
 <h2>How long we keep your data</h2>
-<p>Your account, learning state, review history, and conversation history are kept as long as your account exists. When you delete your account, all of this is removed from our database (cascade delete). Generated sentences that have been cached for reuse across the system are anonymous and are kept indefinitely. Backups may retain personal data for up to 30 days before being overwritten.</p>
+<p>Your account, scans, and study data are kept for as long as your account exists. If you delete your account, your data is deleted from our active systems; backups may retain data for up to 30 days after deletion before being overwritten.</p>
 
 <h2>Your rights</h2>
 <ul>
-  <li><strong>Access</strong> — your learning data is visible inside the app. Email us for a full export.</li>
-  <li><strong>Correction</strong> — you can edit your profile, interests, and settings in the app.</li>
-  <li><strong>Deletion</strong> — you can delete your account in settings, or by email. Specific conversations can also be cleared from the app.</li>
-  <li><strong>Opt out</strong> — you can turn off public profile and squad matching at any time.</li>
+  <li><strong>Access</strong> — view your own scans, study data, and chat history directly in the app. Email us for a full data export.</li>
+  <li><strong>Deletion</strong> — delete your account in-app (Profile → Delete Account), or email us and we'll delete it for you. See our <a href="/futon/delete-account/">Account Deletion</a> page for details.</li>
+  <li><strong>Correction</strong> — update your profile info in the app.</li>
 </ul>
-<p>If you live in the EU, UK, or California, you have additional rights under GDPR, UK GDPR, and CCPA — including portability and the right to complain to your local data protection authority. Email us to exercise any of these.</p>
+<p>If you live in the EU, UK, or California, you have additional rights under GDPR, UK GDPR, and CCPA, including data portability and the right to complain to your local data protection authority. Email us to exercise any of these rights.</p>
 
 <h2>Children</h2>
-<p>Futon is not directed at children under 13 (or 16 in the EU). We do not knowingly collect data from children. If we learn that a child has signed up, we will delete the account.</p>
+<p>Yonda is not directed at children under 13, and we do not knowingly collect data from anyone under 13. If we learn that a child under 13 has an account, we will delete it.</p>
+
+<h2>Security</h2>
+<p>We use industry-standard practices (encryption in transit, per-account access controls on stored files) to protect your data. No system is perfectly secure, but we take reasonable steps to protect what you share with us.</p>
 
 <h2>Changes to this policy</h2>
 <p>If we change this policy, we'll update the effective date at the top. Material changes will be surfaced in the app before they take effect.</p>

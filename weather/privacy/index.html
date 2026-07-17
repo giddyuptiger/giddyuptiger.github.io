@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>WEATHER — Privacy Policy</title>
+<title>Weather — Privacy Policy</title>
 <style>
   :root { color-scheme: light dark; }
   body {
@@ -20,6 +20,8 @@
     a { color: #79b8ff; }
     h2, h3 { color: #f0f0f0; }
     .meta { color: #888; }
+    th { border-color: #333; }
+    td { border-color: #262626; }
   }
   h1 { font-size: 1.75rem; margin-bottom: 0.25rem; }
   h2 { font-size: 1.25rem; margin-top: 2rem; }
@@ -29,86 +31,119 @@
   li { margin: 0.4rem 0; }
   a { color: #0366d6; }
   code { background: rgba(127,127,127,0.15); padding: 0.05em 0.3em; border-radius: 3px; font-size: 0.9em; }
+  table { border-collapse: collapse; width: 100%; margin: 0.75rem 0; font-size: 0.95rem; }
+  th, td { text-align: left; padding: 0.5rem 0.6rem; vertical-align: top; }
+  th { border-bottom: 2px solid #ddd; }
+  td { border-bottom: 1px solid #eee; }
 </style>
 </head>
 <body>
-<h1>WEATHER Privacy Policy</h1>
-<p class="meta">Effective date: May 19, 2026</p>
+<h1>Weather — Privacy Policy</h1>
+<p class="meta">Last updated: July 10, 2026</p>
 
-<p>WEATHER is a private journaling and connection app for couples. This policy explains what data the app collects, how it's used, who it's shared with, and your rights. We try to keep it short and honest.</p>
+<p>Weather is a tool for two people in a relationship. It is a quiet, private instrument — not a social network, not an analytics product, not a place anyone is trying to sell you something. This document explains exactly what we collect, why, who can see it, and what you can do about it.</p>
+
+<p>If you ever want a copy of your data or want it deleted, email <a href="mailto:support@irons.la"><strong>support@irons.la</strong></a> and we will handle it within seven days.</p>
 
 <h2>Who we are</h2>
-<p>WEATHER is built and operated by Jeremy Irons (sole developer). Contact: <a href="mailto:support@irons.la">support@irons.la</a>.</p>
+<p>Weather is operated by Irons Software. Contact: <a href="mailto:support@irons.la"><strong>support@irons.la</strong></a>.</p>
 
-<h2>What we collect</h2>
-
-<h3>Account information</h3>
+<h2>The short version</h2>
 <ul>
-  <li><strong>Email address</strong> — used for sign-in via a one-time magic link. We do not store passwords.</li>
-  <li><strong>Display name</strong> — the name shown to you and your partner inside the app.</li>
-  <li><strong>Device push token</strong> — if you allow notifications, a token from Apple Push Notification service / Firebase Cloud Messaging is stored so we can deliver pushes (e.g., a love note from your partner).</li>
+  <li>We store your email address (for sign-in), an optional display name, and the entries you create in the app (check-ins, notices, pauses, phrases, repairs, love notes, and — if you turn it on — cycle data).</li>
+  <li>The only people who can ever see your entries are <strong>you</strong> and the partner you have explicitly paired with. We do not share your data with advertisers, brokers, or any third party.</li>
+  <li>We collect anonymized crash reports through Sentry to fix bugs. These reports contain no journal text, no entry content, and no identifying information.</li>
+  <li>We do not track you across other apps or websites. We do not show advertising. We do not sell anything to anyone about you.</li>
 </ul>
 
-<h3>What you write in the app</h3>
-<p>Everything you record in WEATHER is stored so it can sync across your devices and (when you choose) be visible to your paired partner:</p>
+<h2>What we collect, and why</h2>
+
+<h3>Account data</h3>
+<table>
+  <thead><tr><th>Data</th><th>Why</th></tr></thead>
+  <tbody>
+    <tr><td>Email address</td><td>So you can sign in to your account.</td></tr>
+    <tr><td>Display name</td><td>So your partner sees a name, not a UUID.</td></tr>
+    <tr><td>Time zone</td><td>So push notifications land at the right time.</td></tr>
+  </tbody>
+</table>
+
+<h3>Your entries</h3>
+<p>Everything you type, tap, or log inside Weather:</p>
 <ul>
-  <li>Daily check-ins (feeling, optional description, impact tags, reflection)</li>
-  <li>Tension and somatic logs (signals, context, intensity, optional notes)</li>
-  <li>Pauses (duration, what triggered them, whether you grounded after)</li>
-  <li>Phrases you've logged and who said them</li>
-  <li>Repairs and love notes</li>
-  <li>Addenda — notes you append to past entries</li>
-  <li>Custom vocabulary you've added (your own signal, context, or phrase labels)</li>
+  <li>Daily check-ins (mood, feelings, descriptions, reflection responses)</li>
+  <li>Notices (somatic signals, intensity, optional notes)</li>
+  <li>Pauses (duration, completion)</li>
+  <li>High-impact phrases (which phrase, who said it, optional context)</li>
+  <li>Repairs (kind, optional notes)</li>
+  <li>Love notes (the text you wrote)</li>
+  <li>Cycle data (if you enable cycle tracking — cycle start date, length, and a privacy preference that controls how much of it your partner sees)</li>
+</ul>
+<p>We collect this because it <em>is</em> the product. Without it, Weather has nothing to show you.</p>
+
+<h3>Pairing data</h3>
+<ul>
+  <li>A six-digit pairing code (expires in ten minutes, then deleted).</li>
+  <li>The link between you and the partner you pair with.</li>
 </ul>
 
-<h3>Optional cycle tracking</h3>
-<p>If you turn on cycle tracking, we store the date of your last cycle start and your typical cycle length. You choose how much (if any) of this is visible to your partner: <strong>private</strong>, <strong>day count only</strong>, or <strong>full band</strong>. You can change this at any time, or turn cycle tracking off entirely.</p>
-
-<h3>App preferences</h3>
+<h3>Device data</h3>
 <ul>
-  <li>Timezone, quiet hours, breath pattern preference</li>
-  <li>Partnership ID and pairing-code state (6-digit codes, valid 10 minutes, single use)</li>
-  <li>Sharing-pause state (whether sharing with your partner is currently paused)</li>
+  <li>A Firebase Cloud Messaging (FCM) device token, so we can deliver the push notifications you may opt into (pause called, pause ended, partner checked in, love note received). Quiet hours are honored.</li>
 </ul>
 
-<h2>What we share with your partner</h2>
-<p>WEATHER is designed for two people. Pairing is explicit: you and your partner enter a one-time code to link your accounts. Once paired:</p>
+<h3>Crash data</h3>
 <ul>
-  <li>Each entry has a visibility setting — <strong>private</strong> or <strong>shared with partner</strong>. You control this per entry.</li>
-  <li>Some entry types default to shared (check-ins, phrases, repairs, pauses); tension entries default to private. You can change defaults and override per entry.</li>
-  <li>Cycle tracking sharing follows the level you chose above.</li>
-  <li>You can pause sharing at any time, which hides new entries from your partner until you resume.</li>
+  <li>We use <strong>Sentry</strong> for crash reporting. Sentry receives a stack trace, the operating-system version (iOS or Android), the app version, and a randomized install ID. It does <strong>not</strong> receive your email, your name, any entry content, any breadcrumbs that could include your data, or your partner's information. We have specifically disabled breadcrumbs and <code>extra</code> payloads in Sentry to make sure of this.</li>
 </ul>
-<p>We do not share your data with any other user, ever. Only your explicitly paired partner can see what you mark as shared.</p>
 
-<h2>Third-party services we use</h2>
+<h3>What we deliberately do NOT collect</h3>
 <ul>
-  <li><strong>Supabase</strong> — hosts our database and authentication. Your account and your entries live here.</li>
-  <li><strong>Firebase Cloud Messaging</strong> (Google) — delivers push notifications. Only your device token is stored on Google's side.</li>
-  <li><strong>Sentry</strong> — crash and error reporting. When the app crashes, a diagnostic report (stack trace, app version, device model) is sent to help us fix bugs. Sentry is configured to scrub personal data from reports.</li>
+  <li>Advertising identifiers (we do not advertise)</li>
+  <li>Your contacts or photos</li>
+  <li>Your location (beyond the time zone you set in your profile)</li>
+  <li>Your microphone or camera</li>
+  <li>Any third-party analytics SDK (Google Analytics, Mixpanel, Amplitude, etc.)</li>
 </ul>
-<p>That's the entire list. We do not use advertising SDKs, attribution trackers, or product analytics. We do not sell or rent your data to anyone, and we do not use your data to train AI models.</p>
 
-<h2>How long we keep your data</h2>
-<p>Your data is kept as long as your account exists. When you delete your account, your profile, entries, pairing, and tokens are removed from our database (cascade delete). Backups may retain data for up to 30 days before being overwritten.</p>
+<h2>Who can see your data</h2>
+<ul>
+  <li><strong>You</strong>, always.</li>
+  <li><strong>Your paired partner</strong>, only for entries you have marked as shared. Some entry types (check-ins, phrases, love notes) are shared by design — the app makes this visible in the UI. Other types (notices) are private by default and only promote to shared when you tap "share with partner".</li>
+  <li><strong>Us (Irons Software)</strong>, in encrypted form, through our backend provider (Supabase). A small number of engineers may need access to the database for incident response. We never read entries casually, and we never use them for product analytics.</li>
+  <li><strong>Sentry</strong>, only the de-identified crash reports described above.</li>
+  <li><strong>Apple</strong> (on iOS, via APNs) and <strong>Google</strong> (on Android, via Firebase Cloud Messaging), when delivering push notifications. They receive the partner's display name and the short notification line (e.g. "J called a pause. Back at 8:47."). Neither receives any longer-form entry content.</li>
+</ul>
+<p>We never sell, rent, or trade your data, and we do not use your data to train AI models.</p>
+
+<h2>How long we keep it</h2>
+<ul>
+  <li><strong>Live entries</strong>: until you delete them or delete your account.</li>
+  <li><strong>Soft-deleted entries</strong>: thirty days, then permanently removed.</li>
+  <li><strong>Pairing codes</strong>: ten minutes, or until consumed.</li>
+  <li><strong>FCM tokens</strong>: until your device unregisters or you sign out.</li>
+  <li><strong>Crash reports</strong>: ninety days (Sentry default).</li>
+</ul>
+<p>If you delete your account, all of your entries are permanently removed within thirty days.</p>
 
 <h2>Your rights</h2>
 <ul>
-  <li><strong>Access</strong> — you can see all your data inside the app, or request a copy by email.</li>
-  <li><strong>Correction</strong> — you can edit any entry directly in the app.</li>
-  <li><strong>Deletion</strong> — you can delete individual entries in the app, or request full account deletion by email.</li>
-  <li><strong>Unpair</strong> — you can end a partnership at any time from settings.</li>
+  <li><strong>Access</strong>: ask us for a copy of your data.</li>
+  <li><strong>Correction</strong>: edit anything in-app where possible; for anything else, email us.</li>
+  <li><strong>Deletion</strong>: delete entries in-app, or email us to delete your account.</li>
+  <li><strong>Unpair</strong>: unlink from your partner at any time in Settings. After you unpair, neither of you can see new entries from the other; past shared entries remain visible until you delete them.</li>
+  <li><strong>Push notifications</strong>: turn off any time in your device's system settings (iOS or Android) or in the app.</li>
 </ul>
-<p>If you live in the EU, UK, or California, you have additional rights under GDPR, UK GDPR, and CCPA — including the right to portability and the right to lodge a complaint with your local data protection authority. Email us to exercise any of these.</p>
+<p>If you live in the EU, UK, or California, you have additional rights under GDPR, UK GDPR, and CCPA — including the right to portability and the right to lodge a complaint with your local data-protection authority. Email <a href="mailto:support@irons.la"><strong>support@irons.la</strong></a> to exercise any of these.</p>
 
 <h2>Children</h2>
-<p>WEATHER is not directed at children under 13 (or 16 in the EU). We do not knowingly collect data from children. If we learn that a child has signed up, we will delete the account.</p>
+<p>Weather is not designed for or directed at children under 13 (or 16 in the EU). We do not knowingly collect data from anyone under that age. If we learn that a child has signed up, we will delete the account.</p>
 
-<h2>Changes to this policy</h2>
-<p>If we change this policy, we'll update the effective date at the top. Material changes will be surfaced in the app before they take effect.</p>
+<h2>Changes</h2>
+<p>If we change this policy materially, we will update the date above and notify you in-app before the change takes effect.</p>
 
 <h2>Contact</h2>
-<p>Questions, requests, or concerns: <a href="mailto:support@irons.la">support@irons.la</a>.</p>
+<p>Questions, requests, or concerns: <a href="mailto:support@irons.la"><strong>support@irons.la</strong></a>.</p>
 
 <p style="margin-top:3rem;"><a href="/">← All privacy policies</a></p>
 </body>

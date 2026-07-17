@@ -1661,10 +1661,12 @@ function decisionCardHTML(d){
       '<button data-act="decide-free" data-id="'+esc(d.id)+'" class="pressable flex-shrink-0 rounded-xl bg-primary text-on-primary font-bold text-[13px] px-3.5 py-2 hover:brightness-110">Send</button></div>';
   }
   return '<div class="rounded-2xl border border-primary/25 bg-primary/[0.05] p-4 sm:p-5" data-decision="'+esc(d.id)+'">'+
-    '<div class="flex items-center gap-2 mb-2"><span class="material-symbols-outlined text-primary text-[18px]">how_to_reg</span>'+
-      '<span class="text-[11px] font-bold tracking-[0.18em] text-primary uppercase">Needs you</span>'+
+    '<div class="flex items-center gap-2 mb-2">'+
+      // Project title top-LEFT so Jeremy sees which project a card belongs to at a glance…
+      (d.project?'<span class="text-[12px] font-bold text-on-surface/85 truncate max-w-[55%]">'+esc(d.project)+'</span>':'<span class="text-[11px] font-semibold text-on-surface-variant/40">General</span>')+
       staleBadge+
-      (d.project?'<span class="ml-auto text-[10.5px] font-semibold text-on-surface-variant/55 truncate max-w-[45%]">'+esc(d.project)+'</span>':'')+
+      // …and the "Needs you" label + icon top-RIGHT.
+      '<span class="ml-auto inline-flex items-center gap-1 flex-shrink-0"><span class="material-symbols-outlined text-primary text-[16px]">how_to_reg</span><span class="text-[11px] font-bold tracking-[0.18em] text-primary uppercase">Needs you</span></span>'+
     '</div>'+
     '<div class="text-[14px] leading-snug text-on-surface mb-1">'+q+'</div>'+
     (ctx?'<div class="text-[12.5px] text-on-surface-variant/70 mb-3 leading-snug">'+buildNoteParts(ctx).html+'</div>':'<div class="mb-3"></div>')+

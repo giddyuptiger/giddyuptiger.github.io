@@ -199,6 +199,7 @@
     <section id="view-notes" class="view"></section>
     <section id="view-coaching" class="view"></section>
     <section id="view-inbox" class="view"></section>
+    <section id="view-needs" class="view"></section>
   </main>
 
   <nav class="sm:hidden fixed bottom-0 inset-x-0 z-40 bg-surface/90 backdrop-blur-xl border-t hairline flex justify-around items-stretch gap-1 px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.6rem)]" id="bnav">
@@ -1687,21 +1688,60 @@ function decisionsSectionHTML(){
       '<span class="text-[11px] text-on-surface-variant/50 font-mono">'+open.length+' open</span>'+staleTag+'</div>'+
     open.map(decisionCardHTML).join("")+'</div>';
 }
-// Insert / replace / remove #decisions-section right AFTER the activity item (else as first child),
-// in place — without re-rendering the rest of the tab.
+// ONE compact "Needs you" summary card for the Overview: count + top item, tap to open the full list
+// on its own screen (the #needs view). Keeps the homepage clean — the full stack lives one tap away,
+// not blown up inline. (id is distinct from the full stack's #decisions-section so they never clash.)
+function decisionsSummaryHTML(){
+  const open=(DECISIONS||[]).filter(d=>d.status==="open");
+  if(!open.length) return "";                                 // QUIET — nothing to decide
+  const staleN = open.filter(d=>decisionAgeDays(d) >= STALE_DECISION_DAYS).length;
+  const top = open[0];                                        // oldest-first → the most-waiting item
+  const topTitle = String(top.question||"").replace(/[*`_#>]/g,"").replace(/\s+/g," ").trim().slice(0,90);
+  return '<button id="decisions-summary" data-act="nav" data-view="needs" class="rise pressable w-full text-left mb-5 rounded-2xl border border-primary/25 bg-primary/[0.06] p-4 sm:p-5 hover:border-primary/45 group" style="animation-delay:.02s">'+
+    '<div class="flex items-center gap-2 mb-1.5">'+
+      '<span class="material-symbols-outlined text-primary text-[18px]">how_to_reg</span>'+
+      '<span class="text-[11px] font-bold tracking-[0.18em] text-primary uppercase">Needs you</span>'+
+      '<span class="text-[11px] text-on-surface-variant/55 font-mono">'+open.length+' open</span>'+
+      (staleN?'<span class="text-[10.5px] font-bold px-2 py-0.5 rounded-full" style="background:rgba(245,158,11,.14);color:#f59e0b;border:1px solid rgba(245,158,11,.32)">'+staleN+' stale</span>':'')+
+      '<span class="ml-auto inline-flex items-center gap-0.5 text-[11.5px] font-semibold text-primary/80 group-hover:text-primary transition-colors">Open<span class="material-symbols-outlined text-[18px] group-hover:translate-x-0.5 transition-transform">chevron_right</span></span>'+
+    '</div>'+
+    '<p class="text-[13.5px] text-on-surface/85 leading-snug line-clamp-2">'+
+      (top.project?'<span class="text-[10.5px] font-bold uppercase tracking-wide text-on-surface-variant/50 mr-1.5">'+esc(top.project)+'</span>':'')+
+      esc(topTitle)+
+      (open.length>1?'<span class="text-on-surface-variant/45 font-medium"> · +'+(open.length-1)+' more</span>':'')+
+    '</p>'+
+  '</button>';
+}
+// The full "Needs you" list on its own screen — every card, answer buttons, skip, free-text: unchanged,
+// just moved behind the Overview summary card. Reached via #needs (the summary card / hash).
+function renderNeeds(){
+  const open=(DECISIONS||[]).filter(d=>d.status==="open");
+  let H='<div class="rise">';
+  H+='<button data-act="nav" data-view="overview" class="pressable inline-flex items-center gap-1 text-[12.5px] font-semibold text-primary mb-4 hover:gap-1.5 transition-all"><span class="material-symbols-outlined text-[18px]">arrow_back</span>Overview</button>';
+  H+= open.length
+    ? decisionsSectionHTML()
+    : '<div class="rounded-2xl border hairline bg-surface-container/50 p-10 text-center"><span class="material-symbols-outlined text-primary/40 text-[40px]">task_alt</span><p class="text-[13.5px] text-on-surface-variant/60 mt-2">Nothing needs you right now.</p></div>';
+  H+=footerHTML()+'</div>';
+  const v=$("#view-needs"); if(v) v.innerHTML=H;
+}
+// Overview gets the compact summary card (id #decisions-summary), inserted right AFTER the activity
+// item, in place. Also keeps the full #needs screen live if it's the active view.
 function syncDecisionsSection(){
-  const ov=$("#view-overview"); if(!ov) return;
-  const existing=document.getElementById("decisions-section");
-  const html=decisionsSectionHTML();
-  if(existing){
-    if(!html){ existing.remove(); return; }
-    const tmp=document.createElement("div"); tmp.innerHTML=html; existing.replaceWith(tmp.firstElementChild);
-  } else if(html){
-    const tmp=document.createElement("div"); tmp.innerHTML=html; const node=tmp.firstElementChild;
-    const act=document.getElementById("activity-item");
-    if(act && act.parentNode===ov) ov.insertBefore(node, act.nextSibling);
-    else ov.insertBefore(node, ov.firstChild);
+  const ov=$("#view-overview");
+  if(ov){
+    const existing=document.getElementById("decisions-summary");
+    const html=decisionsSummaryHTML();
+    if(existing){
+      if(!html){ existing.remove(); }
+      else { const tmp=document.createElement("div"); tmp.innerHTML=html; existing.replaceWith(tmp.firstElementChild); }
+    } else if(html){
+      const tmp=document.createElement("div"); tmp.innerHTML=html; const node=tmp.firstElementChild;
+      const act=document.getElementById("activity-item");
+      if(act && act.parentNode===ov) ov.insertBefore(node, act.nextSibling);
+      else ov.insertBefore(node, ov.firstChild);
+    }
   }
+  if(STATE.view==="needs") rerender("needs");                 // keep the full list current on its screen
 }
 // Answer a decision — optimistic (drop the card now), owner-scoped write, revert on failure.
 async function answerDecision(id, value, label){
@@ -2458,7 +2498,7 @@ function viewErrorHTML(name){
 }
 /* ───── router ───── */
 function showSkeleton(name){
-  if(["overview","projects","tasks","week","travel","notes","coaching","inbox"].indexOf(name)<0) name="overview";
+  if(["overview","projects","tasks","week","travel","notes","coaching","inbox","needs"].indexOf(name)<0) name="overview";
   $$(".view").forEach(v=>v.classList.toggle("active", v.id==="view-"+name));
   $$(".tab").forEach(t=>t.dataset.active = t.dataset.view===name?"1":"0");
   $$(".bnav").forEach(t=>t.dataset.active = t.dataset.view===name?"1":"0");
@@ -2466,7 +2506,7 @@ function showSkeleton(name){
   $("#view-"+name).innerHTML='<div class="space-y-4"><div class="h-7 w-44 rounded bg-surface-container-high animate-pulse mb-1"></div>'+card+card+card+card+'</div>';
 }
 function setView(name, force){
-  if(["overview","projects","tasks","week","travel","notes","coaching","inbox"].indexOf(name)<0) name="overview";
+  if(["overview","projects","tasks","week","travel","notes","coaching","inbox","needs"].indexOf(name)<0) name="overview";
   // Scroll discipline: a genuine NAVIGATION (switching views, or any unforced call from the
   // hashchange handler) jumps to the top. An in-place RE-RENDER of the view you're already on
   // (force=true, same view — e.g. checking a task off, snooze, set-priority, a realtime data
@@ -2477,7 +2517,7 @@ function setView(name, force){
   const keepScroll = !!force && sameView;
   const y = window.scrollY;
   STATE.view=name;
-  const fn={overview:renderOverview,projects:renderProjects,tasks:renderTasks,week:renderWeek,travel:renderTravel,notes:renderNotes,coaching:renderCoaching,inbox:renderInbox}[name];
+  const fn={overview:renderOverview,projects:renderProjects,tasks:renderTasks,week:renderWeek,travel:renderTravel,notes:renderNotes,coaching:renderCoaching,inbox:renderInbox,needs:renderNeeds}[name];
   if(!RENDERED[name]||force){
     // Mark RENDERED only on SUCCESS. If a render throws, leave it false so the next navigation
     // (or realtime/poll tick) re-renders and recovers, instead of the view being stuck.

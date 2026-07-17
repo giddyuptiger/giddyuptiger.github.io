@@ -1632,10 +1632,25 @@ async function loadDecisions(){
     if(STATE.view==="coaching") rerender("coaching");   // coach verify-cards live in the Coaching view too
   }catch(_e){ /* offline — realtime or the next poll catches up */ }
 }
+// A "Needs you" card open longer than this many days gets an amber age badge so advisory cards
+// (which never auto-close — they wait for a tap) can't silently pile up unnoticed. Backend dedup keeps
+// the list free of duplicates; this keeps STALE ones visible. Age is computed from created_at, which
+// loadDecisions already fetches — purely presentational, no schema/query change.
+const STALE_DECISION_DAYS = 10;
+function decisionAgeDays(d){
+  if(!d || !d.created_at) return 0;
+  const t = new Date(d.created_at).getTime();
+  if(!isFinite(t)) return 0;
+  return Math.floor((Date.now() - t) / 86400000);
+}
 function decisionCardHTML(d){
   const opts = Array.isArray(d.options)? d.options : [];
   const q = buildNoteParts(String(d.question||"")).html;      // markdown → clean HTML
   const ctx = String(d.context||"").trim();
+  const ageDays = decisionAgeDays(d);
+  const staleBadge = ageDays >= STALE_DECISION_DAYS
+    ? '<span title="Open '+ageDays+' days — still needed? Tap Skip if it’s handled." class="inline-flex items-center gap-1 text-[10.5px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style="background:rgba(245,158,11,.14);color:#f59e0b;border:1px solid rgba(245,158,11,.32)"><span class="material-symbols-outlined text-[13px]">schedule</span>'+ageDays+'d</span>'
+    : '';
   const buttons = opts.map(o=>
     '<button data-act="decide-option" data-id="'+esc(d.id)+'" data-value="'+esc(o.value)+'" data-label="'+esc(o.label)+'" class="pressable inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/[0.06] hover:bg-primary/15 hover:border-primary/50 px-3.5 py-2 text-[13px] font-semibold text-on-surface">'+esc(o.label)+'</button>'
   ).join("");
@@ -1648,6 +1663,7 @@ function decisionCardHTML(d){
   return '<div class="rounded-2xl border border-primary/25 bg-primary/[0.05] p-4 sm:p-5" data-decision="'+esc(d.id)+'">'+
     '<div class="flex items-center gap-2 mb-2"><span class="material-symbols-outlined text-primary text-[18px]">how_to_reg</span>'+
       '<span class="text-[11px] font-bold tracking-[0.18em] text-primary uppercase">Needs you</span>'+
+      staleBadge+
       (d.project?'<span class="ml-auto text-[10.5px] font-semibold text-on-surface-variant/55 truncate max-w-[45%]">'+esc(d.project)+'</span>':'')+
     '</div>'+
     '<div class="text-[14px] leading-snug text-on-surface mb-1">'+q+'</div>'+
@@ -1660,10 +1676,13 @@ function decisionCardHTML(d){
 function decisionsSectionHTML(){
   const open=(DECISIONS||[]).filter(d=>d.status==="open");
   if(!open.length) return "";                                 // QUIET — nothing to decide
+  // oldest first (created_at asc from loadDecisions) already surfaces stale cards at the top.
+  const staleN = open.filter(d=>decisionAgeDays(d) >= STALE_DECISION_DAYS).length;
+  const staleTag = staleN ? '<span class="text-[10.5px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style="background:rgba(245,158,11,.14);color:#f59e0b;border:1px solid rgba(245,158,11,.32)">'+staleN+' stale</span>' : '';
   return '<div id="decisions-section" class="rise mb-5 space-y-3" style="animation-delay:.02s">'+
     '<div class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-[18px]">how_to_vote</span>'+
       '<h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Decisions</h2>'+
-      '<span class="text-[11px] text-on-surface-variant/50 font-mono">'+open.length+' open</span></div>'+
+      '<span class="text-[11px] text-on-surface-variant/50 font-mono">'+open.length+' open</span>'+staleTag+'</div>'+
     open.map(decisionCardHTML).join("")+'</div>';
 }
 // Insert / replace / remove #decisions-section right AFTER the activity item (else as first child),

@@ -1926,8 +1926,9 @@ document.addEventListener("click",(e)=>{
     DATA.settings=DATA.settings||{}; DATA.settings.completedTasks=cur;
     RENDERED.overview=false; RENDERED.tasks=false; setView(STATE.view, true);
     // Re-open the originating modal so its button flips: the task modal if invoked from a task,
-    // otherwise the project modal.
-    if(el.dataset.fromTask==="1"){ const t=findTaskById(ids[0]); if(t) taskModal(t); }
+    // otherwise the project modal. Exception: marking a task DONE from the task detail modal
+    // dismisses it and returns to the list (per Jeremy) — undo still re-opens so its button flips.
+    if(el.dataset.fromTask==="1"){ if(markDone){ closeModal(); } else { const t=findTaskById(ids[0]); if(t) taskModal(t); } }
     else { const p=projById(el.dataset.pid); if(p) projectModal(p); }
     toast(markDone?"Marked done":"Marked not done", markDone?"check_circle":"undo");
     sb.from("maestro_dashboard").update({ settings: DATA.settings }).eq("user_id", USER_ID).then(({error})=>{ if(error) toast("Couldn’t save: "+error.message,"error"); });

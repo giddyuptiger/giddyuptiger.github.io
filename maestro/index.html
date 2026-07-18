@@ -352,6 +352,44 @@ function buildTrips(){
 // The next upcoming trip (ends today or later); null if none.
 function nextTrip(){ const tk=todayKey(); return buildTrips().filter(t=>t.endKey>=tk).sort((a,b)=>a.startMs-b.startMs)[0]||null; }
 function dismissedConflicts(){ return (DATA.settings && DATA.settings.dismissedConflicts) || []; }
+/* ── Recently completed: "here's what got done, no action for you" notifications get their own
+   dismissible section — they never sit in the active/ASAP to-do list. An item is a completion
+   NOTE (not a to-do) when the agent tagged it `kind:"completed"`, when its title leads with ✅,
+   or (conservative fallback) when it explicitly says "no action needed"/"acknowledge & clear"
+   AND carries no ask verb. The ask-guard keeps a real action ("...needs your review") from ever
+   being hidden here. Active tasks must always read as an action; completions get acknowledged
+   and cleared. ── */
+function dismissedCompletions(){ return (DATA.settings && DATA.settings.dismissedCompletions) || []; }
+function isCompletedNote(t){
+  if(t.kind==="completed") return true;                                  // explicit tag (brain/scribe, going forward)
+  const title=String(t.title||"");
+  if(/^\s*✅/.test(title)) return true;                                   // explicit ✅ marker in STATUS.md
+  if(taskDone(t.id)) return false;                                       // Jeremy-marked-done handled by the Done section
+  const full=(title+" "+(t.detail||t.description||t.notes||"")).toLowerCase();
+  const doneSig=/(no action needed|nothing pending|no residual action|acknowledge (and|&) clear|nothing further|—\s*no action|no action required)/.test(full);
+  const askSig=/(needs? you|needs? your|review|approve|decide|decision|dogfood|smoke.?test|send |act (on|today|this)|confirm|choose|rotate|book |submit|reply|respond|provide|pick |schedule|before aug|awaiting you|sign off)/.test(full);
+  return doneSig && !askSig;
+}
+function completionTitle(t){ return String(t.title||"").replace(/^\s*✅\s*/,"").trim(); }
+async function dismissCompletion(id){
+  if(!id) return;
+  const cur=dismissedCompletions().slice(); if(cur.indexOf(id)<0) cur.push(id);
+  DATA.settings=DATA.settings||{}; DATA.settings.dismissedCompletions=cur;
+  RENDERED.overview=false; RENDERED.tasks=false; setView(STATE.view,true);   // drops from the list instantly
+  toast("Cleared","check_circle");
+  if(USER_ID){ const { error }=await sb.from("maestro_dashboard").update({ settings: DATA.settings }).eq("user_id", USER_ID); if(error){ toast("Couldn’t save: "+error.message,"error"); } }
+}
+function completedNoteRow(t){
+  return '<div class="flex items-start gap-2.5 px-2 py-2 rounded-xl hover:bg-surface-container-high/40">'+
+    '<span class="material-symbols-outlined text-green text-[18px] ms-fill mt-0.5 flex-shrink-0">check_circle</span>'+
+    '<button data-act="open-task" data-id="'+esc(t.id)+'" class="pressable flex-1 min-w-0 text-left">'+
+      '<div class="text-[13.5px] font-semibold text-on-surface/80 leading-snug">'+esc(completionTitle(t))+'</div>'+
+      (t.project?'<div class="text-[11px] text-on-surface-variant/55 mt-0.5">'+(t.icon?esc(t.icon)+' ':'')+esc(t.project)+'</div>':'')+
+    '</button>'+
+    '<button data-act="dismiss-completed" data-id="'+esc(t.id)+'" class="pressable flex-shrink-0 w-8 h-8 rounded-full hover:bg-surface-variant flex items-center justify-center text-on-surface-variant/60" aria-label="Dismiss — clear this completed item">'+
+      '<span class="material-symbols-outlined text-[18px]">close</span></button>'+
+  '</div>';
+}
 function conflictId(a,b){ return "cf:"+[String(a.id),String(b.id)].sort().join("__"); }   // stable, order-independent
 function detectConflicts(){ const map=eventsByDay(), out=[], dis=dismissedConflicts();
   Object.keys(map).forEach(k=>{ const evs=map[k].filter(e=>!e.allDay && e.end);
@@ -1126,8 +1164,13 @@ function renderSetupGroup(){
 function renderTasks(){
   const ts=DATA.tasks||[];
   const open=ts.filter(t=>!taskDone(t.id));
-  const active=open.filter(t=>!taskSnoozed(t));
-  const snoozed=open.filter(t=>taskSnoozed(t)).sort((a,b)=>new Date(a.snoozed_until)-new Date(b.snoozed_until));
+  const disC=dismissedCompletions();
+  // Completion NOTES ("we finished X, no action for you") never sit in the active list — they get a
+  // dismissible "Recently completed" section. Everything else is a real to-do.
+  const notes=open.filter(t=>isCompletedNote(t) && disC.indexOf(t.id)<0);
+  const actionable=open.filter(t=>!isCompletedNote(t));
+  const active=actionable.filter(t=>!taskSnoozed(t));
+  const snoozed=actionable.filter(t=>taskSnoozed(t)).sort((a,b)=>new Date(a.snoozed_until)-new Date(b.snoozed_until));
   const done=ts.filter(t=>taskDone(t.id));
   const groups={asap:[],this_week:[],this_month:[],someday:[]};
   active.forEach(t=>{ (groups[taskPriority(t)]||groups.someday).push(t); });
@@ -1141,6 +1184,11 @@ function renderTasks(){
     H+='<div><h3 class="text-[11px] font-bold tracking-widest uppercase mb-2 px-1 flex items-center gap-2"><span class="inline-block w-2 h-2 rounded-full '+pm.dot+'"></span><span class="'+pm.text+'">'+pm.label+' ('+arr.length+')</span></h3><div class="rounded-2xl border hairline bg-surface-container-low/50 p-2">'+arr.map(taskRow).join("")+'</div></div>';
   });
   if(!active.length) H+='<div class="rounded-2xl border hairline bg-surface-container-low/50 p-2"><p class="text-[13px] text-on-surface-variant/50 px-2 py-2">All clear 🎉</p></div>';
+  if(notes.length){
+    H+='<div><h3 class="text-[11px] font-bold tracking-widest text-green uppercase mb-2 px-1 flex items-center gap-1.5"><span class="material-symbols-outlined text-[15px] ms-fill">done_all</span>Recently completed ('+notes.length+')</h3>'+
+       '<p class="text-[11.5px] text-on-surface-variant/55 px-1 mb-2 -mt-1">Work that got done — nothing needed from you. Tap ✕ to clear.</p>'+
+       '<div class="rounded-2xl border hairline bg-green/[0.06] p-2">'+notes.map(completedNoteRow).join("")+'</div></div>';
+  }
   if(snoozed.length){
     const sopen=!!STATE.setupExpanded["__snoozed"];
     H+='<div><button data-act="setup-expand" data-id="__snoozed" class="pressable w-full flex items-center gap-1.5 px-1 mb-2 text-[11px] font-bold tracking-widest text-on-surface-variant/70 uppercase"><span class="material-symbols-outlined text-[15px]">snooze</span>Snoozed ('+snoozed.length+')<span class="material-symbols-outlined text-[18px] ml-auto transition-transform" style="'+(sopen?"transform:rotate(90deg)":"")+'">chevron_right</span></button>';
@@ -1935,6 +1983,7 @@ document.addEventListener("click",(e)=>{
   }
   else if(el.dataset.act==="setup-expand"){ const id=el.dataset.id; STATE.setupExpanded[id]=!STATE.setupExpanded[id]; rerender("tasks"); }
   else if(el.dataset.act==="dismiss-conflict"){ dismissConflict(el.dataset.cid); }
+  else if(el.dataset.act==="dismiss-completed"){ dismissCompletion(el.dataset.id); }
   else if(el.dataset.act==="task-menu"){ e.stopPropagation(); const id=el.dataset.id; if(CURRENT_POP && CURRENT_POP._ownerId===String(id)){ closePopover(); } else { taskMenuPopover(el, id); } }
   else if(el.dataset.act==="task-desc"){ e.stopPropagation(); const t=findTaskById(el.dataset.id); const d=t?taskDesc(t):""; if(d) openPopover(el, '<div class="text-[12.5px] leading-relaxed text-on-surface/90 max-w-[260px] whitespace-pre-wrap px-1 py-0.5">'+esc(d)+'</div>'); }
   else if(el.dataset.act==="task-options"){ taskOptionsModal(el.dataset.id); }

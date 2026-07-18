@@ -577,7 +577,12 @@ function greeting(){ const h=NOW.getHours(); return h<12?"Good morning":h<18?"Go
 /* ───── views ───── */
 function renderOverview(){
   const d=DATA, tkey=todayKey();
-  let H="";
+  // The two top cards (activity roll-up + "Needs you" summary) are filled ASYNC by loadRuns/
+  // loadDecisions, but their SLOTS are part of this ONE atomic innerHTML write — so they can never
+  // desync from the body (the old insertBefore approach let the cards appear without the body, or
+  // the body render without the cards, which is what blanked/half-rendered the tab). Empty slot =
+  // zero-height div; syncActivityItem/syncDecisionsSection fill it IN PLACE.
+  let H='<div id="activity-slot"></div><div id="decisions-slot"></div>';
   const sampleBadge = d.meta&&d.meta.sample ? '<span class="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded-full ml-2">Sample</span>' : '';
   // Each section is wrapped in safeBlock so a single failing/derived section (a malformed
   // event, a bad date) renders an inline "Retry" instead of throwing and blanking the whole tab.
@@ -631,7 +636,7 @@ function renderOverview(){
     return '<div class="rise rounded-2xl border hairline bg-surface-container-low/60 p-4 sm:p-5 mb-5" style="animation-delay:.08s">'+
       '<div class="flex items-center justify-between mb-3"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase flex items-center gap-2"><span class="material-symbols-outlined text-[18px]">checklist</span>Next tasks</h2><a href="#tasks" data-act="nav" data-view="tasks" class="text-[11px] text-primary font-semibold">All tasks →</a></div>'+
       '<div class="space-y-0.5">'+
-      (nextTasks.length ? nextTasks.map(taskRow).join("") : '<p class="text-[13px] text-on-surface-variant/55 px-2 py-4 flex items-center gap-2"><span class="material-symbols-outlined text-green text-[18px]">task_alt</span>All caught up.</p>')+
+      (nextTasks.length ? safeMap(nextTasks, taskRow, "task") : '<p class="text-[13px] text-on-surface-variant/55 px-2 py-4 flex items-center gap-2"><span class="material-symbols-outlined text-green text-[18px]">task_alt</span>All caught up.</p>')+
       '</div></div>';
   });
 
@@ -964,7 +969,7 @@ function renderProjects(){
     return '<button data-act="proj-filter" data-key="'+key+'" class="pressable flex-shrink-0 text-[12px] font-semibold px-3.5 py-1.5 rounded-full border '+(on?"bg-primary text-on-primary border-primary":"bg-surface-container/50 text-on-surface-variant/75 border-outline-variant hover:border-primary/40")+'">'+label+' <span class="'+(on?"text-on-primary/70":"text-on-surface-variant/40")+' font-mono">'+n+'</span></button>'; };
   let H='<div class="rise"><div class="mb-3 px-1"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Projects</h2><p class="text-[12px] text-on-surface-variant/60 mt-0.5">Your real pipeline — synced from the command center. Tap a card for status, next action and its live link.</p></div>';
   H+='<div class="flex gap-2 overflow-x-auto pb-2 mb-3 -mx-1 px-1">'+chip("all","All")+chip("waiting-on-you","Needs you")+chip("in-progress","In motion")+chip("done","Done")+chip("parked","Parked")+'</div>';
-  H+='<div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">'+(shown.length?shown.map(projectCard).join(""):'<p class="text-[13px] text-on-surface-variant/50 py-6">Nothing here.</p>')+'</div>';
+  H+='<div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">'+(shown.length?safeMap(shown, projectCard, "project"):'<p class="text-[13px] text-on-surface-variant/50 py-6">Nothing here.</p>')+'</div>';
   H+=footerHTML()+'</div>';
   $("#view-projects").innerHTML=H;
 }
@@ -1181,21 +1186,21 @@ function renderTasks(){
   if(!setupDismissed()) H+= renderSetupGroup();   // gone for good once all setup items were completed
   PRIORITY_ORDER.forEach(key=>{
     const arr=groups[key]; if(!arr.length) return; const pm=PRIORITY[key];
-    H+='<div><h3 class="text-[11px] font-bold tracking-widest uppercase mb-2 px-1 flex items-center gap-2"><span class="inline-block w-2 h-2 rounded-full '+pm.dot+'"></span><span class="'+pm.text+'">'+pm.label+' ('+arr.length+')</span></h3><div class="rounded-2xl border hairline bg-surface-container-low/50 p-2">'+arr.map(taskRow).join("")+'</div></div>';
+    H+='<div><h3 class="text-[11px] font-bold tracking-widest uppercase mb-2 px-1 flex items-center gap-2"><span class="inline-block w-2 h-2 rounded-full '+pm.dot+'"></span><span class="'+pm.text+'">'+pm.label+' ('+arr.length+')</span></h3><div class="rounded-2xl border hairline bg-surface-container-low/50 p-2">'+safeMap(arr, taskRow, "task")+'</div></div>';
   });
   if(!active.length) H+='<div class="rounded-2xl border hairline bg-surface-container-low/50 p-2"><p class="text-[13px] text-on-surface-variant/50 px-2 py-2">All clear 🎉</p></div>';
   if(notes.length){
     H+='<div><h3 class="text-[11px] font-bold tracking-widest text-green uppercase mb-2 px-1 flex items-center gap-1.5"><span class="material-symbols-outlined text-[15px] ms-fill">done_all</span>Recently completed ('+notes.length+')</h3>'+
        '<p class="text-[11.5px] text-on-surface-variant/55 px-1 mb-2 -mt-1">Work that got done — nothing needed from you. Tap ✕ to clear.</p>'+
-       '<div class="rounded-2xl border hairline bg-green/[0.06] p-2">'+notes.map(completedNoteRow).join("")+'</div></div>';
+       '<div class="rounded-2xl border hairline bg-green/[0.06] p-2">'+safeMap(notes, completedNoteRow, "completed")+'</div></div>';
   }
   if(snoozed.length){
     const sopen=!!STATE.setupExpanded["__snoozed"];
     H+='<div><button data-act="setup-expand" data-id="__snoozed" class="pressable w-full flex items-center gap-1.5 px-1 mb-2 text-[11px] font-bold tracking-widest text-on-surface-variant/70 uppercase"><span class="material-symbols-outlined text-[15px]">snooze</span>Snoozed ('+snoozed.length+')<span class="material-symbols-outlined text-[18px] ml-auto transition-transform" style="'+(sopen?"transform:rotate(90deg)":"")+'">chevron_right</span></button>';
-    if(sopen) H+='<div class="rounded-2xl border hairline bg-surface-container-low/30 p-2 opacity-90">'+snoozed.map(taskRow).join("")+'</div>';
+    if(sopen) H+='<div class="rounded-2xl border hairline bg-surface-container-low/30 p-2 opacity-90">'+safeMap(snoozed, taskRow, "task")+'</div>';
     H+='</div>';
   }
-  if(done.length) H+='<div><h3 class="text-[11px] font-bold tracking-widest text-green uppercase mb-2 px-1 flex items-center gap-1.5"><span class="material-symbols-outlined text-[15px] ms-fill">task_alt</span>Done ('+done.length+')</h3><div class="rounded-2xl border hairline bg-surface-container-low/30 p-2">'+done.map(taskRow).join("")+'</div></div>';
+  if(done.length) H+='<div><h3 class="text-[11px] font-bold tracking-widest text-green uppercase mb-2 px-1 flex items-center gap-1.5"><span class="material-symbols-outlined text-[15px] ms-fill">task_alt</span>Done ('+done.length+')</h3><div class="rounded-2xl border hairline bg-surface-container-low/30 p-2">'+safeMap(done, taskRow, "task")+'</div></div>';
   H+='</div>'+footerHTML()+'</div>';
   $("#view-tasks").innerHTML=H;
 }
@@ -1572,15 +1577,12 @@ function activityItemHTML(){
 // Insert / replace / remove #activity-item as the first child of the Overview view, in place —
 // without re-rendering the rest of the tab.
 function syncActivityItem(){
-  const ov=$("#view-overview"); if(!ov) return;
-  const existing=document.getElementById("activity-item");
-  const html=activityItemHTML();
-  if(existing){
-    if(!html){ existing.remove(); return; }
-    const tmp=document.createElement("div"); tmp.innerHTML=html; existing.replaceWith(tmp.firstElementChild);
-  } else if(html){
-    const tmp=document.createElement("div"); tmp.innerHTML=html; ov.insertBefore(tmp.firstElementChild, ov.firstChild);
-  }
+  // Fill the activity slot IN PLACE (the slot is part of renderOverview's atomic write). No-op until
+  // the Overview has been rendered (slot absent). Internally guarded so a bad run can't blank the tab —
+  // it degrades to an empty slot, never throws into the caller.
+  const slot=document.getElementById("activity-slot"); if(!slot) return;
+  try{ slot.innerHTML=activityItemHTML()||""; }
+  catch(e){ console.warn("activity item render failed:", e); slot.innerHTML=""; }
 }
 // ── the panel (today's runs, newest first) ──
 function activityPanelInner(){
@@ -1775,19 +1777,12 @@ function renderNeeds(){
 // Overview gets the compact summary card (id #decisions-summary), inserted right AFTER the activity
 // item, in place. Also keeps the full #needs screen live if it's the active view.
 function syncDecisionsSection(){
-  const ov=$("#view-overview");
-  if(ov){
-    const existing=document.getElementById("decisions-summary");
-    const html=decisionsSummaryHTML();
-    if(existing){
-      if(!html){ existing.remove(); }
-      else { const tmp=document.createElement("div"); tmp.innerHTML=html; existing.replaceWith(tmp.firstElementChild); }
-    } else if(html){
-      const tmp=document.createElement("div"); tmp.innerHTML=html; const node=tmp.firstElementChild;
-      const act=document.getElementById("activity-item");
-      if(act && act.parentNode===ov) ov.insertBefore(node, act.nextSibling);
-      else ov.insertBefore(node, ov.firstChild);
-    }
+  // Fill the decisions slot IN PLACE (part of renderOverview's atomic write). No-op until Overview is
+  // rendered. Internally guarded — degrades to an empty slot, never throws into the caller.
+  const slot=document.getElementById("decisions-slot");
+  if(slot){
+    try{ slot.innerHTML=decisionsSummaryHTML()||""; }
+    catch(e){ console.warn("decisions summary render failed:", e); slot.innerHTML=""; }
   }
   if(STATE.view==="needs") rerender("needs");                 // keep the full list current on its screen
 }
@@ -2540,6 +2535,15 @@ function safeBlock(label, fn){
   try{ const out=fn(); return (out==null) ? "" : out; }
   catch(err){ console.warn("Overview section failed:", label, err); return inlineSectionError(label); }
 }
+// Per-ITEM error boundary for list renders (project cards, task rows, event rows): one malformed
+// item degrades to a small inline placeholder instead of throwing and blanking the whole list/tab.
+function safeMap(arr, fn, label){
+  return (arr||[]).map((item,i)=>{
+    try{ const out=fn(item,i); return out==null?"":out; }
+    catch(err){ console.warn("item render failed:", label, err);
+      return '<div class="px-2 py-1.5 text-[11.5px] text-on-error-container/70 flex items-center gap-1.5"><span class="material-symbols-outlined text-[15px]">error</span>An item couldn’t render.</div>'; }
+  }).join("");
+}
 function viewErrorHTML(name){
   return '<div class="rise rounded-2xl border border-on-error-container/25 bg-error-container/10 p-5 flex items-center justify-between gap-3">'+
     '<div class="flex items-center gap-2.5 min-w-0"><span class="material-symbols-outlined text-on-error-container/80 text-[20px] flex-shrink-0">error</span>'+
@@ -2568,7 +2572,13 @@ function setView(name, force){
   const y = window.scrollY;
   STATE.view=name;
   const fn={overview:renderOverview,projects:renderProjects,tasks:renderTasks,week:renderWeek,travel:renderTravel,notes:renderNotes,coaching:renderCoaching,inbox:renderInbox,needs:renderNeeds}[name];
-  if(!RENDERED[name]||force){
+  // NEVER-BLANK GUARD: render if the view was never rendered, a re-render is forced, OR the container
+  // is empty for ANY reason (interrupted paint, stale RENDERED cache, an async wipe). This is the
+  // safety net that guarantees a tab can't stay blank — if the DOM is empty, we always repaint it,
+  // even when RENDERED[name] claims otherwise.
+  const cont=$("#view-"+name);
+  const isBlank = !cont || (cont.children.length===0 && cont.textContent.trim()==="");
+  if(!RENDERED[name]||force||isBlank){
     // Mark RENDERED only on SUCCESS. If a render throws, leave it false so the next navigation
     // (or realtime/poll tick) re-renders and recovers, instead of the view being stuck.
     try{ fn(); RENDERED[name]=true; }

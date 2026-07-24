@@ -12,4 +12,4 @@ A task is not finished until BOTH of these are written. They are co-equal and ma
 
 **(a) Code-history log** — write a dated entry to Drive at `CLAUDE/code-history/<project>/<YYYY-MM-DD>_<slug>.md` (what changed, why, and how it was verified). For a code task, add a `resolves:` line to the entry's YAML frontmatter so it auto-closes the matching STATUS item.
 
-**(b) STATUS.md "Waiting on you"** — update Drive `CLAUDE/STATUS.md` in place: remove the item you just finished, add anything now newly waiting on Jeremy, and keep every remaining item *actionable* (the concrete next action / how-to, not just a title). Edit above the Scribe block.
+**(b) STATUS.md "Waiting on you"** — update Drive `CLAUDE/STATUS.md` in place: remove the item you just finished, add anything now newly waiting on Jeremy, and keep every remaining item *actionable* (the concrete next action / how-to, not just a title). Edit above the Scribe block — if you cannot write `STATUS.md` directly (e.g. a cloud session with create-only Drive access), instead create a new entry file in `CLAUDE/STATUS-inbox/` (format documented in `INDEX.md`'s Definition of Done); the nightly digest folds it in.

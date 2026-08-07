@@ -132,7 +132,7 @@ function card(app){
     } else {
       body += `<div class="empty">Instrumented, but no real installs recorded yet.</div>`;
     }
-  } else if(!app.notAnApp && !app.hasPostHog){
+  } else if(!app.notAnApp && !app.hasPostHog && s){
     body += `<div class="empty">No in-app analytics yet — showing public App Store data only.</div>`;
   } else if(app.notAnApp){
     body += `<div class="empty">Backend fulfillment service — not distributed on the App Store.</div>`;

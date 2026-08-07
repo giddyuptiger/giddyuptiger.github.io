@@ -46,10 +46,14 @@
   .ftrack{height:16px;background:var(--track);border-radius:5px;overflow:hidden}
   .ffill{height:100%;border-radius:5px;background:var(--accent);min-width:2px}
   .fval{text-align:right;color:var(--ink);font-variant-numeric:tabular-nums}
-  .spark{display:flex;align-items:flex-end;gap:5px;height:52px}
-  .sbar{flex:1;background:var(--accent);border-radius:3px 3px 0 0;min-height:3px;opacity:.85}
-  .sbar span{display:block}
-  .xlab{display:flex;gap:5px;margin-top:4px}
+  .chart{position:relative;padding-left:26px;margin-top:2px}
+  .plot{position:relative;height:66px;margin-top:16px}
+  .gl{position:absolute;left:0;right:0;height:0;border-top:1px dashed var(--line)}
+  .gl b{position:absolute;left:-26px;top:-6px;width:22px;text-align:right;font-size:9px;font-weight:400;color:var(--dim);font-variant-numeric:tabular-nums}
+  .spark{display:flex;align-items:flex-end;gap:5px;height:100%;position:relative;z-index:2}
+  .sbar{flex:1;background:var(--accent);border-radius:3px 3px 0 0;min-height:3px;opacity:.9;position:relative}
+  .sval{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);margin-bottom:3px;font-size:10px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap;line-height:1}
+  .xlab{display:flex;gap:5px;margin-top:5px}
   .xlab div{flex:1;text-align:center;font-size:10px;color:var(--dim)}
   .read{border-left:3px solid var(--warn);background:var(--panel2);border-radius:0 8px 8px 0;padding:10px 12px}
   .read .w{font-weight:600;font-size:13px}
@@ -97,10 +101,20 @@ function funnelRows(app){
 
 function sparkline(ph){
   if(!ph||!ph.weeklyInstalls||!ph.weeklyInstalls.length) return "";
-  const w=ph.weeklyInstalls, max=Math.max(1,...w.map(x=>x.installs));
+  const w=ph.weeklyInstalls;
+  const max=Math.max(1,...w.map(x=>x.installs));
+  // Subtle Y-axis: gridline ticks at 0, mid, and max (positioned by actual value).
+  const ticks=[...new Set([0,Math.round(max/2),max])];
+  const grid=ticks.map(t=>`<div class="gl" style="bottom:${(t/max*100).toFixed(1)}%"><b>${t}</b></div>`).join("");
+  const bars=w.map(x=>{
+    const h=Math.round(x.installs/max*100);
+    return `<div class="sbar" style="height:${h}%" title="${x.installs}"><span class="sval">${x.installs}</span></div>`;
+  }).join("");
   return `<div class="sec">Weekly installs</div>
-    <div class="spark">${w.map(x=>`<div class="sbar" style="height:${Math.round(x.installs/max*100)}%" title="${x.installs}"></div>`).join("")}</div>
-    <div class="xlab">${w.map(x=>`<div>${(x.week||"").slice(5)}</div>`).join("")}</div>`;
+    <div class="chart">
+      <div class="plot">${grid}<div class="spark">${bars}</div></div>
+      <div class="xlab">${w.map(x=>`<div>${(x.week||"").slice(5)}</div>`).join("")}</div>
+    </div>`;
 }
 
 function card(app){

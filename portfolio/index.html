@@ -79,6 +79,8 @@
 
 <script>
 const FN = "https://cixmyhdzzbgbltmitzkb.supabase.co/functions/v1/portfolio-stats";
+// PAPPY is an internal backend service, not a public consumer app — exclude it from this portfolio.
+const HIDDEN_APP_KEYS = new Set(["pappy"]);
 const esc = (s)=>String(s??"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
 const fmtDate = (iso)=>{try{return new Date(iso).toLocaleString(undefined,{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}catch{return iso}};
 
@@ -182,7 +184,9 @@ function card(app){
     ab.innerHTML = `<span class="dot" style="background:${asc.connected?"var(--good)":"var(--warn)"}"></span>
       <span>${asc.connected? "App Store Connect connected — real download counts available." : esc(asc.note||"App Store Connect not connected.")}</span>`;
     // cards
-    document.getElementById("grid").innerHTML = (d.apps||[]).map(card).join("");
+    document.getElementById("grid").innerHTML = (d.apps||[])
+      .filter(a => !HIDDEN_APP_KEYS.has(String(a.key||"").toLowerCase()) && String(a.name||"").toUpperCase() !== "PAPPY")
+      .map(card).join("");
     document.getElementById("foot").textContent =
       `Live data · generated ${fmtDate(d.generatedAt)} · excludes dev device ${d.exclusions.devDistinctIdPrefix}… and ${d.exclusions.simulatorModels.join(" / ")} simulators`;
   }catch(e){

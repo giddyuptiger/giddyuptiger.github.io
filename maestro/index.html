@@ -70,6 +70,92 @@
   .mpop{ position:fixed; z-index:85; background:#262A2F; border:1px solid rgba(155,161,166,0.22); border-radius:14px; box-shadow:0 18px 50px -16px rgba(0,0,0,.9); padding:8px; opacity:0; transform:translateY(-4px); transition:opacity .15s ease, transform .15s ease; }
   .mpop.open{ opacity:1; transform:none; }
   @media (prefers-reduced-motion: reduce){ *{animation-duration:.001ms !important; transition-duration:.001ms !important;} }
+
+  /* ───── Cockpit tab (business cockpit) — all rules scoped under .ckpt so nothing leaks into
+     the rest of Maestro. Ported from the former public /portfolio page. ───── */
+  .ckpt{ --ck-panel:#171b1e; --ck-panel2:#1e2429; --ck-line:#2a3238; --ck-ink:#e8edf0; --ck-muted:#95a2ab;
+    --ck-dim:#6b7880; --ck-good:#4ea36b; --ck-warn:#d8a33f; --ck-bad:#d8674f; --ck-accent:#5aa9e6;
+    --ck-money:#5fc98a; --ck-track:#232a30; color:var(--ck-ink);
+    font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  .ckpt *{ box-sizing:border-box; }
+  .ckpt .ckhead h1{ font-size:20px; margin:0 0 2px; letter-spacing:.2px; font-weight:700; }
+  .ckpt .ckhead .sub{ color:var(--ck-muted); font-size:13px; margin:0 0 8px; }
+  .ckpt .overview{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:8px 0 6px; }
+  .ckpt .otile{ background:linear-gradient(180deg,var(--ck-panel2),var(--ck-panel)); border:1px solid var(--ck-line);
+    border-radius:12px; padding:14px 16px; min-width:0; }
+  .ckpt .otile .ok{ font-size:11px; color:var(--ck-dim); text-transform:uppercase; letter-spacing:.5px; }
+  .ckpt .otile .ov{ font-size:26px; font-weight:700; margin-top:4px; line-height:1.15; font-variant-numeric:tabular-nums; }
+  .ckpt .otile .ov.money{ color:var(--ck-money); }
+  .ckpt .otile .osub{ font-size:12px; color:var(--ck-muted); margin-top:3px; }
+  .ckpt .otile.opp .ov{ font-size:15px; font-weight:650; line-height:1.35; }
+  .ckpt .otile.opp .oname{ color:var(--ck-accent); font-weight:700; }
+  .ckpt .banner{ background:var(--ck-panel2); border:1px solid var(--ck-line); border-radius:10px;
+    padding:10px 14px; margin:14px 0; color:var(--ck-muted); font-size:13px; display:flex; gap:8px; align-items:center; }
+  .ckpt .dot{ width:8px; height:8px; border-radius:50%; flex:0 0 auto; }
+  .ckpt .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:16px; margin-top:18px; }
+  .ckpt .card{ background:var(--ck-panel); border:1px solid var(--ck-line); border-radius:14px; padding:18px;
+    display:flex; flex-direction:column; gap:14px; }
+  .ckpt .card.bizonly{ border-color:#31404a; }
+  .ckpt .chead{ display:flex; gap:12px; align-items:center; }
+  .ckpt .icon{ width:44px; height:44px; border-radius:10px; background:var(--ck-panel2); object-fit:cover; flex:0 0 auto;
+    display:flex; align-items:center; justify-content:center; font-weight:700; color:var(--ck-dim); font-size:15px; }
+  .ckpt .nm{ font-size:16px; font-weight:600; }
+  .ckpt .tg{ color:var(--ck-dim); font-size:12px; }
+  .ckpt .badges{ display:flex; gap:6px; flex-wrap:wrap; margin-left:auto; }
+  .ckpt .badge{ font-size:11px; padding:2px 8px; border-radius:20px; border:1px solid var(--ck-line); color:var(--ck-muted); white-space:nowrap; }
+  .ckpt .badge.live{ color:var(--ck-good); border-color:#2c4a38; }
+  .ckpt .badge.pre{ color:var(--ck-warn); border-color:#4a4029; }
+  .ckpt .badge.earn{ color:var(--ck-money); border-color:#2c4a38; }
+  .ckpt .badge.noph{ color:var(--ck-dim); }
+  .ckpt .row{ display:flex; gap:14px; }
+  .ckpt .stat{ flex:1; background:var(--ck-panel2); border:1px solid var(--ck-line); border-radius:10px; padding:10px 12px; }
+  .ckpt .stat .k{ font-size:11px; color:var(--ck-dim); text-transform:uppercase; letter-spacing:.4px; }
+  .ckpt .stat .v{ font-size:20px; font-weight:650; margin-top:2px; }
+  .ckpt .stat .v small{ font-size:12px; color:var(--ck-muted); font-weight:500; }
+  .ckpt .sec{ font-size:11px; color:var(--ck-dim); text-transform:uppercase; letter-spacing:.5px; margin:2px 0; }
+  .ckpt .bars{ display:flex; flex-direction:column; gap:7px; }
+  .ckpt .fstep{ display:grid; grid-template-columns:96px 1fr 42px; gap:8px; align-items:center; font-size:12px; }
+  .ckpt .fstep .lbl{ color:var(--ck-muted); }
+  .ckpt .ftrack{ height:16px; background:var(--ck-track); border-radius:5px; overflow:hidden; }
+  .ckpt .ffill{ height:100%; border-radius:5px; background:var(--ck-accent); min-width:2px; }
+  .ckpt .fval{ text-align:right; color:var(--ck-ink); font-variant-numeric:tabular-nums; }
+  .ckpt .chart{ position:relative; padding-left:26px; margin-top:2px; }
+  .ckpt .plot{ position:relative; height:66px; margin-top:16px; }
+  .ckpt .gl{ position:absolute; left:0; right:0; height:0; border-top:1px dashed var(--ck-line); }
+  .ckpt .gl b{ position:absolute; left:-26px; top:-6px; width:22px; text-align:right; font-size:9px; font-weight:400; color:var(--ck-dim); font-variant-numeric:tabular-nums; }
+  .ckpt .spark{ display:flex; align-items:flex-end; gap:5px; height:100%; position:relative; z-index:2; }
+  .ckpt .sbar{ flex:1; background:var(--ck-accent); border-radius:3px 3px 0 0; min-height:3px; opacity:.9; position:relative; }
+  .ckpt .sval{ position:absolute; bottom:100%; left:50%; transform:translateX(-50%); margin-bottom:3px; font-size:10px; font-weight:600; color:var(--ck-ink); font-variant-numeric:tabular-nums; white-space:nowrap; line-height:1; }
+  .ckpt .xlab{ display:flex; gap:5px; margin-top:5px; }
+  .ckpt .xlab div{ flex:1; text-align:center; font-size:10px; color:var(--ck-dim); }
+  .ckpt .read{ border-left:3px solid var(--ck-warn); background:var(--ck-panel2); border-radius:0 8px 8px 0; padding:10px 12px; }
+  .ckpt .read .w{ font-weight:600; font-size:13px; }
+  .ckpt .read .l{ color:var(--ck-muted); font-size:12.5px; margin-top:3px; }
+  .ckpt .read .l b{ color:var(--ck-accent); font-weight:600; }
+  .ckpt .empty{ color:var(--ck-dim); font-size:12.5px; padding:6px 0; }
+  .ckpt a.store{ color:var(--ck-accent); text-decoration:none; font-size:12px; }
+  .ckpt .foot{ color:var(--ck-dim); font-size:12px; margin-top:22px; text-align:center; }
+  .ckpt .loading{ color:var(--ck-muted); padding:40px 0; text-align:center; }
+  .ckpt .stars{ color:var(--ck-warn); letter-spacing:1px; }
+  .ckpt .biz{ border-top:1px solid var(--ck-line); padding-top:12px; margin-top:2px; }
+  .ckpt .biz .sec{ margin-bottom:8px; }
+  .ckpt .bizgrid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .ckpt .bcell{ background:var(--ck-panel2); border:1px solid var(--ck-line); border-radius:9px; padding:8px 10px; min-width:0; }
+  .ckpt .bcell.wide{ grid-column:1 / -1; }
+  .ckpt .bcell .bk{ font-size:10px; color:var(--ck-dim); text-transform:uppercase; letter-spacing:.4px; }
+  .ckpt .bcell .bv{ font-size:12.5px; color:var(--ck-ink); margin-top:3px; line-height:1.45; }
+  .ckpt .bcell .bv.money{ color:var(--ck-money); font-weight:600; }
+  .ckpt .bcell.next{ border-color:#3a4a40; background:#18201b; }
+  .ckpt .bcell.next .bv{ color:#d6efdd; }
+  .ckpt .sectitle{ font-size:13px; color:var(--ck-muted); letter-spacing:.3px; margin:30px 0 2px; font-weight:600;
+    border-top:1px solid var(--ck-line); padding-top:22px; }
+  .ckpt .sectitle span{ color:var(--ck-dim); font-weight:400; }
+  @media (max-width:720px){
+    .ckpt .overview{ grid-template-columns:1fr 1fr; }
+    .ckpt .otile.opp{ grid-column:1 / -1; }
+    .ckpt .bizgrid{ grid-template-columns:1fr; }
+    .ckpt .bcell.wide{ grid-column:auto; }
+  }
 </style>
 </head>
 <body class="bg-background text-on-surface relative">
@@ -172,6 +258,7 @@
       </div>
       <nav class="hidden sm:flex items-center gap-5 text-[13.5px] font-semibold text-on-surface-variant/70" id="tabs">
         <a href="#overview" data-act="nav" data-view="overview" class="tab pressable">Overview</a>
+        <a href="#cockpit" data-act="nav" data-view="cockpit" class="tab pressable">Cockpit</a>
         <a href="#projects" data-act="nav" data-view="projects" class="tab pressable">Projects</a>
         <a href="#tasks" data-act="nav" data-view="tasks" class="tab pressable">Tasks</a>
         <a href="#week" data-act="nav" data-view="week" class="tab pressable">Week</a>
@@ -192,6 +279,7 @@
 
   <main class="max-w-[1200px] mx-auto px-4 sm:px-8 py-6 sm:py-7 relative z-10 pb-[calc(6.5rem+env(safe-area-inset-bottom))] sm:pb-7">
     <section id="view-overview" class="view"></section>
+    <section id="view-cockpit" class="view"></section>
     <section id="view-projects" class="view"></section>
     <section id="view-tasks" class="view"></section>
     <section id="view-week" class="view"></section>
@@ -204,6 +292,7 @@
 
   <nav class="sm:hidden fixed bottom-0 inset-x-0 z-40 bg-surface/90 backdrop-blur-xl border-t hairline flex justify-around items-stretch gap-1 px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.6rem)]" id="bnav">
     <a href="#overview" data-act="nav" data-view="overview" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">today</span>Overview</a>
+    <a href="#cockpit" data-act="nav" data-view="cockpit" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">monitoring</span>Cockpit</a>
     <a href="#projects" data-act="nav" data-view="projects" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">dashboard</span>Projects</a>
     <a href="#tasks" data-act="nav" data-view="tasks" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">checklist</span>Tasks</a>
     <a href="#week" data-act="nav" data-view="week" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">calendar_month</span>Week</a>
@@ -239,6 +328,7 @@ let SLACK_CONN=null;    // {webhook, connected_at, label} read from THIS user's 
 let DISCORD_CONN=null;  // {webhook, connected_at, label} read from THIS user's own maestro_dashboard row — null = unknown/not-loaded
 let DOCS=null, DOCS_LOADING=false;   // Notes vault (maestro_docs) — lazy-loaded, RLS-scoped to the owner
 let COACHING=null, COACHING_LOADING=false;   // Daily Coach log (maestro_coaching_log) — lazy-loaded, RLS-scoped
+let COCKPIT=null, COCKPIT_LOADING=false;     // Business cockpit (portfolio-stats edge fn) — lazy-loaded, auth-gated
 let NOTE_Q="", NOTE_Q_TIMER=null;    // Notes search query + debounce timer (live-filters title + body)
 
 const KIND = {
@@ -2550,9 +2640,139 @@ function viewErrorHTML(name){
     '<div class="min-w-0"><p class="text-[13.5px] font-semibold text-on-surface">This tab didn’t load fully.</p><p class="text-[12px] text-on-surface-variant/60">A hiccup interrupted rendering — your data is safe.</p></div></div>'+
     '<button data-act="retry-view" data-view="'+esc(name)+'" class="pressable flex-shrink-0 inline-flex items-center gap-1.5 bg-primary text-on-primary font-bold text-[12.5px] px-3.5 py-2 rounded-xl hover:brightness-110"><span class="material-symbols-outlined text-[18px]">refresh</span>Retry</button></div>';
 }
+/* ───── Cockpit (business cockpit tab) ─────
+   Ported from the former public /portfolio page. Reads the SAME `portfolio-stats` edge function,
+   but now WITH the signed-in user's bearer token — so the sensitive growthTracker (revenue /
+   opportunity) is only returned to an authenticated Maestro session. Renders inside #view-cockpit,
+   all markup wrapped in .ckpt so its styles never touch the rest of the app. */
+const CK_HIDDEN_APP_KEYS = new Set(["pappy"]);   // PAPPY: backend service, not a consumer app — no app-store card
+const CK_PRIORITY_OPP_KEY = "pappy";             // biggest open opportunity headlined in the overview strip
+function ckFmtDate(iso){ try{ return new Date(iso).toLocaleString(undefined,{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}); }catch(_e){ return iso; } }
+function ckStars(r){ const f=Math.round(r||0); return "★".repeat(f)+"☆".repeat(5-f); }
+function ckIsEarning(cur){ const c=String(cur||"").trim().toLowerCase(); if(!c) return false; if(c.startsWith("$0")||c.startsWith("~$0")||c.startsWith("none")) return false; return c.startsWith("active")||c.startsWith("partial"); }
+function ckIsOpenAction(a){ const c=String(a||"").trim().toLowerCase(); return !!c && !c.startsWith("none"); }
+function ckFunnelRows(app){
+  const ph=app.posthog; if(!ph) return "";
+  const steps=[["Installs",ph.funnel.install],["Onboarded",ph.funnel.onboarding],["Activated",ph.funnel.activation]];
+  const max=Math.max(1,...steps.map(s=>s[1]));
+  return '<div class="sec">Activation funnel · install → onboarding → '+esc(app.activationLabel||"first action")+'</div>'+
+    '<div class="bars">'+steps.map(([l,v])=>{ const pct=Math.round(v/max*100); return '<div class="fstep"><div class="lbl">'+esc(l)+'</div><div class="ftrack"><div class="ffill" style="width:'+pct+'%"></div></div><div class="fval">'+v+'</div></div>'; }).join("")+'</div>';
+}
+function ckSparkline(ph){
+  if(!ph||!ph.weeklyInstalls||!ph.weeklyInstalls.length) return "";
+  const w=ph.weeklyInstalls, max=Math.max(1,...w.map(x=>x.installs));
+  const ticks=[...new Set([0,Math.round(max/2),max])];
+  const grid=ticks.map(t=>'<div class="gl" style="bottom:'+(t/max*100).toFixed(1)+'%"><b>'+t+'</b></div>').join("");
+  const bars=w.map(x=>{ const h=Math.round(x.installs/max*100); return '<div class="sbar" style="height:'+h+'%" title="'+x.installs+'"><span class="sval">'+x.installs+'</span></div>'; }).join("");
+  return '<div class="sec">Weekly installs</div><div class="chart"><div class="plot">'+grid+'<div class="spark">'+bars+'</div></div><div class="xlab">'+w.map(x=>'<div>'+esc(String(x.week||"").slice(5))+'</div>').join("")+'</div></div>';
+}
+function ckBizSection(g){
+  if(!g) return "";
+  const earn=ckIsEarning(g.current_mrr_or_revenue);
+  const cell=(k,v,cls)=> v ? '<div class="bcell '+(cls||"")+'"><div class="bk">'+esc(k)+'</div><div class="bv">'+esc(v)+'</div></div>' : "";
+  return '<div class="biz"><div class="sec">Business</div><div class="bizgrid">'+
+    '<div class="bcell"><div class="bk">Current $</div><div class="bv '+(earn?'money':'')+'">'+esc(g.current_mrr_or_revenue||"—")+'</div></div>'+
+    cell("Funnel stage",g.funnel_stage)+
+    cell("Revenue model",g.revenue_model,"wide")+
+    cell("#1 opportunity",g.top_opportunity,"wide")+
+    cell("Lever",g.lever,"wide")+
+    (g.next_action?'<div class="bcell wide next"><div class="bk">Next action</div><div class="bv">'+esc(g.next_action)+'</div></div>':"")+
+    '</div></div>';
+}
+function ckAppCard(app,g){
+  const s=app.appStore, badges=[];
+  badges.push(app.onAppStore?'<span class="badge live">On App Store</span>':'<span class="badge pre">Pre-launch</span>');
+  badges.push(app.hasPostHog?'<span class="badge">PostHog</span>':'<span class="badge noph">No analytics</span>');
+  let body="";
+  if(s){ body+='<div class="row"><div class="stat"><div class="k">Version</div><div class="v" style="font-size:16px">'+esc(s.version)+'</div></div><div class="stat"><div class="k">Rating</div><div class="v"><span class="stars">'+ckStars(s.rating)+'</span> <small>'+s.ratingCount+' review'+(s.ratingCount===1?"":"s")+'</small></div></div></div>'; }
+  if(app.hasPostHog && app.posthog){
+    const ph=app.posthog;
+    if(ph.installs>0){
+      body+='<div class="row"><div class="stat"><div class="k">Real installs</div><div class="v">'+ph.installs+'</div></div><div class="stat"><div class="k">Returned</div><div class="v">'+Math.round(ph.retentionReturnRate*100)+'%<small> of installers</small></div></div></div>';
+      body+=ckSparkline(ph); body+=ckFunnelRows(app);
+    } else { body+='<div class="empty">Instrumented, but no real installs recorded yet.</div>'; }
+  } else if(!app.hasPostHog && s){ body+='<div class="empty">No in-app analytics yet — showing public App Store data only.</div>'; }
+  if(!s){ body+='<div class="empty">Not published to the App Store yet — no public metrics available.</div>'; }
+  const gr=app.growthRead||{};
+  const read=(gr.weakSpot||gr.lever)?'<div class="read"><div class="w">'+esc(gr.weakSpot||"")+'</div><div class="l"><b>Lever:</b> '+esc(gr.lever||"")+'</div></div>':"";
+  const iconImg=s&&s.icon?'<img class="icon" src="'+esc(s.icon)+'" alt="">':'<div class="icon">'+esc((app.name||"?").slice(0,2))+'</div>';
+  const storeLink=s?'<a class="store" href="'+esc(s.url)+'" target="_blank" rel="noopener">View on App Store ↗</a>':"";
+  return '<div class="card"><div class="chead">'+iconImg+'<div><div class="nm">'+esc(app.name)+'</div><div class="tg">'+esc(app.tagline)+'</div></div><div class="badges">'+badges.join("")+'</div></div>'+body+read+ckBizSection(g)+storeLink+'</div>';
+}
+function ckBizKind(g){
+  const k=String(g.project_key||"");
+  if(["irons-design","maestro","attunement","command-center","irons-holistic","content"].includes(k)) return "Tool/Service";
+  if(["primal","cafe-pos","cameron-podcast","locklear","local-guides"].includes(k)) return "Client";
+  if(k==="prs") return "Podcast";
+  if(k==="pappy"||k==="primal-agent") return "Service";
+  if(k==="scandals") return "R&D";
+  return "Business";
+}
+function ckBizCard(g){
+  const earn=ckIsEarning(g.current_mrr_or_revenue), badges=[];
+  badges.push(earn?'<span class="badge earn">Earning</span>':'<span class="badge pre">Pre-revenue</span>');
+  badges.push(g.is_app?'<span class="badge">App</span>':'<span class="badge">'+esc(ckBizKind(g))+'</span>');
+  const initials=esc((g.display_name||"?").replace(/[^A-Za-z0-9]/g,"").slice(0,2).toUpperCase());
+  return '<div class="card bizonly"><div class="chead"><div class="icon">'+initials+'</div><div><div class="nm">'+esc(g.display_name)+'</div><div class="tg">'+esc(String(g.revenue_model||"").slice(0,60))+'</div></div><div class="badges">'+badges.join("")+'</div></div>'+ckBizSection(g)+'</div>';
+}
+function ckOverview(gt){
+  const earning=gt.filter(g=>ckIsEarning(g.current_mrr_or_revenue));
+  const openActions=gt.filter(g=>ckIsOpenAction(g.next_action));
+  const opp=gt.find(g=>g.project_key===CK_PRIORITY_OPP_KEY)||gt[0]||{};
+  const nm=(s)=>String(s||"").replace(/\s*\(.*\)/,"");
+  return '<div class="otile"><div class="ok">Recurring MRR</div><div class="ov money">$0</div><div class="osub">No subscriptions live yet — income is project-based consulting</div></div>'+
+    '<div class="otile"><div class="ok">Projects earning</div><div class="ov">'+earning.length+'<small style="font-size:14px;color:var(--ck-muted)"> / '+gt.length+'</small></div><div class="osub">'+esc(earning.map(g=>nm(g.display_name)).join(", ")||"—")+'</div></div>'+
+    '<div class="otile opp"><div class="ok">Biggest open opportunity</div><div class="ov"><span class="oname">'+esc(nm(opp.display_name))+':</span> '+esc(opp.top_opportunity||"—")+'</div></div>'+
+    '<div class="otile"><div class="ok">Open next-actions</div><div class="ov">'+openActions.length+'</div><div class="osub">Concrete moves queued across the portfolio</div></div>';
+}
+function ckError(msg){ return '<div class="ckpt"><div class="ckhead"><h1>Business Cockpit</h1></div><div class="loading">'+esc(msg)+'</div></div>'; }
+function cockpitHTML(d){
+  if(!d || d.error) return ckError("Couldn’t load the cockpit: "+esc((d&&d.error)||"unknown error"));
+  const gt=(d.growthTracker||[]);
+  const byKey=Object.fromEntries(gt.map(g=>[String(g.project_key).toLowerCase(),g]));
+  const asc=d.appStoreConnect||{};
+  const apps=(d.apps||[]).filter(a=>!CK_HIDDEN_APP_KEYS.has(String(a.key||"").toLowerCase()) && String(a.name||"").toUpperCase()!=="PAPPY");
+  const appKeys=new Set(apps.map(a=>String(a.key||"").toLowerCase()));
+  const appHtml=apps.map(a=>ckAppCard(a,byKey[String(a.key||"").toLowerCase()])).join("");
+  const bizRows=gt.filter(g=>!appKeys.has(String(g.project_key).toLowerCase()));
+  const bizHtml=bizRows.map(ckBizCard).join("");
+  const ovHtml=gt.length?ckOverview(gt):'';
+  const bannerHtml='<div class="banner"><span class="dot" style="background:'+(asc.connected?'var(--ck-good)':'var(--ck-warn)')+'"></span><span>'+(asc.connected?'App Store Connect connected — real download counts available.':esc(asc.note||"App Store Connect not connected."))+'</span></div>';
+  const noBiz=(!gt.length)?'<div class="banner"><span class="dot" style="background:var(--ck-warn)"></span><span>Business layer unavailable — sign in to Maestro to load revenue &amp; opportunity data.</span></div>':'';
+  let footTxt="";
+  try{ footTxt='Live data · generated '+ckFmtDate(d.generatedAt)+' · app metrics exclude dev device '+esc(String(d.exclusions.devDistinctIdPrefix))+'… and '+esc(d.exclusions.simulatorModels.join(" / "))+' simulators · business layer from master monetization tracker'; }catch(_e){ footTxt='Live data · generated '+ckFmtDate(d.generatedAt); }
+  return '<div class="ckpt">'+
+    '<div class="ckhead"><h1>Business Cockpit</h1><div class="sub">Every project through one lens — what ships, what earns, and the next move. App metrics are real users only (dogfooding device &amp; simulators excluded); the business layer is the live master monetization tracker.</div></div>'+
+    '<div class="overview">'+ovHtml+'</div>'+
+    bannerHtml+noBiz+
+    '<div class="grid">'+appHtml+(bizRows.length?'<div class="sectitle" style="grid-column:1 / -1">Business layer <span>· consulting, clients, services &amp; content — the actual income engine and its opportunities</span></div>':'')+bizHtml+'</div>'+
+    '<div class="foot">'+footTxt+'</div>'+
+    '</div>';
+}
+function renderCockpit(){
+  const c=$("#view-cockpit"); if(!c) return;
+  if(COCKPIT){ c.innerHTML=cockpitHTML(COCKPIT); return; }
+  c.innerHTML='<div class="ckpt"><div class="ckhead"><h1>Business Cockpit</h1></div><div class="loading">Fetching live business data…</div></div>';
+  loadCockpit();
+}
+async function loadCockpit(){
+  if(COCKPIT_LOADING) return; COCKPIT_LOADING=true;
+  try{
+    const { data:{ session } } = await sb.auth.getSession();
+    if(!session){ if(STATE.view==="cockpit") $("#view-cockpit").innerHTML=ckError("Sign in to view the business cockpit."); return; }
+    const res=await fetch(SUPABASE_URL+"/functions/v1/portfolio-stats",{ headers:{ apikey:SUPABASE_ANON, authorization:"Bearer "+session.access_token } });
+    const d=await res.json();
+    if(!res.ok){ if(STATE.view==="cockpit") $("#view-cockpit").innerHTML=ckError("Couldn’t load the cockpit ("+res.status+")."); return; }
+    COCKPIT=d;
+    if(STATE.view==="cockpit") $("#view-cockpit").innerHTML=cockpitHTML(d);
+  }catch(e){
+    if(STATE.view==="cockpit") $("#view-cockpit").innerHTML=ckError("Couldn’t load the cockpit: "+String(e));
+  }finally{ COCKPIT_LOADING=false; }
+}
+
 /* ───── router ───── */
 function showSkeleton(name){
-  if(["overview","projects","tasks","week","travel","notes","coaching","inbox","needs"].indexOf(name)<0) name="overview";
+  if(["overview","cockpit","projects","tasks","week","travel","notes","coaching","inbox","needs"].indexOf(name)<0) name="overview";
   $$(".view").forEach(v=>v.classList.toggle("active", v.id==="view-"+name));
   $$(".tab").forEach(t=>t.dataset.active = t.dataset.view===name?"1":"0");
   $$(".bnav").forEach(t=>t.dataset.active = t.dataset.view===name?"1":"0");
@@ -2560,7 +2780,7 @@ function showSkeleton(name){
   $("#view-"+name).innerHTML='<div class="space-y-4"><div class="h-7 w-44 rounded bg-surface-container-high animate-pulse mb-1"></div>'+card+card+card+card+'</div>';
 }
 function setView(name, force){
-  if(["overview","projects","tasks","week","travel","notes","coaching","inbox","needs"].indexOf(name)<0) name="overview";
+  if(["overview","cockpit","projects","tasks","week","travel","notes","coaching","inbox","needs"].indexOf(name)<0) name="overview";
   // Scroll discipline: a genuine NAVIGATION (switching views, or any unforced call from the
   // hashchange handler) jumps to the top. An in-place RE-RENDER of the view you're already on
   // (force=true, same view — e.g. checking a task off, snooze, set-priority, a realtime data
@@ -2571,7 +2791,7 @@ function setView(name, force){
   const keepScroll = !!force && sameView;
   const y = window.scrollY;
   STATE.view=name;
-  const fn={overview:renderOverview,projects:renderProjects,tasks:renderTasks,week:renderWeek,travel:renderTravel,notes:renderNotes,coaching:renderCoaching,inbox:renderInbox,needs:renderNeeds}[name];
+  const fn={overview:renderOverview,cockpit:renderCockpit,projects:renderProjects,tasks:renderTasks,week:renderWeek,travel:renderTravel,notes:renderNotes,coaching:renderCoaching,inbox:renderInbox,needs:renderNeeds}[name];
   // NEVER-BLANK GUARD: render if the view was never rendered, a re-render is forced, OR the container
   // is empty for ANY reason (interrupted paint, stale RENDERED cache, an async wipe). This is the
   // safety net that guarantees a tab can't stay blank — if the DOM is empty, we always repaint it,

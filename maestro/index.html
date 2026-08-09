@@ -329,6 +329,12 @@ let DISCORD_CONN=null;  // {webhook, connected_at, label} read from THIS user's 
 let DOCS=null, DOCS_LOADING=false;   // Notes vault (maestro_docs) — lazy-loaded, RLS-scoped to the owner
 let COACHING=null, COACHING_LOADING=false;   // Daily Coach log (maestro_coaching_log) — lazy-loaded, RLS-scoped
 let COCKPIT=null, COCKPIT_LOADING=false;     // Business cockpit (portfolio-stats edge fn) — lazy-loaded, auth-gated
+// The Cockpit (business/revenue) tab is Jeremy's alone. IS_OWNER is resolved from the signed-in
+// email at load; it defaults to TRUE so a failed lookup can never lock the owner out of his own
+// tab (the sensitive data is ALSO gated server-side by the portfolio-stats edge fn's owner
+// allowlist — this flag is UI defense-in-depth, hiding the tab from any non-owner session).
+const OWNER_EMAILS=["jeremydirons@gmail.com","jeremy@irons.la"];
+let IS_OWNER=true;
 let NOTE_Q="", NOTE_Q_TIMER=null;    // Notes search query + debounce timer (live-filters title + body)
 
 const KIND = {
@@ -2781,6 +2787,7 @@ function showSkeleton(name){
 }
 function setView(name, force){
   if(["overview","cockpit","projects","tasks","week","travel","notes","coaching","inbox","needs"].indexOf(name)<0) name="overview";
+  if(name==="cockpit" && !IS_OWNER) name="overview";   // owner-only tab: never route a non-owner here
   // Scroll discipline: a genuine NAVIGATION (switching views, or any unforced call from the
   // hashchange handler) jumps to the top. An in-place RE-RENDER of the view you're already on
   // (force=true, same view — e.g. checking a task off, snooze, set-priority, a realtime data
@@ -2878,7 +2885,18 @@ async function loadDashboard(){
   const initView=(location.hash||"#overview").slice(1);
   showSkeleton(initView);
   // user id from the LOCAL session (no network round-trip — faster than getUser)
-  try { USER_ID = (await sb.auth.getSession()).data.session?.user?.id || USER_ID; } catch(_e){}
+  try {
+    const _sess = (await sb.auth.getSession()).data.session;
+    USER_ID = _sess?.user?.id || USER_ID;
+    // Owner gate for the Cockpit tab: hide it from any non-owner session. Default IS_OWNER=true,
+    // so we only ever DEMOTE — a missing/odd email never hides the tab from the owner himself.
+    const _email = (_sess?.user?.email || "").toLowerCase();
+    IS_OWNER = !_email || OWNER_EMAILS.indexOf(_email) >= 0;
+    if(!IS_OWNER){
+      document.querySelectorAll('[data-view="cockpit"]').forEach(el=>el.remove());
+      if((location.hash||"").slice(1)==="cockpit") location.hash="#overview";
+    }
+  } catch(_e){}
   // Read the isolated per-domain columns (each is written independently by the brain).
   // Fall back to the legacy `data` blob only if the columns are empty (transition safety).
   const { row, error } = await readDashboardRow("events, projects, tasks, meta, settings, data, updated_at");

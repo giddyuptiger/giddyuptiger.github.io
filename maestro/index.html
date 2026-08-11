@@ -2815,6 +2815,8 @@ function bColor(group){
   return _bGroupColor[group]=BRAIN_PALETTE[h%BRAIN_PALETTE.length];
 }
 const BRAIN_HIDE = n => BRAIN_MUTED.has(n.group.split("/")[0]) || n.path.charAt(0)===".";
+// Cluster → human project name from the top-level folder (Projects/Primal → "Primal", root → "Home/INDEX").
+function bProjName(group){ if(group==="root") return "Home/INDEX"; if(group.indexOf("Projects/")===0) return group.slice("Projects/".length); return group; }
 // Resolve a [[target]] to a node: exact path, path+.md, basename (±.md), then title-ish basename.
 function bResolve(target){
   if(!BRAIN) return null; const t=String(target||"").trim(); const tl=t.toLowerCase();
@@ -2940,17 +2942,47 @@ async function brainSelect(id, fly){
   }
   if(BRAIN.selId===id){ const el=$("#brain-md"); if(el) el.innerHTML=bMd(md); }
 }
+// ── Cluster labels: one tasteful project-name sprite floating at each cluster's centroid ──
+function brainBuildClusterLabels(){
+  const G=BRAIN.graph, SpriteText=BRAIN.SpriteText; if(!G||!SpriteText) return;
+  const scene=G.scene();
+  if(BRAIN.clusterLabels){ BRAIN.clusterLabels.forEach(o=>{ scene.remove(o.sprite);
+    try{ if(o.sprite.material){ if(o.sprite.material.map) o.sprite.material.map.dispose(); o.sprite.material.dispose(); } }catch(_e){} }); }
+  BRAIN.clusterLabels=[];
+  const groups={};
+  G.graphData().nodes.forEach(n=>{ (groups[n.group]=groups[n.group]||[]).push(n); });
+  Object.keys(groups).forEach(g=>{
+    const mem=groups[g];
+    if(BRAIN_MUTED.has(g.split("/")[0])) return;          // never label muted clusters
+    if(mem.length<3 && g!=="root") return;                // only real constellations (always show Home/INDEX)
+    const s=new SpriteText(bProjName(g));
+    s.color=bColor(g); s.textHeight=11; s.fontWeight="700";
+    s.strokeColor="rgba(3,4,7,0.9)"; s.strokeWidth=0.6;
+    s.backgroundColor="rgba(6,8,12,0.55)"; s.padding=3; s.borderRadius=4;
+    s.material.depthWrite=false; s.material.depthTest=false; s.material.opacity=0.95; s.renderOrder=20;
+    scene.add(s);
+    BRAIN.clusterLabels.push({ sprite:s, members:mem });
+  });
+  brainUpdateClusterLabels();
+}
+function brainUpdateClusterLabels(){
+  if(!BRAIN.clusterLabels) return;
+  BRAIN.clusterLabels.forEach(o=>{
+    let x=0,y=0,z=0,c=0; o.members.forEach(n=>{ if(n.x!=null){ x+=n.x; y+=n.y; z+=(n.z||0); c++; } });
+    if(c){ o.sprite.position.set(x/c, y/c + 8, z/c); o.sprite.visible=true; } else o.sprite.visible=false;
+  });
+}
 async function buildBrainGraph(){
   const host=$("#brain-canvas"); if(!host||BRAIN.graph||!window.ForceGraph3D) return;
   const HUB=BRAIN.nodes.slice().sort((a,b)=>b.deg-a.deg).slice(0,26); const hubSet=new Set(HUB.map(n=>n.id));
   const colorFn=n=> n.id===BRAIN.selId ? "#ffffff" : bColor(n.group);
   const G=window.ForceGraph3D({ controlType:"orbit" })(host)
-    .backgroundColor("#0a0c10")
+    .backgroundColor("#05060a")
     .graphData(brainData())
     .nodeId("id")
     .nodeVal(n=> 1.2 + Math.sqrt(n.deg)*1.3)
     .nodeColor(colorFn)
-    .nodeOpacity(0.92)
+    .nodeOpacity(0.82)
     .nodeRelSize(3.4)
     .nodeResolution(12)
     .nodeLabel(n=> '<div style="padding:4px 8px;border-radius:8px;background:rgba(14,16,20,.92);border:1px solid '+bColor(n.group)+'55;font:600 12px Inter,sans-serif;color:#F2F4F1;box-shadow:0 6px 20px rgba(0,0,0,.5)">'+esc(n.name)+'<div style="font-size:10px;color:#9BA1A6;font-weight:500">'+esc(n.group)+'</div></div>')
@@ -2971,29 +3003,28 @@ async function buildBrainGraph(){
   // subtle bloom + a few floating hub labels (ESM, matched to the bundled three via duck-typed flags)
   try{
     const { UnrealBloomPass } = await import("https://esm.sh/three@0.180.0/examples/jsm/postprocessing/UnrealBloomPass.js");
-    const bloom=new UnrealBloomPass(); bloom.strength=1.05; bloom.radius=0.8; bloom.threshold=0.03;
+    const bloom=new UnrealBloomPass(); bloom.strength=0.65; bloom.radius=0.75; bloom.threshold=0.06;
     G.postProcessingComposer().addPass(bloom);
   }catch(e){ console.warn("brain bloom:", e.message); }
+  // One floating PROJECT-NAME label per cluster (at its centroid) instead of a field of README/INDEX hub labels.
   try{
     const SpriteText=(await import("https://esm.sh/three-spritetext@1.9.6")).default;
-    G.nodeThreeObjectExtend(true).nodeThreeObject(n=>{
-      if(!hubSet.has(n.id)) return null;
-      const s=new SpriteText(n.name.replace(/\.md$/,"")); s.color="#eef2ea"; s.textHeight=n.id===BRAIN.selId?7:5.5;
-      s.fontWeight="600"; s.backgroundColor="rgba(10,12,16,0.55)"; s.padding=1.5; s.borderRadius=3;
-      s.material.depthWrite=false; s.position.set(0, 7+Math.sqrt(n.deg), 0); return s;
-    });
+    BRAIN.SpriteText=SpriteText;
+    G.onEngineTick(brainUpdateClusterLabels);
+    brainBuildClusterLabels();
   }catch(e){ console.warn("brain labels:", e.message); }
 }
 function brainToggleAll(){
   BRAIN.showAll=!BRAIN.showAll;
   if(BRAIN.graph) BRAIN.graph.graphData(brainData());
+  if(BRAIN.graph&&BRAIN.SpriteText) brainBuildClusterLabels();
   const d=brainData(); const c=$("#brain-count"); if(c) c.textContent=d.count.toLocaleString()+" notes · "+d.edges.toLocaleString()+" links";
   const b=$("#brain-toggle"); if(b) b.innerHTML='<span class="material-symbols-outlined text-[15px]">'+(BRAIN.showAll?"visibility_off":"hub")+'</span>'+(BRAIN.showAll?"Hide code-history":"Load all (incl. code-history)");
 }
 function renderBrain(){
   const v=$("#view-brain");
   v.innerHTML=
-   '<div id="brain-wrap" class="relative rounded-2xl overflow-hidden border hairline bg-[#0a0c10]" style="height:calc(100dvh - 9.5rem);min-height:520px">'+
+   '<div id="brain-wrap" class="relative rounded-2xl overflow-hidden border hairline bg-[#05060a]" style="height:calc(100dvh - 9.5rem);min-height:520px">'+
      '<div id="brain-canvas" class="absolute inset-0"></div>'+
      '<div id="brain-loading" class="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center px-6 pointer-events-none">'+
         '<div class="w-9 h-9 rounded-full border-2 border-primary/30 border-t-primary animate-spin"></div>'+
@@ -3007,7 +3038,7 @@ function renderBrain(){
         '<div class="pointer-events-auto rounded-xl bg-surface/60 backdrop-blur-md border hairline px-3 py-2 text-[11px] text-on-surface-variant/70 leading-relaxed max-w-[220px] hidden sm:block">Drag to orbit · scroll to zoom · click a node to open it. <span class="text-primary">Lime</span> links are wikilinks.</div>'+
      '</div>'+
      // right sidebar
-     '<aside id="brain-side" class="absolute top-0 right-0 h-full w-full sm:w-[380px] z-30 bg-surface/92 backdrop-blur-xl border-l hairline flex flex-col translate-x-full transition-transform duration-300" style="transition-timing-function:cubic-bezier(.16,1,.3,1)">'+
+     '<aside id="brain-side" class="absolute top-0 right-0 h-full w-full sm:w-[380px] z-30 border-l hairline flex flex-col translate-x-full transition-transform duration-300" style="background:rgba(8,10,16,0.96);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);transition-timing-function:cubic-bezier(.16,1,.3,1)">'+
         '<div id="brain-scroll" class="flex-1 overflow-y-auto p-4 sm:p-5"></div>'+
      '</aside>'+
    '</div>';

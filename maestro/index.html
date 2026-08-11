@@ -3072,10 +3072,34 @@ function brainOpenReader(){
   const md=BRAIN.cache[id], node=BRAIN.byId[id];
   const t=$("#brain-reader-title"); if(t) t.textContent=bDisplayName(node);
   const sub=$("#brain-reader-sub"); if(sub) sub.textContent=(node&&node.path)||"";
-  const b=$("#brain-reader-body"); if(b) b.innerHTML = md!=null ? bMd(md) : '<div class="text-on-surface-variant/50 italic">Loading…</div>';
+  const b=$("#brain-reader-body"); if(b){ b.innerHTML = md!=null ? bMd(md) : '<div class="text-on-surface-variant/50 italic">Loading…</div>'; b.scrollTop=0; }
+  // Freeze the 3D graph while the reader is open. The reader is a full-screen backdrop-filter
+  // blur; compositing that blur over a WebGL canvas that keeps rendering every frame (auto-rotate
+  // + bloom postprocessing + the label rAF) pegs the main thread and freezes the whole window —
+  // Esc and the close button included. Pausing the render loop keeps the modal responsive.
+  brainPauseGraph();
   r.classList.remove("hidden"); requestAnimationFrame(()=>r.classList.add("open"));
 }
-function brainCloseReader(){ const r=$("#brain-reader"); if(r){ r.classList.remove("open"); setTimeout(()=>r.classList.add("hidden"),200); } }
+function brainCloseReader(){
+  const r=$("#brain-reader"); if(r){ r.classList.remove("open"); setTimeout(()=>r.classList.add("hidden"),200); }
+  brainResumeGraph();   // hand the main thread back to the graph and restart auto-rotate
+}
+// Pause/resume the WebGL render loop + the cluster-label rAF so the fullscreen reader never
+// contends with the graph for the main thread.
+function brainPauseGraph(){
+  if(BRAIN&&BRAIN.graph){
+    try{ BRAIN.graph.pauseAnimation(); }catch(_e){}
+    try{ const c=BRAIN.graph.controls(); if(c) c.autoRotate=false; }catch(_e){}
+  }
+  if(BRAIN){ cancelAnimationFrame(BRAIN._raf||0); BRAIN._raf=0; }
+}
+function brainResumeGraph(){
+  if(BRAIN&&BRAIN.graph){
+    try{ BRAIN.graph.resumeAnimation(); }catch(_e){}
+    try{ const c=BRAIN.graph.controls(); if(c) c.autoRotate=true; }catch(_e){}
+    if(BRAIN._tick){ cancelAnimationFrame(BRAIN._raf||0); BRAIN._raf=requestAnimationFrame(BRAIN._tick); }
+  }
+}
 async function buildBrainGraph(){
   const host=$("#brain-canvas"); if(!host||BRAIN.graph||!window.ForceGraph3D) return;
   const MUTE="#39414c";
@@ -3166,8 +3190,8 @@ async function buildBrainGraph(){
   }catch(e){ console.warn("brain bloom:", e.message); }
   // Clean, clickable HTML project labels pinned to each cluster hub — repositioned every frame.
   brainBuildClusterLabels();
-  const tick=()=>{ if(!BRAIN||!BRAIN.graph) return; brainUpdateClusterLabels(); BRAIN._raf=requestAnimationFrame(tick); };
-  cancelAnimationFrame(BRAIN._raf||0); BRAIN._raf=requestAnimationFrame(tick);
+  BRAIN._tick=()=>{ if(!BRAIN||!BRAIN.graph) return; brainUpdateClusterLabels(); BRAIN._raf=requestAnimationFrame(BRAIN._tick); };
+  cancelAnimationFrame(BRAIN._raf||0); BRAIN._raf=requestAnimationFrame(BRAIN._tick);
 }
 function brainToggleAll(){
   BRAIN.showAll=!BRAIN.showAll;

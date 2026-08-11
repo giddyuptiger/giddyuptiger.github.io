@@ -13,6 +13,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+<!-- Brain tab: 3D vault graph (UMD global ForceGraph3D; bloom + sprite labels imported as ESM at build time) -->
+<script src="https://cdn.jsdelivr.net/npm/3d-force-graph@1.80.0/dist/3d-force-graph.min.js" defer></script>
 <script>
   tailwind.config = { darkMode:"class", theme:{ extend:{
     colors:{ "primary":"#C5E45C","primary-container":"#B2D247","on-primary":"#15171A","secondary":"#9BA1A6",
@@ -43,6 +45,9 @@
   .tab[data-active="1"]::after{ content:""; position:absolute; left:8px; right:8px; bottom:-13px; height:2px; background:#C5E45C; border-radius:2px; }
   .bnav[data-active="1"]{ color:#C5E45C; } .bnav[data-active="1"] .material-symbols-outlined{ font-variation-settings:'FILL' 1; }
   .view{ display:none; } .view.active{ display:block; animation:viewIn .35s cubic-bezier(.16,1,.3,1); } @keyframes viewIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  #view-brain.view.active{ animation:none; }   /* the 3D canvas manages its own entrance */
+  #brain-side.open{ transform:none; }
+  #brain-canvas canvas{ display:block; }
   /* Notes: never let a long line/token/URL run off the right edge on mobile; wrap to viewport. */
   .notes-body{ overflow-wrap:anywhere; word-break:break-word; max-width:100%; }
   .notes-body pre{ max-width:100%; overflow-x:auto; }
@@ -263,6 +268,7 @@
         <a href="#tasks" data-act="nav" data-view="tasks" class="tab pressable">Tasks</a>
         <a href="#week" data-act="nav" data-view="week" class="tab pressable">Week</a>
         <a href="#notes" data-act="nav" data-view="notes" class="tab pressable">Notes</a>
+        <a href="#brain" data-act="nav" data-view="brain" class="tab pressable">Brain</a>
         <a href="#coaching" data-act="nav" data-view="coaching" class="tab pressable">Coaching</a>
         <a href="#inbox" data-act="nav" data-view="inbox" class="tab pressable">Inbox</a>
       </nav>
@@ -285,6 +291,7 @@
     <section id="view-week" class="view"></section>
     <section id="view-travel" class="view"></section>
     <section id="view-notes" class="view"></section>
+    <section id="view-brain" class="view"></section>
     <section id="view-coaching" class="view"></section>
     <section id="view-inbox" class="view"></section>
     <section id="view-needs" class="view"></section>
@@ -297,6 +304,7 @@
     <a href="#tasks" data-act="nav" data-view="tasks" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">checklist</span>Tasks</a>
     <a href="#week" data-act="nav" data-view="week" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">calendar_month</span>Week</a>
     <a href="#notes" data-act="nav" data-view="notes" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">menu_book</span>Notes</a>
+    <a href="#brain" data-act="nav" data-view="brain" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">graph_2</span>Brain</a>
     <a href="#coaching" data-act="nav" data-view="coaching" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">psychology</span>Coaching</a>
   </nav>
 </div>
@@ -2785,8 +2793,249 @@ function showSkeleton(name){
   var card='<div class="rounded-2xl border hairline bg-surface-container-low/60 p-4"><div class="h-4 w-2/3 rounded bg-surface-container-high animate-pulse mb-2.5"></div><div class="h-3 w-1/3 rounded bg-surface-container-high/70 animate-pulse"></div></div>';
   $("#view-"+name).innerHTML='<div class="space-y-4"><div class="h-7 w-44 rounded bg-surface-container-high animate-pulse mb-1"></div>'+card+card+card+card+'</div>';
 }
+/* ═════════════════════ BRAIN — interactive 3D graph of the vault ═════════════════════
+   Nodes = files in public.vault_files (Supabase, RLS-scoped to the signed-in user via the
+   shared `sb` client — same read pattern as the rest of the app; NO GitHub, NO service key).
+   Edges = (a) folder hierarchy: each file hangs off the nearest INDEX/README of its folder or
+   an ancestor, chaining up to the root INDEX.md hub; (b) [[wikilinks]] parsed from note bodies.
+   Data is loaded lazily the first time the tab opens: all paths up front (cheap), note bodies
+   only for the handful of files that contain wikilinks, and a clicked note's full body on demand. */
+let BRAIN=null;
+const BRAIN_PALETTE=["#7aa2f7","#9ece6a","#f7768e","#e0af68","#bb9af7","#2ac3de","#ff9e64","#73daca","#c0caf5","#ff75a0","#7dcfff","#d7ff87","#f4b8e4","#a5d6ff","#ffd18c","#8be9c0","#d0a3ff","#98e0a0"];
+const BRAIN_MUTED=new Set(["code-history","archive","TRASH","backup-setup"]);
+const _bGroupColor={};
+function bDir(p){ const i=p.lastIndexOf("/"); return i<0?"":p.slice(0,i); }
+function bBase(p){ return p.split("/").pop(); }
+function bGroup(path){ const s=path.split("/"); if(s.length===1) return "root"; if(s[0]==="Projects"&&s.length>1) return "Projects/"+s[1]; return s[0]; }
+function bColor(group){
+  if(group==="root") return "#C5E45C";
+  if(BRAIN_MUTED.has(group)) return "#464c55";
+  if(_bGroupColor[group]) return _bGroupColor[group];
+  let h=0; for(let i=0;i<group.length;i++) h=(h*31+group.charCodeAt(i))>>>0;
+  return _bGroupColor[group]=BRAIN_PALETTE[h%BRAIN_PALETTE.length];
+}
+const BRAIN_HIDE = n => BRAIN_MUTED.has(n.group.split("/")[0]) || n.path.charAt(0)===".";
+// Resolve a [[target]] to a node: exact path, path+.md, basename (±.md), then title-ish basename.
+function bResolve(target){
+  if(!BRAIN) return null; const t=String(target||"").trim(); const tl=t.toLowerCase();
+  return BRAIN.byPath[t] || BRAIN.byPath[t+".md"] ||
+         BRAIN.byBase[tl] || BRAIN.byBase[tl+".md"] || BRAIN.byBaseNoExt[tl] || null;
+}
+// Turn markdown into HTML using the app's renderer, re-tagging wikilinks for the Brain sidebar.
+function bMd(md){
+  let s=String(md||""); let trunc=false;
+  if(s.length>60000){ s=s.slice(0,60000); trunc=true; }
+  let html=mdToHtml(s).replace(/data-act="note-wiki"/g,'data-act="brain-wiki"');
+  if(trunc) html+='<p class="text-[12px] text-on-surface-variant/60 italic mt-3">… note truncated for display.</p>';
+  return html;
+}
+async function loadBrainData(){
+  if(BRAIN && BRAIN.loading) return BRAIN.loadPromise;
+  BRAIN = { loading:true, nodes:[], links:[], byId:{}, byPath:{}, byBase:{}, byBaseNoExt:{}, cache:{}, selId:null, graph:null, showAll:false };
+  BRAIN.loadPromise = (async ()=>{
+    // 1) all rows (id, path, updated_at) — paginate past PostgREST's 1000-row cap
+    let rows=[], from=0, page=1000;
+    for(;;){
+      const { data, error } = await sb.from("vault_files").select("id,path,updated_at").order("path",{ascending:true}).range(from, from+page-1);
+      if(error){ throw new Error(error.message); }
+      rows=rows.concat(data||[]); if(!data||data.length<page) break; from+=page;
+    }
+    // 2) build nodes
+    rows.forEach(r=>{
+      const n={ id:r.id, path:r.path, name:bBase(r.path), group:bGroup(r.path), updated:r.updated_at, deg:0, parent:null, kids:[], out:[], inl:[], isIndex:false };
+      BRAIN.nodes.push(n); BRAIN.byId[n.id]=n; BRAIN.byPath[n.path]=n;
+      const bl=n.name.toLowerCase();
+      if(!(bl in BRAIN.byBase)) BRAIN.byBase[bl]=n;
+      const noext=bl.replace(/\.[a-z0-9]+$/,""); if(!(noext in BRAIN.byBaseNoExt)) BRAIN.byBaseNoExt[noext]=n;
+    });
+    // 3) folder index files (INDEX.md / README.md / _index.md / <folder>.md) → parent hubs
+    const IDXPRI={"index.md":4,"_index.md":3,"readme.md":2}; const folderIndex={};
+    BRAIN.nodes.forEach(n=>{
+      const dir=bDir(n.path), bl=n.name.toLowerCase(); let pri=IDXPRI[bl]||0;
+      if(!pri && dir!=="" && bl===bBase(dir).toLowerCase()+".md") pri=1;   // folder-note pattern
+      if(dir==="" && bl==="index.md") pri=9;                                // the root hub
+      if(pri>0){ n.isIndex=true; const cur=folderIndex[dir]; if(!cur||pri>cur.pri) folderIndex[dir]={id:n.id,pri}; }
+    });
+    // 4) parent resolution: nearest ancestor index, chaining to root INDEX.md
+    BRAIN.nodes.forEach(n=>{
+      const dir=bDir(n.path);
+      const ownIdx=folderIndex[dir] && folderIndex[dir].id===n.id;
+      let d= ownIdx ? bDir(dir) : dir, pid=null;
+      for(;;){ const fi=folderIndex[d]; if(fi && fi.id!==n.id){ pid=fi.id; break; } if(d==="") break; d=bDir(d); }
+      n.parent=pid;
+    });
+    // 5) folder edges
+    BRAIN.nodes.forEach(n=>{ if(n.parent){ BRAIN.links.push({s:n.parent,t:n.id,kind:"folder"}); BRAIN.byId[n.parent].kids.push(n.id); } });
+    // 6) wikilink edges — pull bodies ONLY for files that contain "[["
+    try{
+      const { data:wl } = await sb.from("vault_files").select("id,path,content").ilike("content","%[[%");
+      (wl||[]).forEach(r=>{
+        const src=BRAIN.byId[r.id]; if(!src) return; const seen=new Set(); let m; const re=/\[\[([^\]]+)\]\]/g;
+        while((m=re.exec(r.content))){ const tgt=bResolve(m[1].split("|")[0]); if(tgt && tgt.id!==src.id && !seen.has(tgt.id)){ seen.add(tgt.id);
+          BRAIN.links.push({s:src.id,t:tgt.id,kind:"wiki"}); src.out.push(tgt.id); tgt.inl.push(src.id); } }
+      });
+    }catch(e){ console.warn("brain wikilinks:", e.message); }
+    // 7) degree
+    BRAIN.links.forEach(l=>{ BRAIN.byId[l.s].deg++; BRAIN.byId[l.t].deg++; });
+    BRAIN.loading=false;
+    return BRAIN;
+  })();
+  return BRAIN.loadPromise;
+}
+function brainData(){
+  const vis=BRAIN.nodes.filter(n=> BRAIN.showAll || !BRAIN_HIDE(n));
+  const set=new Set(vis.map(n=>n.id));
+  const links=BRAIN.links.filter(l=> set.has(l.s)&&set.has(l.t)).map(l=>({source:l.s,target:l.t,kind:l.kind}));
+  return { nodes:vis, links, count:vis.length, edges:links.length };
+}
+function brainRefreshColors(){ if(BRAIN&&BRAIN.graph) BRAIN.graph.nodeColor(BRAIN.graph.nodeColor()); }
+function brainFly(id){
+  const g=BRAIN.graph, n=BRAIN.byId[id]; if(!g||!n||n.x==null) return;
+  const r=Math.hypot(n.x,n.y,n.z)||1, k=1+70/r;
+  g.cameraPosition({x:n.x*k, y:n.y*k, z:n.z*k}, n, 1100);
+}
+async function brainSelect(id, fly){
+  if(!BRAIN||!BRAIN.byId[id]) return;
+  BRAIN.selId=id; brainRefreshColors(); if(fly) brainFly(id);
+  const n=BRAIN.byId[id], side=$("#brain-side"), body=$("#brain-scroll"); if(!side) return;
+  side.classList.add("open");
+  const crumbs=n.path.split("/"); const dt=n.updated?new Date(n.updated):null;
+  const chip=(t,c)=>'<span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-semibold" style="background:'+c+'1f;color:'+c+';border:1px solid '+c+'44">'+esc(t)+'</span>';
+  const nodeRow=(nid,role)=>{ const x=BRAIN.byId[nid]; if(!x) return ""; const c=bColor(x.group);
+    return '<button data-brain-goto="'+x.id+'" class="pressable w-full text-left flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-surface-container-high/70 group">'+
+      '<span class="w-2 h-2 rounded-full shrink-0" style="background:'+c+';box-shadow:0 0 8px '+c+'"></span>'+
+      '<span class="text-[12.5px] text-on-surface/90 truncate flex-1 group-hover:text-primary">'+esc(x.name)+'</span>'+
+      (role?'<span class="material-symbols-outlined text-[15px] text-on-surface-variant/40">'+role+'</span>':'')+'</button>'; };
+  let struct='<div class="mt-1 space-y-3">';
+  // PARENT
+  struct+='<div><div class="text-[10.5px] font-bold tracking-[0.18em] uppercase text-on-surface-variant/55 mb-1.5 flex items-center gap-1"><span class="material-symbols-outlined text-[15px] text-primary/70">north</span>Parent · lives under</div>';
+  struct+= n.parent ? nodeRow(n.parent,"folder_open") : '<div class="text-[12px] text-on-surface-variant/45 italic px-2">Root of the vault — this is the hub.</div>';
+  struct+='</div>';
+  // CHILDREN
+  if(n.kids.length){ const kids=n.kids.slice().sort((a,b)=> BRAIN.byId[b].deg-BRAIN.byId[a].deg);
+    struct+='<div><div class="text-[10.5px] font-bold tracking-[0.18em] uppercase text-on-surface-variant/55 mb-1.5 flex items-center gap-1"><span class="material-symbols-outlined text-[15px] text-blue/80">south</span>Children · '+kids.length+'</div><div class="space-y-0.5 max-h-[34vh] overflow-y-auto pr-1">'+kids.slice(0,120).map(k=>nodeRow(k,"")).join("")+(kids.length>120?'<div class="text-[11px] text-on-surface-variant/40 italic px-2 pt-1">+'+(kids.length-120)+' more</div>':"")+'</div></div>';
+  }
+  // LINKED (wikilinks)
+  if(n.out.length||n.inl.length){ struct+='<div><div class="text-[10.5px] font-bold tracking-[0.18em] uppercase text-on-surface-variant/55 mb-1.5 flex items-center gap-1"><span class="material-symbols-outlined text-[15px] text-primary/80">link</span>Linked notes</div>';
+    if(n.out.length) struct+='<div class="text-[10px] text-on-surface-variant/45 px-2 mb-0.5">→ links to</div><div class="space-y-0.5 mb-1.5">'+n.out.map(k=>nodeRow(k,"")).join("")+'</div>';
+    if(n.inl.length) struct+='<div class="text-[10px] text-on-surface-variant/45 px-2 mb-0.5">← linked from</div><div class="space-y-0.5">'+n.inl.map(k=>nodeRow(k,"")).join("")+'</div>';
+    struct+='</div>';
+  }
+  struct+='</div>';
+  const head='<div class="flex items-start justify-between gap-2">'+
+    '<div class="min-w-0"><h2 class="text-[17px] font-extrabold text-on-surface leading-tight break-words">'+esc(n.name)+'</h2>'+
+    '<div class="text-[11px] text-on-surface-variant/55 mt-0.5 break-words">'+esc(crumbs.slice(0,-1).join(" / ")||"vault root")+'</div></div>'+
+    '<button data-brain-close class="pressable shrink-0 w-7 h-7 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined text-[18px]">close</span></button></div>'+
+    '<div class="flex flex-wrap gap-1.5 mt-2">'+chip(n.group,bColor(n.group))+(dt?chip("updated "+dt.toLocaleDateString(),"#9BA1A6"):"")+chip(n.deg+" links","#9BA1A6")+'</div>';
+  body.innerHTML=head+
+    '<div class="mt-3 pt-3 border-t hairline"><div class="text-[10.5px] font-bold tracking-[0.18em] uppercase text-on-surface-variant/55 mb-1.5">Structure</div>'+struct+'</div>'+
+    '<div class="mt-4 pt-3 border-t hairline"><div class="text-[10.5px] font-bold tracking-[0.18em] uppercase text-on-surface-variant/55 mb-2">Note</div><div id="brain-md" class="notes-body text-[13.5px]"><div class="text-[12px] text-on-surface-variant/50 italic">Loading note…</div></div></div>';
+  body.scrollTop=0;
+  // lazy-fetch content
+  let md=BRAIN.cache[id];
+  if(md==null){
+    const { data, error } = await sb.from("vault_files").select("content").eq("id",id).single();
+    md = error ? "*Couldn’t load this note — "+error.message+"*" : (data && data.content || "*(empty note)*");
+    BRAIN.cache[id]=md;
+  }
+  if(BRAIN.selId===id){ const el=$("#brain-md"); if(el) el.innerHTML=bMd(md); }
+}
+async function buildBrainGraph(){
+  const host=$("#brain-canvas"); if(!host||BRAIN.graph||!window.ForceGraph3D) return;
+  const HUB=BRAIN.nodes.slice().sort((a,b)=>b.deg-a.deg).slice(0,26); const hubSet=new Set(HUB.map(n=>n.id));
+  const colorFn=n=> n.id===BRAIN.selId ? "#ffffff" : bColor(n.group);
+  const G=window.ForceGraph3D({ controlType:"orbit" })(host)
+    .backgroundColor("#0a0c10")
+    .graphData(brainData())
+    .nodeId("id")
+    .nodeVal(n=> 1.2 + Math.sqrt(n.deg)*1.3)
+    .nodeColor(colorFn)
+    .nodeOpacity(0.92)
+    .nodeRelSize(3.4)
+    .nodeResolution(12)
+    .nodeLabel(n=> '<div style="padding:4px 8px;border-radius:8px;background:rgba(14,16,20,.92);border:1px solid '+bColor(n.group)+'55;font:600 12px Inter,sans-serif;color:#F2F4F1;box-shadow:0 6px 20px rgba(0,0,0,.5)">'+esc(n.name)+'<div style="font-size:10px;color:#9BA1A6;font-weight:500">'+esc(n.group)+'</div></div>')
+    .linkColor(l=> l.kind==="wiki" ? "rgba(197,228,92,0.55)" : "rgba(150,162,176,0.12)")
+    .linkWidth(l=> l.kind==="wiki"?0.7:0.35)
+    .linkOpacity(0.5)
+    .linkDirectionalParticles(l=> l.kind==="wiki"?2:0)
+    .linkDirectionalParticleWidth(1.5)
+    .linkDirectionalParticleSpeed(0.006)
+    .onNodeClick(n=> brainSelect(n.id, true))
+    .onBackgroundClick(()=>{ const s=$("#brain-side"); if(s) s.classList.remove("open"); })
+    .warmupTicks(30).cooldownTicks(220);
+  BRAIN.graph=G;
+  const dim=()=>{ G.width(host.clientWidth); G.height(host.clientHeight); };
+  dim(); BRAIN.ro=new ResizeObserver(dim); BRAIN.ro.observe(host);
+  // gentle auto-rotate that yields to drag
+  try{ const c=G.controls(); c.autoRotate=true; c.autoRotateSpeed=0.55; c.enableDamping=true; c.dampingFactor=0.12; }catch(e){}
+  // subtle bloom + a few floating hub labels (ESM, matched to the bundled three via duck-typed flags)
+  try{
+    const { UnrealBloomPass } = await import("https://esm.sh/three@0.180.0/examples/jsm/postprocessing/UnrealBloomPass.js");
+    const bloom=new UnrealBloomPass(); bloom.strength=1.05; bloom.radius=0.8; bloom.threshold=0.03;
+    G.postProcessingComposer().addPass(bloom);
+  }catch(e){ console.warn("brain bloom:", e.message); }
+  try{
+    const SpriteText=(await import("https://esm.sh/three-spritetext@1.9.6")).default;
+    G.nodeThreeObjectExtend(true).nodeThreeObject(n=>{
+      if(!hubSet.has(n.id)) return null;
+      const s=new SpriteText(n.name.replace(/\.md$/,"")); s.color="#eef2ea"; s.textHeight=n.id===BRAIN.selId?7:5.5;
+      s.fontWeight="600"; s.backgroundColor="rgba(10,12,16,0.55)"; s.padding=1.5; s.borderRadius=3;
+      s.material.depthWrite=false; s.position.set(0, 7+Math.sqrt(n.deg), 0); return s;
+    });
+  }catch(e){ console.warn("brain labels:", e.message); }
+}
+function brainToggleAll(){
+  BRAIN.showAll=!BRAIN.showAll;
+  if(BRAIN.graph) BRAIN.graph.graphData(brainData());
+  const d=brainData(); const c=$("#brain-count"); if(c) c.textContent=d.count.toLocaleString()+" notes · "+d.edges.toLocaleString()+" links";
+  const b=$("#brain-toggle"); if(b) b.innerHTML='<span class="material-symbols-outlined text-[15px]">'+(BRAIN.showAll?"visibility_off":"hub")+'</span>'+(BRAIN.showAll?"Hide code-history":"Load all (incl. code-history)");
+}
+function renderBrain(){
+  const v=$("#view-brain");
+  v.innerHTML=
+   '<div id="brain-wrap" class="relative rounded-2xl overflow-hidden border hairline bg-[#0a0c10]" style="height:calc(100dvh - 9.5rem);min-height:520px">'+
+     '<div id="brain-canvas" class="absolute inset-0"></div>'+
+     '<div id="brain-loading" class="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center px-6 pointer-events-none">'+
+        '<div class="w-9 h-9 rounded-full border-2 border-primary/30 border-t-primary animate-spin"></div>'+
+        '<div class="text-[13px] text-on-surface-variant/70">Reading your vault from Supabase…</div></div>'+
+     // top-left overlay
+     '<div class="absolute top-3 left-3 z-20 flex flex-col gap-2 items-start pointer-events-none">'+
+        '<div class="pointer-events-auto rounded-xl bg-surface/70 backdrop-blur-md border hairline px-3 py-2">'+
+          '<div class="text-[13px] font-extrabold tracking-tight text-primary flex items-center gap-1.5"><span class="material-symbols-outlined text-[17px]">graph_2</span>Brain</div>'+
+          '<div id="brain-count" class="text-[11px] text-on-surface-variant/60 mt-0.5">…</div></div>'+
+        '<button id="brain-toggle" data-brain-toggle class="pointer-events-auto pressable inline-flex items-center gap-1.5 rounded-full bg-surface/70 backdrop-blur-md border hairline px-3 py-1.5 text-[11.5px] font-semibold text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined text-[15px]">hub</span>Load all (incl. code-history)</button>'+
+        '<div class="pointer-events-auto rounded-xl bg-surface/60 backdrop-blur-md border hairline px-3 py-2 text-[11px] text-on-surface-variant/70 leading-relaxed max-w-[220px] hidden sm:block">Drag to orbit · scroll to zoom · click a node to open it. <span class="text-primary">Lime</span> links are wikilinks.</div>'+
+     '</div>'+
+     // right sidebar
+     '<aside id="brain-side" class="absolute top-0 right-0 h-full w-full sm:w-[380px] z-30 bg-surface/92 backdrop-blur-xl border-l hairline flex flex-col translate-x-full transition-transform duration-300" style="transition-timing-function:cubic-bezier(.16,1,.3,1)">'+
+        '<div id="brain-scroll" class="flex-1 overflow-y-auto p-4 sm:p-5"></div>'+
+     '</aside>'+
+   '</div>';
+  // wire events once per render
+  v.onclick=async (e)=>{
+    const goto=e.target.closest("[data-brain-goto]"); if(goto){ e.preventDefault(); e.stopPropagation(); brainSelect(goto.dataset.brainGoto,true); return; }
+    const wiki=e.target.closest('[data-act="brain-wiki"]'); if(wiki){ e.preventDefault(); e.stopPropagation(); const nd=bResolve(wiki.dataset.target); if(nd) brainSelect(nd.id,true); else toast('No note matches “'+wiki.dataset.target+'”'); return; }
+    if(e.target.closest("[data-brain-close]")){ e.preventDefault(); $("#brain-side").classList.remove("open"); return; }
+    if(e.target.closest("[data-brain-toggle]")){ e.preventDefault(); brainToggleAll(); return; }
+  };
+  // load data + build graph after the view is visible (needs real width/height)
+  (async ()=>{
+    try{
+      await loadBrainData();
+      const d=brainData(); const c=$("#brain-count"); if(c) c.textContent=d.count.toLocaleString()+" notes · "+d.edges.toLocaleString()+" links";
+      // wait for the UMD lib if the deferred script hasn't finished yet
+      let tries=0; while(!window.ForceGraph3D && tries++<60) await new Promise(r=>setTimeout(r,50));
+      requestAnimationFrame(async ()=>{
+        await buildBrainGraph();
+        const ld=$("#brain-loading"); if(ld) ld.remove();
+        const root=BRAIN.byPath["INDEX.md"]; if(root) setTimeout(()=>brainSelect(root.id,true), 900);
+      });
+    }catch(err){ console.error("brain load:",err); const ld=$("#brain-loading"); if(ld) ld.innerHTML='<div class="text-[13px] text-error-container-fg">Couldn’t load the vault: '+esc(err.message)+'</div>'.replace("error-container-fg","on-error-container"); }
+  })();
+}
+
 function setView(name, force){
-  if(["overview","cockpit","projects","tasks","week","travel","notes","coaching","inbox","needs"].indexOf(name)<0) name="overview";
+  if(["overview","cockpit","projects","tasks","week","travel","notes","coaching","inbox","needs","brain"].indexOf(name)<0) name="overview";
   if(name==="cockpit" && !IS_OWNER) name="overview";   // owner-only tab: never route a non-owner here
   // Scroll discipline: a genuine NAVIGATION (switching views, or any unforced call from the
   // hashchange handler) jumps to the top. An in-place RE-RENDER of the view you're already on
@@ -2798,7 +3047,7 @@ function setView(name, force){
   const keepScroll = !!force && sameView;
   const y = window.scrollY;
   STATE.view=name;
-  const fn={overview:renderOverview,cockpit:renderCockpit,projects:renderProjects,tasks:renderTasks,week:renderWeek,travel:renderTravel,notes:renderNotes,coaching:renderCoaching,inbox:renderInbox,needs:renderNeeds}[name];
+  const fn={overview:renderOverview,cockpit:renderCockpit,projects:renderProjects,tasks:renderTasks,week:renderWeek,travel:renderTravel,notes:renderNotes,coaching:renderCoaching,inbox:renderInbox,needs:renderNeeds,brain:renderBrain}[name];
   // NEVER-BLANK GUARD: render if the view was never rendered, a re-render is forced, OR the container
   // is empty for ANY reason (interrupted paint, stale RENDERED cache, an async wipe). This is the
   // safety net that guarantees a tab can't stay blank — if the DOM is empty, we always repaint it,

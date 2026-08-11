@@ -41,6 +41,12 @@
   .run-indet{ animation:runPulse 1.2s ease-in-out infinite; } @keyframes runPulse{0%,100%{opacity:.45}50%{opacity:1}}
   .accent-edge{ box-shadow:inset 0 0 0 1px rgba(197,228,92,0.22), 0 24px 60px -30px rgba(0,0,0,0.9); }
   .hairline{ border-color:rgba(155,161,166,0.16); }
+  /* Floating cluster labels: crisp clickable text, no background box — just a legibility shadow. */
+  .brain-clabel{ position:absolute; left:0; top:0; transform:translate(-50%,-150%); white-space:nowrap;
+    font:800 12.5px/1 Inter,system-ui,sans-serif; letter-spacing:.01em; padding:0; margin:0; border:0; background:none; cursor:pointer;
+    text-shadow:0 1px 2px rgba(0,0,0,.95), 0 0 10px rgba(0,0,0,.85), 0 0 2px rgba(0,0,0,1);
+    pointer-events:auto; opacity:0; transition:opacity .15s ease; will-change:transform; }
+  .brain-clabel:hover{ text-decoration:underline; filter:brightness(1.28); }
   .tab{ position:relative; transition:color .2s; } .tab[data-active="1"]{ color:#C5E45C; }
   .tab[data-active="1"]::after{ content:""; position:absolute; left:8px; right:8px; bottom:-13px; height:2px; background:#C5E45C; border-radius:2px; }
   .bnav[data-active="1"]{ color:#C5E45C; } .bnav[data-active="1"] .material-symbols-outlined{ font-variation-settings:'FILL' 1; }
@@ -2817,6 +2823,45 @@ function bColor(group){
 const BRAIN_HIDE = n => BRAIN_MUTED.has(n.group.split("/")[0]) || n.path.charAt(0)===".";
 // Cluster → human project name from the top-level folder (Projects/Primal → "Primal", root → "Home/INDEX").
 function bProjName(group){ if(group==="root") return "Home/INDEX"; if(group.indexOf("Projects/")===0) return group.slice("Projects/".length); return group; }
+// ── Human-friendly display names ─────────────────────────────────────────────
+// Prettify a raw token: keep short ALL-CAPS acronyms (HD, PM), title-case the rest.
+function bTitleToken(t){ if(!t) return t; if(/^[A-Z0-9]{1,3}$/.test(t)) return t; if(/^[a-z0-9]+$/i.test(t)===false && /[a-z]/.test(t)) return t; return t.charAt(0).toUpperCase()+t.slice(1).toLowerCase(); }
+// Prettify a name: underscores/whitespace → spaces, tasteful casing. Dashes → spaces too,
+// UNLESS a segment is a short acronym (e.g. HD-LOVE → "HD-Love", but meeting-notes → "Meeting Notes").
+function bTitleCase(str){ return String(str||"").split(/[\s_]+/).filter(Boolean).map(w=>{
+  const parts=w.split("-"); const keepDash=parts.some(p=>/^[A-Z0-9]{1,3}$/.test(p));
+  return parts.map(bTitleToken).join(keepDash?"-":" ");
+}).join(" ").trim(); }
+// A node's DISPLAY name: README/_index/index → prettified PARENT FOLDER; else prettified filename w/o ext.
+function bDisplayName(n){
+  if(!n) return "";
+  const base=(n.name||"").toLowerCase();
+  if(base==="readme.md"||base==="_index.md"||base==="index.md"){
+    const dir=bDir(n.path);
+    if(dir==="") return "Home";
+    return bTitleCase(bBase(dir));
+  }
+  return bTitleCase((n.name||"").replace(/\.[a-z0-9]+$/i,""));
+}
+// Prettified project/cluster label (root → "Home").
+function bProjLabel(group){ if(group==="root") return "Home"; return bTitleCase(bProjName(group)); }
+// Noise nodes: placeholders (.gitkeep/.keep) and empty/whitespace-only notes — hidden everywhere.
+function bNoise(n){ if(!n) return true; const b=(n.name||"").toLowerCase(); return b===".gitkeep"||b===".keep"||n.empty===true; }
+// First 1–2 non-empty content lines, stripped of markdown marks, for a panel preview snippet.
+function bPreview(md){
+  if(!md) return "";
+  const lines=String(md).split(/\r?\n/); const out=[]; let inFm=false;
+  for(let raw of lines){
+    let l=raw.trim();
+    if(l==="---"){ inFm=!inFm; continue; }        // skip YAML frontmatter
+    if(inFm) continue;
+    l=l.replace(/^#{1,6}\s*/,"").replace(/^[-*+]\s+/,"").replace(/^>\s*/,"")
+       .replace(/!?\[([^\]]*)\]\([^)]*\)/g,"$1").replace(/\[\[([^\]|]+)(\|[^\]]*)?\]\]/g,"$1")
+       .replace(/[*_`~#>]/g,"").trim();
+    if(l){ out.push(l); if(out.length>=2) break; }
+  }
+  return out.join(" — ");
+}
 // Resolve a [[target]] to a node: exact path, path+.md, basename (±.md), then title-ish basename.
 function bResolve(target){
   if(!BRAIN) return null; const t=String(target||"").trim(); const tl=t.toLowerCase();
@@ -2850,6 +2895,15 @@ async function loadBrainData(){
       if(!(bl in BRAIN.byBase)) BRAIN.byBase[bl]=n;
       const noext=bl.replace(/\.[a-z0-9]+$/,""); if(!(noext in BRAIN.byBaseNoExt)) BRAIN.byBaseNoExt[noext]=n;
     });
+    // 2b) flag empty / whitespace-only notes as noise (id-only queries — no bodies pulled).
+    try{
+      const { data:e1 } = await sb.from("vault_files").select("id").or("content.is.null,content.eq.");
+      (e1||[]).forEach(r=>{ const n=BRAIN.byId[r.id]; if(n) n.empty=true; });
+    }catch(e){ console.warn("brain empties(null/empty):", e.message); }
+    try{
+      const { data:e2 } = await sb.from("vault_files").select("id").filter("content","match","^[[:space:]]*$");
+      (e2||[]).forEach(r=>{ const n=BRAIN.byId[r.id]; if(n) n.empty=true; });
+    }catch(e){ console.warn("brain empties(whitespace):", e.message); }
     // 3) folder index files (INDEX.md / README.md / _index.md / <folder>.md) → parent hubs
     const IDXPRI={"index.md":4,"_index.md":3,"readme.md":2}; const folderIndex={};
     BRAIN.nodes.forEach(n=>{
@@ -2885,7 +2939,7 @@ async function loadBrainData(){
   return BRAIN.loadPromise;
 }
 function brainData(){
-  const vis=BRAIN.nodes.filter(n=> BRAIN.showAll || !BRAIN_HIDE(n));
+  const vis=BRAIN.nodes.filter(n=> (BRAIN.showAll || !BRAIN_HIDE(n)) && !bNoise(n));
   const set=new Set(vis.map(n=>n.id));
   const links=BRAIN.links.filter(l=> set.has(l.s)&&set.has(l.t)).map(l=>({source:l.s,target:l.t,kind:l.kind}));
   return { nodes:vis, links, count:vis.length, edges:links.length };
@@ -2903,35 +2957,42 @@ async function brainSelect(id, fly){
   side.classList.add("open");
   const crumbs=n.path.split("/"); const dt=n.updated?new Date(n.updated):null;
   const chip=(t,c)=>'<span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-semibold" style="background:'+c+'1f;color:'+c+';border:1px solid '+c+'44">'+esc(t)+'</span>';
-  const nodeRow=(nid,role)=>{ const x=BRAIN.byId[nid]; if(!x) return ""; const c=bColor(x.group);
-    return '<button data-brain-goto="'+x.id+'" class="pressable w-full text-left flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-surface-container-high/70 group">'+
-      '<span class="w-2 h-2 rounded-full shrink-0" style="background:'+c+';box-shadow:0 0 8px '+c+'"></span>'+
-      '<span class="text-[12.5px] text-on-surface/90 truncate flex-1 group-hover:text-primary">'+esc(x.name)+'</span>'+
-      (role?'<span class="material-symbols-outlined text-[15px] text-on-surface-variant/40">'+role+'</span>':'')+'</button>'; };
-  let struct='<div class="mt-1 space-y-3">';
+  const nodeRow=(nid,role)=>{ const x=BRAIN.byId[nid]; if(!x||bNoise(x)) return ""; const c=bColor(x.group);
+    return '<button data-brain-goto="'+x.id+'" class="pressable w-full text-left flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-surface-container-high/70 group">'+
+      '<span class="w-1.5 h-1.5 rounded-full shrink-0" style="background:'+c+';box-shadow:0 0 7px '+c+'"></span>'+
+      '<span class="text-[12px] text-on-surface/90 truncate flex-1 group-hover:text-primary">'+esc(bDisplayName(x))+'</span>'+
+      (role?'<span class="material-symbols-outlined text-[14px] text-on-surface-variant/40">'+role+'</span>':'')+'</button>'; };
+  // Compact list: show first `lim`, collapse the rest behind a "show all (N)" toggle.
+  const listBlock=(ids,lim)=>{ const vis=ids.filter(i=>{ const x=BRAIN.byId[i]; return x&&!bNoise(x); });
+    if(!vis.length) return {html:"",count:0};
+    let html='<div class="space-y-0.5">'+vis.slice(0,lim).map(k=>nodeRow(k,"")).join("");
+    if(vis.length>lim){ html+='<div class="brain-more hidden space-y-0.5">'+vis.slice(lim).map(k=>nodeRow(k,"")).join("")+'</div>'+
+      '<button data-brain-morebtn class="pressable text-[11px] font-semibold text-primary/80 hover:text-primary px-2 pt-1">show all ('+vis.length+')</button>'; }
+    html+='</div>'; return {html,count:vis.length}; };
+  const secHead=(icon,ic,txt)=>'<div class="text-[10px] font-bold tracking-[0.16em] uppercase text-on-surface-variant/55 mb-1 flex items-center gap-1"><span class="material-symbols-outlined text-[14px] '+ic+'">'+icon+'</span>'+txt+'</div>';
+  let struct='<div class="mt-1 space-y-2.5">';
   // PARENT
-  struct+='<div><div class="text-[10.5px] font-bold tracking-[0.18em] uppercase text-on-surface-variant/55 mb-1.5 flex items-center gap-1"><span class="material-symbols-outlined text-[15px] text-primary/70">north</span>Parent · lives under</div>';
-  struct+= n.parent ? nodeRow(n.parent,"folder_open") : '<div class="text-[12px] text-on-surface-variant/45 italic px-2">Root of the vault — this is the hub.</div>';
-  struct+='</div>';
-  // CHILDREN
-  if(n.kids.length){ const kids=n.kids.slice().sort((a,b)=> BRAIN.byId[b].deg-BRAIN.byId[a].deg);
-    struct+='<div><div class="text-[10.5px] font-bold tracking-[0.18em] uppercase text-on-surface-variant/55 mb-1.5 flex items-center gap-1"><span class="material-symbols-outlined text-[15px] text-blue/80">south</span>Children · '+kids.length+'</div><div class="space-y-0.5 max-h-[34vh] overflow-y-auto pr-1">'+kids.slice(0,120).map(k=>nodeRow(k,"")).join("")+(kids.length>120?'<div class="text-[11px] text-on-surface-variant/40 italic px-2 pt-1">+'+(kids.length-120)+' more</div>':"")+'</div></div>';
-  }
-  // LINKED (wikilinks)
-  if(n.out.length||n.inl.length){ struct+='<div><div class="text-[10.5px] font-bold tracking-[0.18em] uppercase text-on-surface-variant/55 mb-1.5 flex items-center gap-1"><span class="material-symbols-outlined text-[15px] text-primary/80">link</span>Linked notes</div>';
-    if(n.out.length) struct+='<div class="text-[10px] text-on-surface-variant/45 px-2 mb-0.5">→ links to</div><div class="space-y-0.5 mb-1.5">'+n.out.map(k=>nodeRow(k,"")).join("")+'</div>';
-    if(n.inl.length) struct+='<div class="text-[10px] text-on-surface-variant/45 px-2 mb-0.5">← linked from</div><div class="space-y-0.5">'+n.inl.map(k=>nodeRow(k,"")).join("")+'</div>';
-    struct+='</div>';
-  }
+  struct+='<div>'+secHead("north","text-primary/70","Parent")+ ((n.parent&&BRAIN.byId[n.parent]&&!bNoise(BRAIN.byId[n.parent]))?nodeRow(n.parent,"folder_open"):'<div class="text-[11.5px] text-on-surface-variant/45 italic px-2">Vault root — this is a hub.</div>')+'</div>';
+  // CHILDREN (compact, collapse past 7)
+  const kidsSorted=n.kids.slice().sort((a,b)=> BRAIN.byId[b].deg-BRAIN.byId[a].deg);
+  const kidsB=listBlock(kidsSorted,7);
+  if(kidsB.count) struct+='<div>'+secHead("south","text-blue/80","Children · "+kidsB.count)+kidsB.html+'</div>';
+  // LINKED wikilinks (compact, collapse past 6 each direction)
+  const outB=listBlock(n.out,6), inB=listBlock(n.inl,6);
+  if(outB.count||inB.count){ struct+='<div>'+secHead("link","text-primary/80","Linked · "+(outB.count+inB.count));
+    if(outB.count) struct+='<div class="text-[10px] text-on-surface-variant/45 px-2 mb-0.5 mt-0.5">→ links to</div>'+outB.html;
+    if(inB.count) struct+='<div class="text-[10px] text-on-surface-variant/45 px-2 mb-0.5 mt-1">← linked from</div>'+inB.html;
+    struct+='</div>'; }
   struct+='</div>';
   const head='<div class="flex items-start justify-between gap-2">'+
-    '<div class="min-w-0"><h2 class="text-[17px] font-extrabold text-on-surface leading-tight break-words">'+esc(n.name)+'</h2>'+
+    '<div class="min-w-0"><h2 class="text-[17px] font-extrabold text-on-surface leading-tight break-words">'+esc(bDisplayName(n))+'</h2>'+
     '<div class="text-[11px] text-on-surface-variant/55 mt-0.5 break-words">'+esc(crumbs.slice(0,-1).join(" / ")||"vault root")+'</div></div>'+
     '<button data-brain-close class="pressable shrink-0 w-7 h-7 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined text-[18px]">close</span></button></div>'+
-    '<div class="flex flex-wrap gap-1.5 mt-2">'+chip(n.group,bColor(n.group))+(dt?chip("updated "+dt.toLocaleDateString(),"#9BA1A6"):"")+chip(n.deg+" links","#9BA1A6")+'</div>';
+    '<div class="flex flex-wrap gap-1.5 mt-2">'+chip(bProjLabel(n.group),bColor(n.group))+(dt?chip("updated "+dt.toLocaleDateString(),"#9BA1A6"):"")+chip(n.deg+" links","#9BA1A6")+'</div>'+
+    '<div id="brain-preview" class="mt-2.5 text-[12px] leading-snug text-on-surface-variant/70" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden"></div>';
   body.innerHTML=head+
-    '<div class="mt-3 pt-3 border-t hairline"><div class="text-[10.5px] font-bold tracking-[0.18em] uppercase text-on-surface-variant/55 mb-1.5">Structure</div>'+struct+'</div>'+
-    '<div class="mt-4 pt-3 border-t hairline"><div class="text-[10.5px] font-bold tracking-[0.18em] uppercase text-on-surface-variant/55 mb-2">Note</div><div id="brain-md" class="notes-body text-[13.5px]"><div class="text-[12px] text-on-surface-variant/50 italic">Loading note…</div></div></div>';
+    '<div class="mt-3 pt-3 border-t hairline">'+secHead("account_tree","text-on-surface-variant/55","Structure")+struct+'</div>'+
+    '<div class="mt-4 pt-3 border-t hairline"><div class="flex items-center justify-between mb-2"><div class="text-[10.5px] font-bold tracking-[0.18em] uppercase text-on-surface-variant/55">Note</div><button data-brain-expand title="Open full reader (Esc to close)" class="pressable inline-flex items-center gap-1 rounded-full bg-surface-container-high/70 px-2 py-0.5 text-[11px] font-semibold text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined text-[15px]">open_in_full</span>Expand</button></div><div id="brain-md" class="notes-body text-[13.5px]"><div class="text-[12px] text-on-surface-variant/50 italic">Loading note…</div></div></div>';
   body.scrollTop=0;
   // lazy-fetch content
   let md=BRAIN.cache[id];
@@ -2940,84 +3001,163 @@ async function brainSelect(id, fly){
     md = error ? "*Couldn’t load this note — "+error.message+"*" : (data && data.content || "*(empty note)*");
     BRAIN.cache[id]=md;
   }
-  if(BRAIN.selId===id){ const el=$("#brain-md"); if(el) el.innerHTML=bMd(md); }
+  if(BRAIN.selId===id){
+    const el=$("#brain-md"); if(el) el.innerHTML=bMd(md);
+    const pv=$("#brain-preview"); if(pv){ const p=bPreview(md); if(p) pv.textContent=p; else pv.remove(); }
+    const rb=$("#brain-reader"); if(rb && !rb.classList.contains("hidden")) brainOpenReader();
+  }
 }
-// ── Cluster labels: one tasteful project-name sprite floating at each cluster's centroid ──
+// ── Cluster labels: one clean, CLICKABLE project name pinned to each cluster's hub node ──
+// Rendered as HTML overlay (no translucent box — just crisp text with a legibility shadow),
+// projected from the hub node's 3D position each frame so it clearly belongs to that cluster.
+function brainClusterHub(mem){
+  let hub=mem[0];
+  mem.forEach(n=>{ if(n.deg>hub.deg || (n.deg===hub.deg && n.isIndex && !hub.isIndex)) hub=n; });
+  return hub;
+}
 function brainBuildClusterLabels(){
-  const G=BRAIN.graph, SpriteText=BRAIN.SpriteText; if(!G||!SpriteText) return;
-  const scene=G.scene();
-  if(BRAIN.clusterLabels){ BRAIN.clusterLabels.forEach(o=>{ scene.remove(o.sprite);
-    try{ if(o.sprite.material){ if(o.sprite.material.map) o.sprite.material.map.dispose(); o.sprite.material.dispose(); } }catch(_e){} }); }
-  BRAIN.clusterLabels=[];
+  const G=BRAIN.graph; if(!G) return;
+  const host=$("#brain-labels"); if(!host) return;
+  host.innerHTML=""; BRAIN.clusterLabels=[];
   const groups={};
   G.graphData().nodes.forEach(n=>{ (groups[n.group]=groups[n.group]||[]).push(n); });
   Object.keys(groups).forEach(g=>{
     const mem=groups[g];
     if(BRAIN_MUTED.has(g.split("/")[0])) return;          // never label muted clusters
-    if(mem.length<3 && g!=="root") return;                // only real constellations (always show Home/INDEX)
-    const s=new SpriteText(bProjName(g));
-    s.color=bColor(g); s.textHeight=11; s.fontWeight="700";
-    s.strokeColor="rgba(3,4,7,0.9)"; s.strokeWidth=0.6;
-    s.backgroundColor="rgba(6,8,12,0.55)"; s.padding=3; s.borderRadius=4;
-    s.material.depthWrite=false; s.material.depthTest=false; s.material.opacity=0.95; s.renderOrder=20;
-    scene.add(s);
-    BRAIN.clusterLabels.push({ sprite:s, members:mem });
+    if(mem.length<3 && g!=="root") return;                // only real constellations (always show Home)
+    const hub=brainClusterHub(mem);
+    const el=document.createElement("button");
+    el.type="button";
+    el.setAttribute("data-brain-goto", hub.id);
+    el.title="Open "+bProjLabel(g);
+    el.className="brain-clabel";
+    el.textContent=bProjLabel(g);
+    el.style.color=bColor(g);
+    host.appendChild(el);
+    BRAIN.clusterLabels.push({ el, hub });
   });
   brainUpdateClusterLabels();
 }
 function brainUpdateClusterLabels(){
-  if(!BRAIN.clusterLabels) return;
+  if(!BRAIN.clusterLabels||!BRAIN.graph) return;
+  const G=BRAIN.graph;
   BRAIN.clusterLabels.forEach(o=>{
-    let x=0,y=0,z=0,c=0; o.members.forEach(n=>{ if(n.x!=null){ x+=n.x; y+=n.y; z+=(n.z||0); c++; } });
-    if(c){ o.sprite.position.set(x/c, y/c + 8, z/c); o.sprite.visible=true; } else o.sprite.visible=false;
+    const n=o.hub;
+    if(!n||n.x==null){ o.el.style.opacity="0"; return; }
+    let sc; try{ sc=G.graph2ScreenCoords(n.x, n.y, n.z||0); }catch(_e){ return; }
+    if(!sc){ o.el.style.opacity="0"; return; }
+    o.el.style.transform="translate(-50%,-150%) translate("+sc.x+"px,"+sc.y+"px)";
+    o.el.style.opacity="1";
   });
 }
+// ── Fullscreen markdown reader ────────────────────────────────────────────────
+function brainOpenReader(){
+  const id=BRAIN&&BRAIN.selId; if(id==null) return;
+  const r=$("#brain-reader"); if(!r) return;
+  const md=BRAIN.cache[id], node=BRAIN.byId[id];
+  const t=$("#brain-reader-title"); if(t) t.textContent=bDisplayName(node);
+  const sub=$("#brain-reader-sub"); if(sub) sub.textContent=(node&&node.path)||"";
+  const b=$("#brain-reader-body"); if(b) b.innerHTML = md!=null ? bMd(md) : '<div class="text-on-surface-variant/50 italic">Loading…</div>';
+  r.classList.remove("hidden"); requestAnimationFrame(()=>r.classList.add("open"));
+}
+function brainCloseReader(){ const r=$("#brain-reader"); if(r){ r.classList.remove("open"); setTimeout(()=>r.classList.add("hidden"),200); } }
 async function buildBrainGraph(){
   const host=$("#brain-canvas"); if(!host||BRAIN.graph||!window.ForceGraph3D) return;
-  const HUB=BRAIN.nodes.slice().sort((a,b)=>b.deg-a.deg).slice(0,26); const hubSet=new Set(HUB.map(n=>n.id));
-  const colorFn=n=> n.id===BRAIN.selId ? "#ffffff" : bColor(n.group);
+  const MUTE="#39414c";
+  // Hover highlight state: highlight set = hovered node + its direct neighbors.
+  BRAIN.hlNodes=new Set(); BRAIN.hlLinks=new Set(); BRAIN.hoverId=null;
+  const nodeColorFn=n=>{
+    if(BRAIN.hlNodes.size && !BRAIN.hlNodes.has(n.id)) return MUTE;   // dim non-highlighted
+    return n.id===BRAIN.selId ? "#ffffff" : bColor(n.group);
+  };
+  const linkColorFn=l=>{
+    const hov=BRAIN.hlLinks.size>0, on=hov&&BRAIN.hlLinks.has(l);
+    if(hov&&!on) return "rgba(120,132,148,0.04)";                     // fade unrelated links
+    if(l.kind==="wiki") return on?"rgba(197,228,92,0.95)":"rgba(197,228,92,0.5)";
+    return on?"rgba(205,216,232,0.55)":"rgba(150,162,176,0.12)";
+  };
+  const linkWidthFn=l=>{ const on=BRAIN.hlLinks.size>0&&BRAIN.hlLinks.has(l); if(on) return l.kind==="wiki"?2.4:1.7; return l.kind==="wiki"?0.7:0.35; };
+  const particleFn=l=> (BRAIN.hlLinks.size>0&&BRAIN.hlLinks.has(l))?4:0;  // particles ONLY on hovered links; zero otherwise
+  const refreshHL=()=>{ if(!BRAIN.graph) return; const G=BRAIN.graph;
+    G.nodeColor(nodeColorFn).linkColor(linkColorFn).linkWidth(linkWidthFn).linkDirectionalParticles(particleFn); };
+  BRAIN.refreshHL=refreshHL;
   const G=window.ForceGraph3D({ controlType:"orbit" })(host)
     .backgroundColor("#05060a")
     .graphData(brainData())
     .nodeId("id")
     .nodeVal(n=> 1.2 + Math.sqrt(n.deg)*1.3)
-    .nodeColor(colorFn)
+    .nodeColor(nodeColorFn)
     .nodeOpacity(0.82)
     .nodeRelSize(3.4)
     .nodeResolution(12)
-    .nodeLabel(n=> '<div style="padding:4px 8px;border-radius:8px;background:rgba(14,16,20,.92);border:1px solid '+bColor(n.group)+'55;font:600 12px Inter,sans-serif;color:#F2F4F1;box-shadow:0 6px 20px rgba(0,0,0,.5)">'+esc(n.name)+'<div style="font-size:10px;color:#9BA1A6;font-weight:500">'+esc(n.group)+'</div></div>')
-    .linkColor(l=> l.kind==="wiki" ? "rgba(197,228,92,0.55)" : "rgba(150,162,176,0.12)")
-    .linkWidth(l=> l.kind==="wiki"?0.7:0.35)
+    .nodeLabel(n=> '<div style="padding:4px 8px;border-radius:8px;background:rgba(14,16,20,.92);border:1px solid '+bColor(n.group)+'55;font:600 12px Inter,sans-serif;color:#F2F4F1;box-shadow:0 6px 20px rgba(0,0,0,.5)">'+esc(bDisplayName(n))+'<div style="font-size:10px;color:#9BA1A6;font-weight:500">'+esc(bProjLabel(n.group))+'</div></div>')
+    .linkColor(linkColorFn)
+    .linkWidth(linkWidthFn)
     .linkOpacity(0.5)
-    .linkDirectionalParticles(l=> l.kind==="wiki"?2:0)
-    .linkDirectionalParticleWidth(1.5)
-    .linkDirectionalParticleSpeed(0.006)
+    .linkDirectionalParticles(particleFn)
+    .linkDirectionalParticleWidth(2)
+    .linkDirectionalParticleSpeed(0.01)
     .onNodeClick(n=> brainSelect(n.id, true))
+    .onNodeHover(node=>{
+      const nid=node?node.id:null;
+      if(nid===BRAIN.hoverId) return;
+      BRAIN.hoverId=nid;
+      BRAIN.hlNodes=new Set(); BRAIN.hlLinks=new Set();
+      if(node){
+        BRAIN.hlNodes.add(node.id);
+        BRAIN.graph.graphData().links.forEach(l=>{
+          const s=typeof l.source==="object"?l.source.id:l.source;
+          const t=typeof l.target==="object"?l.target.id:l.target;
+          if(s===node.id||t===node.id){ BRAIN.hlLinks.add(l); BRAIN.hlNodes.add(s); BRAIN.hlNodes.add(t); }
+        });
+      }
+      if(host) host.style.cursor=node?"pointer":"";
+      refreshHL();
+    })
     .onBackgroundClick(()=>{ const s=$("#brain-side"); if(s) s.classList.remove("open"); })
-    .warmupTicks(30).cooldownTicks(220);
+    .warmupTicks(40).cooldownTicks(320);
   BRAIN.graph=G;
   const dim=()=>{ G.width(host.clientWidth); G.height(host.clientHeight); };
   dim(); BRAIN.ro=new ResizeObserver(dim); BRAIN.ro.observe(host);
+  // ── Layout: give every project its own separated constellation ──
+  try{
+    const vis=brainData().nodes;
+    const gset=[...new Set(vis.map(n=>n.group))].filter(g=>g!=="root");
+    const centers={ root:{x:0,y:0,z:0} };
+    const R=140 + gset.length*7; const N=Math.max(gset.length,1); const gr=Math.PI*(3-Math.sqrt(5));
+    gset.forEach((g,i)=>{ const y=1-(i+0.5)/N*2, rad=Math.sqrt(Math.max(0,1-y*y)), th=gr*i;   // fibonacci sphere → even spread
+      centers[g]={ x:Math.cos(th)*rad*R, y:y*R, z:Math.sin(th)*rad*R }; });
+    let _cn=vis;
+    function forceCluster(alpha){ const k=alpha*0.14;
+      _cn.forEach(n=>{ const c=centers[n.group]; if(!c) return;
+        n.vx=(n.vx||0)+(c.x-n.x)*k; n.vy=(n.vy||0)+(c.y-n.y)*k; n.vz=(n.vz||0)+((c.z||0)-(n.z||0))*k; }); }
+    forceCluster.initialize=(ns)=>{ _cn=ns; };
+    G.d3Force("cluster", forceCluster);
+    G.d3Force("charge").strength(-160).distanceMax(700);
+    G.d3Force("link").distance(l=>{ const s=l.source,t=l.target, sg=(s&&s.group)||"", tg=(t&&t.group)||"";
+      if(sg==="root"||tg==="root") return 150;                 // long root spokes push clusters outward
+      if(l.kind==="wiki") return 55;
+      return 24;                                               // tight intra-cluster links
+    }).strength(l=> l.kind==="folder"?0.9:0.22);
+    G.d3ReheatSimulation();
+  }catch(e){ console.warn("brain forces:", e.message); }
   // gentle auto-rotate that yields to drag
-  try{ const c=G.controls(); c.autoRotate=true; c.autoRotateSpeed=0.55; c.enableDamping=true; c.dampingFactor=0.12; }catch(e){}
-  // subtle bloom + a few floating hub labels (ESM, matched to the bundled three via duck-typed flags)
+  try{ const c=G.controls(); c.autoRotate=true; c.autoRotateSpeed=0.5; c.enableDamping=true; c.dampingFactor=0.12; }catch(e){}
+  // subtle bloom
   try{
     const { UnrealBloomPass } = await import("https://esm.sh/three@0.180.0/examples/jsm/postprocessing/UnrealBloomPass.js");
     const bloom=new UnrealBloomPass(); bloom.strength=0.65; bloom.radius=0.75; bloom.threshold=0.06;
     G.postProcessingComposer().addPass(bloom);
   }catch(e){ console.warn("brain bloom:", e.message); }
-  // One floating PROJECT-NAME label per cluster (at its centroid) instead of a field of README/INDEX hub labels.
-  try{
-    const SpriteText=(await import("https://esm.sh/three-spritetext@1.9.6")).default;
-    BRAIN.SpriteText=SpriteText;
-    G.onEngineTick(brainUpdateClusterLabels);
-    brainBuildClusterLabels();
-  }catch(e){ console.warn("brain labels:", e.message); }
+  // Clean, clickable HTML project labels pinned to each cluster hub — repositioned every frame.
+  brainBuildClusterLabels();
+  const tick=()=>{ if(!BRAIN||!BRAIN.graph) return; brainUpdateClusterLabels(); BRAIN._raf=requestAnimationFrame(tick); };
+  cancelAnimationFrame(BRAIN._raf||0); BRAIN._raf=requestAnimationFrame(tick);
 }
 function brainToggleAll(){
   BRAIN.showAll=!BRAIN.showAll;
   if(BRAIN.graph) BRAIN.graph.graphData(brainData());
-  if(BRAIN.graph&&BRAIN.SpriteText) brainBuildClusterLabels();
+  if(BRAIN.graph) brainBuildClusterLabels();
   const d=brainData(); const c=$("#brain-count"); if(c) c.textContent=d.count.toLocaleString()+" notes · "+d.edges.toLocaleString()+" links";
   const b=$("#brain-toggle"); if(b) b.innerHTML='<span class="material-symbols-outlined text-[15px]">'+(BRAIN.showAll?"visibility_off":"hub")+'</span>'+(BRAIN.showAll?"Hide code-history":"Load all (incl. code-history)");
 }
@@ -3026,6 +3166,7 @@ function renderBrain(){
   v.innerHTML=
    '<div id="brain-wrap" class="relative rounded-2xl overflow-hidden border hairline bg-[#05060a]" style="height:calc(100dvh - 9.5rem);min-height:520px">'+
      '<div id="brain-canvas" class="absolute inset-0"></div>'+
+     '<div id="brain-labels" class="absolute inset-0 z-10 overflow-hidden pointer-events-none"></div>'+
      '<div id="brain-loading" class="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center px-6 pointer-events-none">'+
         '<div class="w-9 h-9 rounded-full border-2 border-primary/30 border-t-primary animate-spin"></div>'+
         '<div class="text-[13px] text-on-surface-variant/70">Reading your vault from Supabase…</div></div>'+
@@ -3041,6 +3182,16 @@ function renderBrain(){
      '<aside id="brain-side" class="absolute top-0 right-0 h-full w-full sm:w-[380px] z-30 border-l hairline flex flex-col translate-x-full transition-transform duration-300" style="background:rgba(8,10,16,0.96);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);transition-timing-function:cubic-bezier(.16,1,.3,1)">'+
         '<div id="brain-scroll" class="flex-1 overflow-y-auto p-4 sm:p-5"></div>'+
      '</aside>'+
+     // fullscreen markdown reader (hidden until Expand)
+     '<div id="brain-reader" class="hidden absolute inset-0 z-40 flex items-start justify-center p-4 sm:p-8" style="background:rgba(4,5,8,0.86);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);opacity:0;transition:opacity .2s ease">'+
+       '<div class="w-full max-w-[820px] max-h-full flex flex-col rounded-2xl border hairline overflow-hidden" style="background:rgba(10,12,18,0.98);box-shadow:0 24px 80px rgba(0,0,0,.6)">'+
+         '<div class="flex items-start justify-between gap-3 px-6 sm:px-8 pt-5 pb-3 border-b hairline">'+
+           '<div class="min-w-0"><h2 id="brain-reader-title" class="text-[19px] font-extrabold text-on-surface leading-tight break-words"></h2>'+
+           '<div id="brain-reader-sub" class="text-[11px] text-on-surface-variant/50 mt-0.5 break-words"></div></div>'+
+           '<button data-brain-reader-close title="Close (Esc)" class="pressable shrink-0 w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined text-[20px]">close</span></button></div>'+
+         '<div id="brain-reader-body" class="notes-body flex-1 overflow-y-auto px-6 sm:px-10 py-6 text-[15px]" style="line-height:1.75"></div>'+
+       '</div>'+
+     '</div>'+
    '</div>';
   // wire events once per render
   v.onclick=async (e)=>{
@@ -3048,7 +3199,13 @@ function renderBrain(){
     const wiki=e.target.closest('[data-act="brain-wiki"]'); if(wiki){ e.preventDefault(); e.stopPropagation(); const nd=bResolve(wiki.dataset.target); if(nd) brainSelect(nd.id,true); else toast('No note matches “'+wiki.dataset.target+'”'); return; }
     if(e.target.closest("[data-brain-close]")){ e.preventDefault(); $("#brain-side").classList.remove("open"); return; }
     if(e.target.closest("[data-brain-toggle]")){ e.preventDefault(); brainToggleAll(); return; }
+    if(e.target.closest("[data-brain-expand]")){ e.preventDefault(); brainOpenReader(); return; }
+    if(e.target.closest("[data-brain-reader-close]")){ e.preventDefault(); brainCloseReader(); return; }
+    const more=e.target.closest("[data-brain-morebtn]"); if(more){ e.preventDefault(); const wrap=more.parentElement; const hid=wrap&&wrap.querySelector(".brain-more"); if(hid) hid.classList.remove("hidden"); more.remove(); return; }
   };
+  // Esc closes the fullscreen reader (bound once)
+  if(!window.__brainReaderEsc){ window.__brainReaderEsc=true;
+    document.addEventListener("keydown", e=>{ if(e.key==="Escape"){ const r=$("#brain-reader"); if(r&&!r.classList.contains("hidden")) brainCloseReader(); } }); }
   // load data + build graph after the view is visible (needs real width/height)
   (async ()=>{
     try{

@@ -343,11 +343,13 @@ let DISCORD_CONN=null;  // {webhook, connected_at, label} read from THIS user's 
 let DOCS=null, DOCS_LOADING=false;   // Notes vault (maestro_docs) — lazy-loaded, RLS-scoped to the owner
 let COACHING=null, COACHING_LOADING=false;   // Daily Coach log (maestro_coaching_log) — lazy-loaded, RLS-scoped
 let COCKPIT=null, COCKPIT_LOADING=false;     // Business cockpit (portfolio-stats edge fn) — lazy-loaded, auth-gated
-// The Cockpit (business/revenue) tab is Jeremy's alone. IS_OWNER is resolved from the signed-in
-// email at load; it defaults to TRUE so a failed lookup can never lock the owner out of his own
-// tab (the sensitive data is ALSO gated server-side by the portfolio-stats edge fn's owner
-// allowlist — this flag is UI defense-in-depth, hiding the tab from any non-owner session).
-const OWNER_EMAILS=["jeremydirons@gmail.com","jeremy@irons.la"];
+// The Cockpit (business/revenue) tab is the owner's alone. IS_OWNER is resolved from the
+// signed-in user's auth id (an opaque UUID — NOT PII, so nothing personal ships in the public
+// bundle) at load; it defaults to TRUE so a failed lookup can never lock the owner out of his
+// own tab (the sensitive data is ALSO gated server-side by the portfolio-stats edge fn's owner
+// allowlist, and every row is RLS-scoped to auth.uid() — this flag is only UI defense-in-depth,
+// hiding the tab from any non-owner session).
+const OWNER_IDS=["e55948d9-6ad0-4b23-8da1-b5ca289578ee","124dd5b1-bc1a-4443-b1bf-c2c73abb8b2b"];
 let IS_OWNER=true;
 let NOTE_Q="", NOTE_Q_TIMER=null;    // Notes search query + debounce timer (live-filters title + body)
 
@@ -2947,7 +2949,20 @@ function brainData(){
 function brainRefreshColors(){ if(BRAIN&&BRAIN.graph) BRAIN.graph.nodeColor(BRAIN.graph.nodeColor()); }
 function brainFly(id){
   const g=BRAIN.graph, n=BRAIN.byId[id]; if(!g||!n||n.x==null) return;
-  const r=Math.hypot(n.x,n.y,n.z)||1, k=1+70/r;
+  const r=Math.hypot(n.x,n.y,n.z)||1;
+  // Camera stand-off distance from the clicked node. Leaf notes get a tight, close-in
+  // framing (the original 70). PROJECT / HUB nodes — folder index READMEs (n.isIndex), or
+  // nodes with lots of children / high connectivity — pull the camera back 2–3× farther so
+  // the surrounding constellation sits comfortably in frame instead of filling the screen.
+  const LEAF=70;                                     // leaf-note distance (unchanged)
+  const kids=(n.kids&&n.kids.length)||0, deg=n.deg||0;
+  const isHub = n.isIndex || kids>=5 || deg>=10;     // folder hub, or a well-connected cluster center
+  let dist=LEAF;
+  if(isHub){
+    const bigness=Math.max(kids, deg);               // how sprawling this cluster is
+    dist=Math.min(LEAF*3, LEAF*2 + bigness*3);       // 2× floor, ramps toward the 3× cap for big hubs
+  }
+  const k=1+dist/r;
   g.cameraPosition({x:n.x*k, y:n.y*k, z:n.z*k}, n, 1100);
 }
 async function brainSelect(id, fly){
@@ -3326,9 +3341,9 @@ async function loadDashboard(){
     const _sess = (await sb.auth.getSession()).data.session;
     USER_ID = _sess?.user?.id || USER_ID;
     // Owner gate for the Cockpit tab: hide it from any non-owner session. Default IS_OWNER=true,
-    // so we only ever DEMOTE — a missing/odd email never hides the tab from the owner himself.
-    const _email = (_sess?.user?.email || "").toLowerCase();
-    IS_OWNER = !_email || OWNER_EMAILS.indexOf(_email) >= 0;
+    // so we only ever DEMOTE — a missing/unknown session id never hides the tab from the owner.
+    // Gate on the signed-in user's auth id (UUID), never on an email string.
+    IS_OWNER = !USER_ID || OWNER_IDS.indexOf(USER_ID) >= 0;
     if(!IS_OWNER){
       document.querySelectorAll('[data-view="cockpit"]').forEach(el=>el.remove());
       if((location.hash||"").slice(1)==="cockpit") location.hash="#overview";

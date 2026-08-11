@@ -282,7 +282,6 @@
         <button data-act="open-pending" id="pending-pill" title="Actions queued for Maestro" class="hidden pressable items-center gap-1.5 bg-primary/12 text-primary border border-primary/25 rounded-full pl-2.5 pr-3 py-1 text-[12px] font-semibold"><span class="material-symbols-outlined text-[16px]">bolt</span>Queued (<span id="pending-count">0</span>)</button>
         <div class="text-right leading-tight hidden sm:block"><div id="clock" class="font-mono text-[14px] text-on-surface font-medium tabular-nums">—:—</div><div id="loc" class="text-[11px] text-on-surface-variant/70">—</div></div>
         <button data-act="nav" data-view="inbox" id="inbox-btn" class="pressable relative w-9 h-9 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-primary" title="Inbox — message Dispatch" aria-label="Inbox"><span class="material-symbols-outlined text-[20px]">forum</span><span id="inbox-badge" class="hidden absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] px-1 rounded-full bg-primary text-on-primary text-[10px] font-bold leading-none flex items-center justify-center">0</span></button>
-        <button data-act="sync-now" id="sync-now-btn" class="pressable w-9 h-9 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-primary" title="Sync calendar now" aria-label="Sync calendar now"><span class="material-symbols-outlined text-[20px]">sync</span></button>
         <button data-act="open-settings" class="pressable w-9 h-9 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-primary" title="Settings" aria-label="Settings"><span class="material-symbols-outlined text-[20px]">settings</span></button>
         <button data-act="logout" class="pressable w-9 h-9 rounded-full bg-surface-container-high ring-1 ring-primary/30 flex items-center justify-center text-on-surface-variant hover:text-primary" title="Sign out" aria-label="Sign out"><span class="material-symbols-outlined text-[19px]">logout</span></button>
       </div>
@@ -3306,7 +3305,6 @@ document.addEventListener("click", async (e)=>{
   if(act==="close-modal"){ closeModal(); return; }
   if(act==="open-event"){ const ev=(DATA.events||[]).find(x=>String(x.id)===el.dataset.id); if(ev) eventModal(ev); return; }
   if(act==="logout"){ signOut(); return; }
-  if(act==="sync-now"){ liveSync({}); return; }
   if(act==="inbox-send"){ const t=$("#inbox-compose"); const v=t?t.value:""; sendInbox(v).then(ok=>{ if(ok && t) t.value=""; }); return; }
   if(act==="task-respond"){ respondTaskModal(el.dataset.id); return; }
   if(act==="task-respond-send"){ const t=$("#task-respond-box"); const v=t?t.value:""; sendInbox(v, el.dataset.id).then(ok=>{ if(ok) closeModal(); }); return; }

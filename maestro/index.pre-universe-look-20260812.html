@@ -3115,7 +3115,7 @@ function bRecencyFactor(n){                       // multiply a node's base RGB 
   // clip past 1.0 so the UnrealBloomPass makes genuinely-recent files pop.
   const r=(n&&typeof n.recencyNorm==="number")?n.recencyNorm
         :((n&&typeof n.recency==="number")?n.recency:0);
-  return 0.80 + r*0.34;                           // UNIVERSE LOOK: floor raised 0.42→0.80 so even the oldest / most-distant node is a clearly-lit star (never near-black); recency range compressed to a subtle 0.80→1.14 sparkle (was 0.42→1.28); fresh still clips >1.0 → bloom
+  return 0.42 + r*0.86;                           // FLOOR raised to 0.42 so the oldest/least-recent nodes stay a soft, still-visible node against the dark bg (never fade to background); fresh still peaks ~1.28 (clips → bloom)
 }
 function _bHexRGB(hex){ hex=String(hex||"").replace("#",""); if(hex.length===3) hex=hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
   const v=parseInt(hex,16)||0; return [(v>>16)&255,(v>>8)&255,v&255]; }
@@ -3623,10 +3623,10 @@ async function buildBrainGraph(){
   // subtle bloom
   try{
     const { UnrealBloomPass } = await import("https://esm.sh/three@0.180.0/examples/jsm/postprocessing/UnrealBloomPass.js");
-    const bloom=new UnrealBloomPass(); bloom.strength=0.95; bloom.radius=0.8; bloom.threshold=0.0;   // UNIVERSE LOOK: strength 0.65→0.95, radius 0.75→0.8, threshold 0.06→0.0 so every lit node glows like a star, not just the freshest
+    const bloom=new UnrealBloomPass(); bloom.strength=0.65; bloom.radius=0.75; bloom.threshold=0.06;
     G.postProcessingComposer().addPass(bloom);
   }catch(e){ console.warn("brain bloom:", e.message); }
-  // ── Cinematic depth (DOF): a WHISPER of exponential fog gives gentle depth (distant nodes stay bright, only the very farthest settle slightly into a faint nebula-navy),
+  // ── Cinematic depth (DOF): exponential fog dims + recedes far nodes into the charcoal void,
   //    compounding the recency glow + label depth-fade. Plus subtle TYPE-AWARE marker glyphs on
   //    project hubs (lime ring) and wiki topics (violet diamond) — notes stay clean spheres, so
   //    structure reads at a glance next to the legend. Fully guarded: if THREE won't import we skip
@@ -3634,7 +3634,7 @@ async function buildBrainGraph(){
   try{
     const THREE = await import("https://esm.sh/three@0.180.0");
     BRAIN._THREE = THREE;
-    try{ const scn=G.scene(); if(scn) scn.fog = new THREE.FogExp2(0x0a1224, 0.00035); }catch(_e){}   // UNIVERSE LOOK: density 0.0016→0.00035 (a whisper of depth, not a blackout) + fog colour lifted 0x05060a→0x0a1224 so distant nodes settle into a faint nebula-navy glow instead of the charcoal void
+    try{ const scn=G.scene(); if(scn) scn.fog = new THREE.FogExp2(0x05060a, 0.0016); }catch(_e){}
     const geoHub  = new THREE.TorusGeometry(4.6, 0.5, 6, 18);
     const geoWiki = new THREE.OctahedronGeometry(3.1, 0);
     const matHub  = new THREE.MeshBasicMaterial({ color:0xC5E45C, transparent:true, opacity:0.55 });

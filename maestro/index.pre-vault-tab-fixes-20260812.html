@@ -54,11 +54,6 @@
   #view-vault.view.active{ animation:none; }   /* the 3D canvas manages its own entrance */
   #brain-side.open{ transform:none; }
   #brain-canvas canvas{ display:block; }
-  /* ── FIX (mobile gestures): the Vault graph OWNS its own touch gestures (one-finger orbit,
-     pinch-zoom, two-finger pan). touch-action:none stops the browser from hijacking the gesture as
-     a page scroll/zoom, and overscroll-behavior:none kills rubber-band leak. Scoped to the canvas
-     ONLY, so the file list + note panels still scroll normally. ── */
-  #brain-canvas, #brain-canvas canvas{ touch-action:none; -ms-touch-action:none; overscroll-behavior:none; }
   /* ── Vault tab: list panel + 3D graph coexist. On mobile a segmented control toggles between
      the two (graph shows first); on desktop the grid shows both side-by-side. ── */
   .vault-mtoggle{ display:none; }
@@ -2961,7 +2956,7 @@ function showSkeleton(name){
    Data is loaded lazily the first time the tab opens: all paths up front (cheap), note bodies
    only for the handful of files that contain wikilinks, and a clicked note's full body on demand. */
 let BRAIN=null;
-let VAULT={ q:"", qTimer:null, mtab:"graph", expanded:new Set(), treeInit:false };   // unified Vault tab: file-list search query + mobile list/graph toggle; expanded = open folder paths in the list tree
+let VAULT={ q:"", qTimer:null, mtab:"graph" };   // unified Vault tab: file-list search query + mobile list/graph toggle
 const BRAIN_PALETTE=["#7aa2f7","#9ece6a","#f7768e","#e0af68","#bb9af7","#2ac3de","#ff9e64","#73daca","#c0caf5","#ff75a0","#7dcfff","#d7ff87","#f4b8e4","#a5d6ff","#ffd18c","#8be9c0","#d0a3ff","#98e0a0"];
 const BRAIN_MUTED=new Set(["code-history","archive","TRASH","backup-setup"]);
 const _bGroupColor={};
@@ -2989,7 +2984,7 @@ function bRecencyFactor(n){                       // multiply a node's base RGB 
   // clip past 1.0 so the UnrealBloomPass makes genuinely-recent files pop.
   const r=(n&&typeof n.recencyNorm==="number")?n.recencyNorm
         :((n&&typeof n.recency==="number")?n.recency:0);
-  return 0.42 + r*0.86;                           // FLOOR raised to 0.42 so the oldest/least-recent nodes stay a soft, still-visible node against the dark bg (never fade to background); fresh still peaks ~1.28 (clips → bloom)
+  return 0.14 + r*1.16;                           // dim floor 0.14 · fresh peaks ~1.30 (clips → bloom)
 }
 function _bHexRGB(hex){ hex=String(hex||"").replace("#",""); if(hex.length===3) hex=hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
   const v=parseInt(hex,16)||0; return [(v>>16)&255,(v>>8)&255,v&255]; }
@@ -3272,45 +3267,13 @@ function brainBuildClusterLabels(){
 function brainUpdateClusterLabels(){
   if(!BRAIN.clusterLabels||!BRAIN.graph) return;
   const G=BRAIN.graph;
-  // ── FIX (depth-fade labels): fade each label by its distance from the camera so only the front
-  // labels read clearly and the deep ones recede — no more ~50 full-opacity titles stacked flat.
-  // Camera position + forward vector (camera looks at the orbit target) let us both fade by depth
-  // and cull labels that fall BEHIND the camera. If either is unavailable we fall back gracefully.
-  let cam=null, fwd=null;
-  try{ cam=G.cameraPosition(); }catch(_e){}
-  try{ const c=G.controls(); if(cam&&c&&c.target){ const fx=c.target.x-cam.x, fy=c.target.y-cam.y, fz=c.target.z-cam.z; const fl=Math.hypot(fx,fy,fz)||1; fwd={x:fx/fl,y:fy/fl,z:fz/fl}; } }catch(_e){}
-  // Pass 1: project each hub, measure camera distance, note the biggest hub degree (importance).
-  const items=[]; let dmin=Infinity, dmax=-Infinity, degMax=1;
   BRAIN.clusterLabels.forEach(o=>{
     const n=o.hub;
-    if(!n||n.x==null){ o.el.style.opacity="0"; o.el.style.pointerEvents="none"; return; }
-    let sc; try{ sc=G.graph2ScreenCoords(n.x, n.y, n.z||0); }catch(_e){ o.el.style.opacity="0"; return; }
-    if(!sc){ o.el.style.opacity="0"; o.el.style.pointerEvents="none"; return; }
-    let dist=0, behind=false;
-    if(cam){ const dx=n.x-cam.x, dy=n.y-cam.y, dz=(n.z||0)-cam.z; dist=Math.hypot(dx,dy,dz);
-      if(fwd){ behind=(dx*fwd.x+dy*fwd.y+dz*fwd.z)<=0; } }
-    if(behind){ o.el.style.opacity="0"; o.el.style.pointerEvents="none"; return; }
-    if(dist<dmin) dmin=dist; if(dist>dmax) dmax=dist;
-    if((n.deg||0)>degMax) degMax=n.deg;
-    items.push({o,n,sc,dist});
-  });
-  if(!items.length) return;
-  const span=Math.max(1e-6, dmax-dmin);
-  // Pass 2: depth-fade. near=1 (front) … 0 (back). Big hubs get an importance floor so the major
-  // cluster anchors stay legible a bit deeper; small clusters at the back fade out entirely.
-  items.forEach(it=>{
-    const t = (it.dist-dmin)/span;                 // 0 = nearest, 1 = farthest
-    const near = 1 - t;
-    const imp = Math.min(1, (it.n.deg||0)/degMax); // 0..1 cluster importance (hub degree)
-    let op = Math.pow(near, 1.5);                   // front labels crisp, deep ones recede fast
-    op = Math.max(op, imp*0.55*near + imp*0.12);    // important hubs keep a legibility floor
-    op = 0.05 + 0.95*Math.max(0, Math.min(1, op));  // faint trace rather than a hard pop-out
-    if(t>0.7 && imp<0.5) op *= Math.max(0, 1-(t-0.7)/0.3);   // cull deep + unimportant titles
-    op = Math.max(0, Math.min(1, op));
-    it.o.el.style.transform="translate(-50%,-150%) translate("+it.sc.x+"px,"+it.sc.y+"px)";
-    it.o.el.style.opacity=op.toFixed(3);
-    it.o.el.style.pointerEvents = op>0.28 ? "auto" : "none";   // only click labels you can actually read
-    it.o.el.style.zIndex = String(2000 - Math.round(t*1000));  // nearer labels paint over farther
+    if(!n||n.x==null){ o.el.style.opacity="0"; return; }
+    let sc; try{ sc=G.graph2ScreenCoords(n.x, n.y, n.z||0); }catch(_e){ return; }
+    if(!sc){ o.el.style.opacity="0"; return; }
+    o.el.style.transform="translate(-50%,-150%) translate("+sc.x+"px,"+sc.y+"px)";
+    o.el.style.opacity="1";
   });
 }
 // A gentle breathing pulse on the very-freshest handful of nodes (BRAIN.recentHot) — a subtle
@@ -3468,20 +3431,6 @@ async function buildBrainGraph(){
   }catch(e){ console.warn("brain forces:", e.message); }
   // gentle auto-rotate that yields to drag
   try{ const c=G.controls(); c.autoRotate=true; c.autoRotateSpeed=0.5; c.enableDamping=true; c.dampingFactor=0.12; }catch(e){}
-  // ── FIX (mobile gestures): make the canvas own its touch input so page-scroll stops fighting the
-  // graph's orbit/zoom/pan. Set touch-action:none directly on the mounted <canvas> (belt-and-braces
-  // with the CSS rule) and map OrbitControls touches: ONE finger = orbit, TWO fingers = pinch-zoom + pan.
-  try{
-    const cv = host.querySelector("canvas");
-    if(cv){ cv.style.touchAction="none"; cv.style.overscrollBehavior="none"; }
-    const oc = G.controls();
-    if(oc){
-      oc.enabled=true; oc.enableRotate=true; oc.enableZoom=true; oc.enablePan=true;
-      oc.rotateSpeed=0.55; oc.zoomSpeed=0.9; oc.panSpeed=0.7;
-      try{ oc.touches = { ONE: 0, TWO: 2 }; }catch(_e){}   // THREE.TOUCH.ROTATE=0, DOLLY_PAN=2
-      if(oc.domElement){ oc.domElement.style.touchAction="none"; }
-    }
-  }catch(_e){}
   // subtle bloom
   try{
     const { UnrealBloomPass } = await import("https://esm.sh/three@0.180.0/examples/jsm/postprocessing/UnrealBloomPass.js");
@@ -3534,57 +3483,21 @@ function vaultRowHTML(n){
     '<span class="min-w-0 flex-1"><span class="block truncate text-[12.5px] '+(sel?"text-primary font-semibold":"text-on-surface/90")+'">'+esc(bDisplayName(n))+'</span>'+
     '<span class="block truncate text-[10px] font-mono text-on-surface-variant/40">'+esc(n.path)+'</span></span></button>';
 }
-// ── FIX (folder tree): the list is no longer a flat dump of ~1,600 files. Group the (filtered) node
-// set by its FULL vault-path hierarchy into a collapsible folder tree. Folders expand/collapse (open
-// set kept in VAULT.expanded); an active search force-opens every folder so matches + their folders
-// are revealed. Files stay nested under their folder and clicking one still uses data-brain-goto.
-// Building the tree is O(files) and collapsed branches emit no DOM, so it stays fast at ~1,600 files.
-function vaultBuildTree(nodes){
-  const root={ name:"", path:"", dirs:Object.create(null), files:[], count:0 };
-  for(const n of nodes){
-    const parts=String(n.path||"").split("/"); parts.pop();   // drop the filename → folder segments
-    let cur=root; root.count++; let acc="";
-    for(const p of parts){
-      acc = acc ? acc+"/"+p : p;
-      let d=cur.dirs[p];
-      if(!d){ d={ name:p, path:acc, dirs:Object.create(null), files:[], count:0 }; cur.dirs[p]=d; }
-      d.count++; cur=d;
-    }
-    cur.files.push(n);
-  }
-  return root;
-}
-function vaultTreeRowHTML(n, depth){
-  const sel=BRAIN&&BRAIN.selId===n.id, c=bColor(n.group), pad=10+depth*13;
-  return '<button data-brain-goto="'+n.id+'" title="'+esc(n.path)+'" class="pressable w-full flex items-center gap-2 pr-2 py-1 rounded-lg text-left '+(sel?"bg-primary/12":"hover:bg-surface-container-high/50")+'" style="padding-left:'+pad+'px">'+
-    '<span class="w-1.5 h-1.5 rounded-full shrink-0" style="background:'+c+';box-shadow:0 0 6px '+c+'"></span>'+
-    '<span class="truncate text-[12.5px] '+(sel?"text-primary font-semibold":"text-on-surface/90")+'">'+esc(bDisplayName(n))+'</span></button>';
-}
-function vaultTreeHTML(dir, depth, forceOpen){
-  let html="";
-  const dnames=Object.keys(dir.dirs).sort((a,b)=>a.toLowerCase().localeCompare(b.toLowerCase()));
-  for(const dn of dnames){
-    const d=dir.dirs[dn], open = forceOpen || VAULT.expanded.has(d.path), pad=8+depth*13;
-    html += '<button type="button" data-vault-folder="'+esc(d.path)+'" class="pressable w-full flex items-center gap-1 pr-2 py-1 rounded-lg text-left hover:bg-surface-container-high/40" style="padding-left:'+pad+'px">'+
-        '<span class="material-symbols-outlined text-[16px] text-on-surface-variant/50 shrink-0" style="transition:transform .12s;'+(open?"transform:rotate(90deg)":"")+'">chevron_right</span>'+
-        '<span class="material-symbols-outlined text-[15px] shrink-0 text-primary/60">'+(open?"folder_open":"folder")+'</span>'+
-        '<span class="truncate text-[12px] font-semibold text-on-surface/85">'+esc(bTitleCase(dn))+'</span>'+
-        '<span class="ml-auto shrink-0 text-[10px] text-on-surface-variant/35 pl-1">'+d.count+'</span></button>';
-    if(open) html += vaultTreeHTML(d, depth+1, forceOpen);
-  }
-  const files=dir.files.slice().sort((a,b)=>bDisplayName(a).localeCompare(bDisplayName(b)));
-  for(const n of files) html += vaultTreeRowHTML(n, depth);
-  return html;
-}
 function vaultListHTML(){
   if(!BRAIN||BRAIN.loading) return '<div class="px-2 py-3 text-[12px] text-on-surface-variant/50 flex items-center gap-2"><span class="material-symbols-outlined animate-spin text-[16px] text-primary">progress_activity</span>Reading your vault…</div>';
   const hits=vaultMatches();
   if(!hits.length) return '<p class="text-[12px] text-on-surface-variant/50 px-2 py-3">No files match “'+esc(VAULT.q.trim())+'”.</p>';
-  const root=vaultBuildTree(hits);
-  // First paint: open the top-level folders so the tree opens on something useful, not all-collapsed.
-  if(!VAULT.treeInit){ VAULT.treeInit=true; for(const k in root.dirs) VAULT.expanded.add(root.dirs[k].path); }
-  const searching=!!VAULT.q.trim();   // while searching, force every folder open to reveal matches
-  return '<div class="min-w-0">'+vaultTreeHTML(root, 0, searching)+'</div>';
+  const groups={}; hits.forEach(n=>{ (groups[n.group]=groups[n.group]||[]).push(n); });
+  const order=Object.keys(groups).sort((a,b)=> (a==="root"?-1:b==="root"?1:bProjLabel(a).localeCompare(bProjLabel(b))));
+  return order.map(g=>{
+    const c=bColor(g), mem=groups[g].slice().sort((a,b)=> bDisplayName(a).localeCompare(bDisplayName(b)));
+    return '<div class="mb-1.5">'+
+      '<div class="vault-gsticky flex items-center gap-1.5 px-2 py-1 bg-surface-container-low/70">'+
+        '<span class="w-2 h-2 rounded-full shrink-0" style="background:'+c+';box-shadow:0 0 7px '+c+'"></span>'+
+        '<span class="text-[11px] font-bold tracking-[0.08em] uppercase truncate" style="color:'+c+'">'+esc(bProjLabel(g))+'</span>'+
+        '<span class="text-[10px] text-on-surface-variant/40 ml-auto shrink-0">'+mem.length+'</span></div>'+
+      '<div class="space-y-0.5 mt-0.5">'+mem.map(vaultRowHTML).join("")+'</div></div>';
+  }).join("");
 }
 // Re-render the list in place, preserving its own scroll position (called on select / toggle).
 function vaultRefreshList(){ const el=document.getElementById("vault-list"); if(!el) return; const st=el.scrollTop; el.innerHTML=vaultListHTML(); el.scrollTop=st;
@@ -3669,9 +3582,6 @@ function renderVault(){
   // wire events once per render
   v.onclick=async (e)=>{
     const mtab=e.target.closest("[data-vault-mtab]"); if(mtab){ e.preventDefault(); vaultSetMobileTab(mtab.dataset.vaultMtab); return; }
-    const fold=e.target.closest("[data-vault-folder]"); if(fold){ e.preventDefault(); e.stopPropagation();
-      const fp=fold.dataset.vaultFolder; if(VAULT.expanded.has(fp)) VAULT.expanded.delete(fp); else VAULT.expanded.add(fp);
-      vaultRefreshList(); return; }
     const goto=e.target.closest("[data-brain-goto]"); if(goto){ e.preventDefault(); e.stopPropagation();
       if(window.matchMedia && window.matchMedia("(max-width:639px)").matches) vaultSetMobileTab("graph");   // reveal the graph + bottom-sheet panel on phones
       brainSelect(goto.dataset.brainGoto,true); return; }

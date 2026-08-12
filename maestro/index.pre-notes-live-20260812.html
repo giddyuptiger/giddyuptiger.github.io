@@ -2392,34 +2392,11 @@ function footerHTML(){ return '<footer class="pt-8 pb-6 text-center space-y-2"><
    (owner-only), kept in sync by ~/Documents/Claude/maestro/sync_docs_to_supabase.py. */
 async function loadDocs(){
   if(DOCS_LOADING) return; DOCS_LOADING=true;
-  // LIVE read from public.vault_files (RLS-scoped to the owner) — SAME lazy pattern the Brain uses:
-  // pull the path list cheaply up front (id, path, updated_at, content_size — never the bodies),
-  // then hydrate a note's full content on demand when it's opened (see ensureNoteContent). This
-  // replaces the old maestro_docs snapshot, which drifted stale between syncs and lagged the vault.
-  try{
-    let rows=[], from=0, page=1000;                              // paginate past PostgREST's 1000-row cap
-    for(;;){
-      const { data, error } = await sb.from("vault_files").select("id,path,updated_at,content_size").order("path",{ascending:true}).range(from, from+page-1);
-      if(error) throw new Error(error.message);
-      rows=rows.concat(data||[]); if(!data||data.length<page) break; from+=page;
-    }
-    // Map to the doc shape the Notes UI expects. title stays null (the tree/reader already fall back
-    // to the filename); content_md is left null and lazily filled in on open.
-    DOCS = rows.map(r=>({ id:r.id, path:r.path, title:null, content_md:null, size:(r.content_size||0), updated_at:r.updated_at }));
-  }catch(e){
-    DOCS=[]; console.warn("docs load:", e.message); toast("Couldn’t load notes: "+e.message,"error");
-  }finally{ DOCS_LOADING=false; }
+  const { data, error } = await sb.from("maestro_docs").select("id, project, path, title, content_md, updated_at").order("path",{ascending:true});
+  DOCS_LOADING=false;
+  if(error){ DOCS=[]; console.warn("docs load:", error.message); toast("Couldn’t load notes: "+error.message,"error"); }
+  else DOCS=data||[];
   if(STATE.view==="notes") rerender("notes");
-}
-// Lazily hydrate a single note's body from vault_files (cached on the doc; re-renders when it lands).
-async function ensureNoteContent(doc){
-  if(!doc || doc.content_md!=null || doc._loading) return doc && doc.content_md;
-  doc._loading=true;
-  const { data, error } = await sb.from("vault_files").select("content").eq("id",doc.id).single();
-  doc._loading=false;
-  doc.content_md = error ? "*Couldn’t load this note — "+error.message+"*" : ((data&&data.content)||"");
-  if(STATE.view==="notes" && STATE.noteSel===doc.path) rerender("notes");
-  return doc.content_md;
 }
 // Resolve a [[wiki-link]] target to a doc: exact path, then filename (with/without .md), then title.
 function resolveDoc(target){
@@ -2689,12 +2666,10 @@ function renderNotes(){
     $("#view-notes").innerHTML='<div class="rise"><div class="mb-4 px-1"><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Notes</h2></div><div class="rounded-2xl border hairline bg-surface-container-low/60 p-6 flex items-center gap-3 text-on-surface-variant/70"><span class="material-symbols-outlined animate-spin text-primary">progress_activity</span><span class="text-[13px]">Loading your vault…</span></div></div>';
     return;
   }
-  // Notes now read LIVE from vault_files on every open — there is no snapshot to go stale, so the old
-  // "Last synced N days ago" stamp (which read DATA.settings.docsSyncedAt from the retired maestro_docs
-  // sync) is replaced with a simple live indicator.
-  const _syncHTML='<div class="flex items-center gap-1.5 text-[11px] text-primary/55 mt-0.5 shrink-0" title="Notes read live from your vault — always current"><span class="w-1.5 h-1.5 rounded-full bg-green pulse-dot"></span><span>Live</span></div>';
+  const _syncAt=DATA&&DATA.settings&&DATA.settings.docsSyncedAt;
+  const _syncHTML=_syncAt?'<div class="flex items-center gap-1 text-[11px] text-primary/55 mt-0.5 shrink-0" title="Notes last synced '+esc(new Date(_syncAt).toLocaleString())+'"><span class="material-symbols-outlined text-[13px]">sync</span><span>Last synced '+esc(fmtAgo(_syncAt))+'</span></div>':'';
   let H='<div class="rise"><div class="mb-3 px-1 flex items-end justify-between gap-3"><div><h2 class="text-[12px] font-bold tracking-[0.22em] text-primary uppercase">Notes</h2><p class="text-[12px] text-on-surface-variant/60 mt-0.5">Your CLAUDE vault — '+DOCS.length+' doc'+(DOCS.length===1?"":"s")+', read-only.</p></div>'+_syncHTML+'</div></div>';
-  if(!DOCS.length){ H+='<div class="rounded-2xl border hairline bg-surface-container-low/60 p-6 text-[13px] text-on-surface-variant/60">No notes in your vault yet.</div>'+footerHTML()+'</div>'; $("#view-notes").innerHTML=H; return; }
+  if(!DOCS.length){ H+='<div class="rounded-2xl border hairline bg-surface-container-low/60 p-6 text-[13px] text-on-surface-variant/60">No notes synced yet. Run the vault sync to populate them.</div>'+footerHTML()+'</div>'; $("#view-notes").innerHTML=H; return; }
   // default selection: a root INDEX/README, else the first doc
   if(!STATE.noteSel || !DOCS.find(d=>d.path===STATE.noteSel)){
     const pref=DOCS.find(d=>/^(INDEX|README|CLAUDE)\.md$/i.test(d.path)) || DOCS[0];
@@ -2721,10 +2696,6 @@ function renderNotes(){
     H+='<div class="flex items-center gap-2 mb-1 text-[11px] text-on-surface-variant/45 font-mono"><span class="material-symbols-outlined text-[14px]">folder</span><span class="truncate">'+esc(cur.path)+'</span></div>';
     H+='<h1 class="text-[20px] font-extrabold tracking-tight text-on-surface mb-1">'+esc(cur.title||cur.path.split("/").pop())+'</h1>';
     H+='<p class="text-[11px] text-on-surface-variant/45 mb-3">Updated '+esc(fmtSnoozeLong(cur.updated_at))+'</p>';
-    if(cur.content_md==null){
-      ensureNoteContent(cur);                                    // lazy-hydrate the body; re-renders when it lands
-      H+='<div class="rounded-xl border hairline bg-surface-container-low/50 p-5 flex items-center gap-3 text-on-surface-variant/70"><span class="material-symbols-outlined animate-spin text-primary">progress_activity</span><span class="text-[13px]">Loading note…</span></div>';
-    } else {
     _np = buildNoteParts(cur.content_md);
     if(TTS.supported){
       const onThis=TTS.path===cur.path, playing=onThis&&TTS.state==="playing", paused=onThis&&TTS.state==="paused", active=onThis&&TTS.state!=="idle";
@@ -2749,7 +2720,6 @@ function renderNotes(){
         (hasNav?'<p class="text-[11px] text-on-surface-variant/40 -mt-3 mb-4 flex items-center gap-1"><span class="material-symbols-outlined text-[13px]">play_circle</span>Tap the ▶ next to a heading to read from that section.</p>':'');
     }
     H+='<div class="notes-body text-[13.5px]">'+_np.html+'</div>';
-    }
   } else { H+='<p class="text-[13px] text-on-surface-variant/60">Pick a note from the list.</p>'; }
   H+='</article></div>'+footerHTML()+'</div>';
   $("#view-notes").innerHTML=H;
@@ -2970,13 +2940,8 @@ const BRAIN_HIDE = n => BRAIN_MUTED.has(n.group.split("/")[0]) || n.path.charAt(
 // existing UnrealBloomPass: fresh nodes are pushed brighter (hotter than base) so they actually
 // bloom, stale ones are scaled down toward the dim background. Hue/cluster palette is preserved.
 function bRecencyFactor(n){                       // multiply a node's base RGB by this
-  // Use the CONTRAST-STRETCHED recency (recencyNorm) so the full brightness range is used even when
-  // raw timestamps are bunched together (e.g. a bulk migration stamped ~all files within a day).
-  // Widened vs. the old 0.32→1.22: stale nodes are dimmed much harder (0.14 floor) and the freshest
-  // clip past 1.0 so the UnrealBloomPass makes genuinely-recent files pop.
-  const r=(n&&typeof n.recencyNorm==="number")?n.recencyNorm
-        :((n&&typeof n.recency==="number")?n.recency:0);
-  return 0.14 + r*1.16;                           // dim floor 0.14 · fresh peaks ~1.30 (clips → bloom)
+  const r=(n&&typeof n.recency==="number")?n.recency:0;
+  return 0.32 + r*0.90;                           // dim floor 0.32 · fresh peaks ~1.22 (clips → bloom)
 }
 function _bHexRGB(hex){ hex=String(hex||"").replace("#",""); if(hex.length===3) hex=hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
   const v=parseInt(hex,16)||0; return [(v>>16)&255,(v>>8)&255,v&255]; }
@@ -3003,19 +2968,6 @@ function brainComputeRecency(){
   BRAIN.nodes.forEach(n=>{
     const days = n.recentTs>0 ? Math.max(0,(now-n.recentTs)/DAY) : 1e6;
     n.recency = Math.exp(-days/TAU);              // 1 (now) … →0 (stale)
-  });
-  // ── Contrast-stretch ─────────────────────────────────────────────────────────
-  // Raw exp-decay recency is often bunched: a one-time migration stamps ~all files within a day, so
-  // absolute brightness barely varies and the glow looks flat. Rescale the recency of every
-  // TIMESTAMPED node across the observed [min,max] into recencyNorm ∈ 0..1, so the real ordering fills
-  // the full brightness range — freshest files brightest, oldest darkest — and the gradient stays
-  // truthful and sharpens naturally as timestamps spread over time. Nodes with no usable timestamp
-  // stay at 0 (darkest); if there is genuinely no spread, everything sits neutral (0.5).
-  let lo=Infinity, hi=-Infinity;
-  BRAIN.nodes.forEach(n=>{ if(n.recentTs>0){ if(n.recency<lo)lo=n.recency; if(n.recency>hi)hi=n.recency; } });
-  const span=hi-lo;
-  BRAIN.nodes.forEach(n=>{
-    n.recencyNorm = (n.recentTs>0) ? (span>1e-9 ? (n.recency-lo)/span : 0.5) : 0;
   });
   // The freshest handful get a gentle pulse (see BRAIN._tick) — refined, not gaudy.
   BRAIN.recentHot = new Set(
@@ -3081,17 +3033,16 @@ async function loadBrainData(){
   if(BRAIN && BRAIN.loading) return BRAIN.loadPromise;
   BRAIN = { loading:true, nodes:[], links:[], byId:{}, byPath:{}, byBase:{}, byBaseNoExt:{}, cache:{}, selId:null, graph:null, showAll:false };
   BRAIN.loadPromise = (async ()=>{
-    // 1) all rows (id, path, updated_at, content_size) — paginate past PostgREST's 1000-row cap.
-    //    content_size is a cheap generated column (char_length(content)); we NEVER pull bodies here.
+    // 1) all rows (id, path, updated_at) — paginate past PostgREST's 1000-row cap
     let rows=[], from=0, page=1000;
     for(;;){
-      const { data, error } = await sb.from("vault_files").select("id,path,updated_at,content_size").order("path",{ascending:true}).range(from, from+page-1);
+      const { data, error } = await sb.from("vault_files").select("id,path,updated_at").order("path",{ascending:true}).range(from, from+page-1);
       if(error){ throw new Error(error.message); }
       rows=rows.concat(data||[]); if(!data||data.length<page) break; from+=page;
     }
     // 2) build nodes
     rows.forEach(r=>{
-      const n={ id:r.id, path:r.path, name:bBase(r.path), group:bGroup(r.path), updated:r.updated_at, size:(r.content_size||0), deg:0, parent:null, kids:[], out:[], inl:[], isIndex:false };
+      const n={ id:r.id, path:r.path, name:bBase(r.path), group:bGroup(r.path), updated:r.updated_at, deg:0, parent:null, kids:[], out:[], inl:[], isIndex:false };
       BRAIN.nodes.push(n); BRAIN.byId[n.id]=n; BRAIN.byPath[n.path]=n;
       const bl=n.name.toLowerCase();
       if(!(bl in BRAIN.byBase)) BRAIN.byBase[bl]=n;
@@ -3326,17 +3277,6 @@ function brainResumeGraph(){
     if(BRAIN._tick){ cancelAnimationFrame(BRAIN._raf||0); BRAIN._raf=requestAnimationFrame(BRAIN._tick); }
   }
 }
-// Node VISUAL size (nodeVal ∝ sphere volume; ForceGraph radius ≈ nodeRelSize·∛val). Blend two signals
-// so the graph reads BOTH structurally and by heft: link-count keeps hubs big (√deg), and file size
-// makes a large note read bigger regardless of links (√KB, which tames the 0→450KB range so one giant
-// note doesn't dwarf the field). The freshest nodes get a small bump so they bloom a touch larger.
-function bNodeSizeVal(n){
-  const deg=(n&&n.deg)||0, kb=((n&&n.size)||0)/1024;
-  const linkTerm = Math.sqrt(deg)*1.3;              // hubs stay big (unchanged weight)
-  const sizeTerm = Math.sqrt(kb)*1.1;               // a big note reads big (√KB tames the range)
-  const fresh    = 1 + 0.30*((n&&n.recencyNorm)||0);
-  return (1.0 + linkTerm + sizeTerm) * fresh;
-}
 async function buildBrainGraph(){
   const host=$("#brain-canvas"); if(!host||BRAIN.graph||!window.ForceGraph3D) return;
   const MUTE="#39414c";
@@ -3361,7 +3301,7 @@ async function buildBrainGraph(){
     .backgroundColor("#05060a")
     .graphData(brainData())
     .nodeId("id")
-    .nodeVal(bNodeSizeVal)                          // size ∝ file size (√KB) blended with link-count (√deg); fresh nodes a touch larger
+    .nodeVal(n=> (1.2 + Math.sqrt(n.deg)*1.3) * (1 + 0.35*((n&&n.recency)||0)))  // fresh nodes read a touch larger → bloom more
     .nodeColor(nodeColorFn)
     .nodeOpacity(0.82)
     .nodeRelSize(3.4)

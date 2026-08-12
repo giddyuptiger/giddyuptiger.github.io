@@ -54,30 +54,6 @@
   #view-brain.view.active{ animation:none; }   /* the 3D canvas manages its own entrance */
   #brain-side.open{ transform:none; }
   #brain-canvas canvas{ display:block; }
-  /* When the fullscreen note reader is open we lock the page behind it (mobile Safari won't
-     rubber-band the body, and no stray scroll leaks through to the graph underneath). */
-  body.brain-noscroll{ overflow:hidden; }
-  /* ── Mobile Brain: the node panel becomes a dismissible BOTTOM SHEET (never a full-screen
-     wall). It covers the lower ~80% so the graph stays visible + tappable up top; tapping the
-     graph (background) or the × closes it. Desktop keeps the right-hand sidebar unchanged. ── */
-  @media (max-width:639px){
-    #brain-side{
-      top:auto; bottom:0; left:0; right:0; width:100%; height:82%;
-      border-left:0; border-top:1px solid rgba(155,161,166,0.18);
-      border-radius:18px 18px 0 0;
-      transform:translateY(102%);                 /* slide up from the bottom, not in from the side */
-      box-shadow:0 -14px 44px rgba(0,0,0,.55);
-    }
-    #brain-side.open{ transform:none; }
-    #brain-side::before{                          /* grab-handle affordance */
-      content:""; position:absolute; top:8px; left:50%; transform:translateX(-50%);
-      width:38px; height:4px; border-radius:2px; background:rgba(255,255,255,.22); z-index:3; pointer-events:none;
-    }
-    #brain-scroll{ padding-top:20px; }
-    /* Reader: drop the (expensive over WebGL) backdrop blur on phones; use a near-opaque bg instead. */
-    #brain-reader{ backdrop-filter:none !important; -webkit-backdrop-filter:none !important; background:rgba(4,5,8,0.97) !important; padding:0 !important; }
-    #brain-reader > div{ max-width:100% !important; height:100%; max-height:100%; border-radius:0 !important; }
-  }
   /* Notes: never let a long line/token/URL run off the right edge on mobile; wrap to viewport. */
   .notes-body{ overflow-wrap:anywhere; word-break:break-word; max-width:100%; }
   .notes-body pre{ max-width:100%; overflow-x:auto; }
@@ -2930,47 +2906,6 @@ function bColor(group){
   return _bGroupColor[group]=BRAIN_PALETTE[h%BRAIN_PALETTE.length];
 }
 const BRAIN_HIDE = n => BRAIN_MUTED.has(n.group.split("/")[0]) || n.path.charAt(0)===".";
-// ── Recency glow ──────────────────────────────────────────────────────────────
-// Every node carries n.recency in 0..1 (1 = touched just now, →0 = long stale), rolled UP the
-// folder tree so a hub glows if ANYTHING inside it was recently edited. Brightness is then a
-// smooth exponential of days-since-touch — a gradient, not a hard cutoff — and we lean on the
-// existing UnrealBloomPass: fresh nodes are pushed brighter (hotter than base) so they actually
-// bloom, stale ones are scaled down toward the dim background. Hue/cluster palette is preserved.
-function bRecencyFactor(n){                       // multiply a node's base RGB by this
-  const r=(n&&typeof n.recency==="number")?n.recency:0;
-  return 0.32 + r*0.90;                           // dim floor 0.32 · fresh peaks ~1.22 (clips → bloom)
-}
-function _bHexRGB(hex){ hex=String(hex||"").replace("#",""); if(hex.length===3) hex=hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
-  const v=parseInt(hex,16)||0; return [(v>>16)&255,(v>>8)&255,v&255]; }
-function bRecencyColor(n){                         // base cluster colour, brightness-modulated by recency
-  const [r,g,b]=_bHexRGB(bColor(n.group)); const f=bRecencyFactor(n);
-  const cl=x=>Math.max(0,Math.min(255,Math.round(x*f)));
-  return "rgb("+cl(r)+","+cl(g)+","+cl(b)+")";
-}
-// Assign n.recency for every node. tree = folder hierarchy (n.kids); recency rolls up so an index
-// hub inherits the freshest timestamp beneath it. Decay: exp(-days / TAU) with a ~21-day fall-off.
-function brainComputeRecency(){
-  if(!BRAIN||!BRAIN.nodes) return;
-  const now=Date.now(), DAY=86400000, TAU=21;     // 21-day soft half-life → smooth today→month→older ramp
-  const own=n=>{ const t=n.updated?Date.parse(n.updated):NaN; return isNaN(t)?0:t; };
-  const memo={};
-  function roll(n){
-    if(memo[n.id]!=null) return memo[n.id];
-    memo[n.id]=own(n);                             // cycle guard (folder tree is acyclic, but be safe)
-    let best=own(n);
-    for(let i=0;i<n.kids.length;i++){ const k=BRAIN.byId[n.kids[i]]; if(k){ const r=roll(k); if(r>best) best=r; } }
-    return memo[n.id]=best;
-  }
-  BRAIN.nodes.forEach(n=>{ n.recentTs=roll(n); });
-  BRAIN.nodes.forEach(n=>{
-    const days = n.recentTs>0 ? Math.max(0,(now-n.recentTs)/DAY) : 1e6;
-    n.recency = Math.exp(-days/TAU);              // 1 (now) … →0 (stale)
-  });
-  // The freshest handful get a gentle pulse (see BRAIN._tick) — refined, not gaudy.
-  BRAIN.recentHot = new Set(
-    BRAIN.nodes.filter(n=>!BRAIN_HIDE(n)&&!bNoise(n)&&n.recentTs>0)
-               .sort((a,b)=>b.recentTs-a.recentTs).slice(0,6).map(n=>n.id));
-}
 // Cluster → human project name from the top-level folder (Projects/Primal → "Primal", root → "Home/INDEX").
 function bProjName(group){ if(group==="root") return "Home/INDEX"; if(group.indexOf("Projects/")===0) return group.slice("Projects/".length); return group; }
 // ── Human-friendly display names ─────────────────────────────────────────────
@@ -3083,8 +3018,6 @@ async function loadBrainData(){
     }catch(e){ console.warn("brain wikilinks:", e.message); }
     // 7) degree
     BRAIN.links.forEach(l=>{ BRAIN.byId[l.s].deg++; BRAIN.byId[l.t].deg++; });
-    // 8) recency — roll each note's updated_at UP the folder tree so hubs glow with their freshest child
-    brainComputeRecency();
     BRAIN.loading=false;
     return BRAIN;
   })();
@@ -3215,14 +3148,6 @@ function brainUpdateClusterLabels(){
     o.el.style.opacity="1";
   });
 }
-// A gentle breathing pulse on the very-freshest handful of nodes (BRAIN.recentHot) — a subtle
-// scale oscillation, so recent work quietly "breathes" in the graph. Cheap (≤6 meshes), and it
-// rides the same rAF as the labels, so it stops the instant the graph is paused.
-function brainPulseHot(){
-  if(!BRAIN||!BRAIN.recentHot||!BRAIN.recentHot.size) return;
-  const s=1+0.16*(0.5+0.5*Math.sin(performance.now()*0.0022));  // ~2.9s breathing period
-  BRAIN.recentHot.forEach(id=>{ const n=BRAIN.byId[id], o=n&&n.__threeObj; if(o&&o.scale) o.scale.set(s,s,s); });
-}
 // ── Fullscreen markdown reader ────────────────────────────────────────────────
 function brainOpenReader(){
   const id=BRAIN&&BRAIN.selId; if(id==null) return;
@@ -3236,27 +3161,11 @@ function brainOpenReader(){
   // + bloom postprocessing + the label rAF) pegs the main thread and freezes the whole window —
   // Esc and the close button included. Pausing the render loop keeps the modal responsive.
   brainPauseGraph();
-  // MOBILE FIX: pausing alone wasn't enough on phones. A paused-but-present WebGL canvas sitting
-  // under the reader still forced the compositor to re-blur it on every touch/scroll, locking the
-  // low-power GPU so the reader never became interactive. Hiding the canvas + label layer removes
-  // that cost entirely (the mobile CSS also drops the blur), so the reader opens and closes cleanly.
-  try{ const cv=$("#brain-canvas"); if(cv) cv.style.visibility="hidden";
-       const lb=$("#brain-labels"); if(lb) lb.style.visibility="hidden"; }catch(_e){}
-  document.body.classList.add("brain-noscroll");
-  BRAIN._readerOpen=true;
-  // Hardware / browser BACK closes the reader (phones): push one history entry we consume on close.
-  if(!BRAIN._readerHist){ BRAIN._readerHist=true; try{ history.pushState({brainReader:1},""); }catch(_e){} }
   r.classList.remove("hidden"); requestAnimationFrame(()=>r.classList.add("open"));
 }
-function brainCloseReader(fromPop){
+function brainCloseReader(){
   const r=$("#brain-reader"); if(r){ r.classList.remove("open"); setTimeout(()=>r.classList.add("hidden"),200); }
-  document.body.classList.remove("brain-noscroll");
-  try{ const cv=$("#brain-canvas"); if(cv) cv.style.visibility="";
-       const lb=$("#brain-labels"); if(lb) lb.style.visibility=""; }catch(_e){}
-  if(BRAIN) BRAIN._readerOpen=false;
-  const hadHist = BRAIN && BRAIN._readerHist; if(BRAIN) BRAIN._readerHist=false;
   brainResumeGraph();   // hand the main thread back to the graph and restart auto-rotate
-  if(hadHist && !fromPop){ try{ history.back(); }catch(_e){} }   // consume our pushed entry on X/Esc close
 }
 // Pause/resume the WebGL render loop + the cluster-label rAF so the fullscreen reader never
 // contends with the graph for the main thread.
@@ -3281,7 +3190,7 @@ async function buildBrainGraph(){
   BRAIN.hlNodes=new Set(); BRAIN.hlLinks=new Set(); BRAIN.hoverId=null;
   const nodeColorFn=n=>{
     if(BRAIN.hlNodes.size && !BRAIN.hlNodes.has(n.id)) return MUTE;   // dim non-highlighted
-    return n.id===BRAIN.selId ? "#ffffff" : bRecencyColor(n);        // cluster hue, brightness by recency
+    return n.id===BRAIN.selId ? "#ffffff" : bColor(n.group);
   };
   const linkColorFn=l=>{
     const hov=BRAIN.hlLinks.size>0, on=hov&&BRAIN.hlLinks.has(l);
@@ -3298,7 +3207,7 @@ async function buildBrainGraph(){
     .backgroundColor("#05060a")
     .graphData(brainData())
     .nodeId("id")
-    .nodeVal(n=> (1.2 + Math.sqrt(n.deg)*1.3) * (1 + 0.35*((n&&n.recency)||0)))  // fresh nodes read a touch larger → bloom more
+    .nodeVal(n=> 1.2 + Math.sqrt(n.deg)*1.3)
     .nodeColor(nodeColorFn)
     .nodeOpacity(0.82)
     .nodeRelSize(3.4)
@@ -3364,7 +3273,7 @@ async function buildBrainGraph(){
   }catch(e){ console.warn("brain bloom:", e.message); }
   // Clean, clickable HTML project labels pinned to each cluster hub — repositioned every frame.
   brainBuildClusterLabels();
-  BRAIN._tick=()=>{ if(!BRAIN||!BRAIN.graph) return; brainUpdateClusterLabels(); brainPulseHot(); BRAIN._raf=requestAnimationFrame(BRAIN._tick); };
+  BRAIN._tick=()=>{ if(!BRAIN||!BRAIN.graph) return; brainUpdateClusterLabels(); BRAIN._raf=requestAnimationFrame(BRAIN._tick); };
   cancelAnimationFrame(BRAIN._raf||0); BRAIN._raf=requestAnimationFrame(BRAIN._tick);
 }
 function brainToggleAll(){
@@ -3396,7 +3305,7 @@ function renderBrain(){
         '<div id="brain-scroll" class="flex-1 overflow-y-auto p-4 sm:p-5"></div>'+
      '</aside>'+
      // fullscreen markdown reader (hidden until Expand)
-     '<div id="brain-reader" class="hidden fixed inset-0 z-[60] flex items-start justify-center p-4 sm:p-8" style="background:rgba(4,5,8,0.86);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);opacity:0;transition:opacity .2s ease">'+
+     '<div id="brain-reader" class="hidden absolute inset-0 z-40 flex items-start justify-center p-4 sm:p-8" style="background:rgba(4,5,8,0.86);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);opacity:0;transition:opacity .2s ease">'+
        '<div class="w-full max-w-[820px] max-h-full flex flex-col rounded-2xl border hairline overflow-hidden" style="background:rgba(10,12,18,0.98);box-shadow:0 24px 80px rgba(0,0,0,.6)">'+
          '<div class="flex items-start justify-between gap-3 px-6 sm:px-8 pt-5 pb-3 border-b hairline">'+
            '<div class="min-w-0"><h2 id="brain-reader-title" class="text-[19px] font-extrabold text-on-surface leading-tight break-words"></h2>'+
@@ -3414,15 +3323,11 @@ function renderBrain(){
     if(e.target.closest("[data-brain-toggle]")){ e.preventDefault(); brainToggleAll(); return; }
     if(e.target.closest("[data-brain-expand]")){ e.preventDefault(); brainOpenReader(); return; }
     if(e.target.closest("[data-brain-reader-close]")){ e.preventDefault(); brainCloseReader(); return; }
-    if(e.target.id==="brain-reader"){ e.preventDefault(); brainCloseReader(); return; }   // tap the backdrop (outside the card) to close
     const more=e.target.closest("[data-brain-morebtn]"); if(more){ e.preventDefault(); const wrap=more.parentElement; const hid=wrap&&wrap.querySelector(".brain-more"); if(hid) hid.classList.remove("hidden"); more.remove(); return; }
   };
   // Esc closes the fullscreen reader (bound once)
   if(!window.__brainReaderEsc){ window.__brainReaderEsc=true;
     document.addEventListener("keydown", e=>{ if(e.key==="Escape"){ const r=$("#brain-reader"); if(r&&!r.classList.contains("hidden")) brainCloseReader(); } }); }
-  // Hardware / browser BACK closes the reader (mobile), consuming the entry brainOpenReader pushed.
-  if(!window.__brainReaderPop){ window.__brainReaderPop=true;
-    window.addEventListener("popstate", ()=>{ if(BRAIN&&BRAIN._readerOpen) brainCloseReader(true); }); }
   // load data + build graph after the view is visible (needs real width/height)
   (async ()=>{
     try{
@@ -3433,11 +3338,7 @@ function renderBrain(){
       requestAnimationFrame(async ()=>{
         await buildBrainGraph();
         const ld=$("#brain-loading"); if(ld) ld.remove();
-        // Show the GRAPH first — "the beautiful brain." Do NOT auto-open any node's panel on load
-        // (on mobile the panel is a full-width sheet, so auto-selecting the root looked like the app
-        // opened straight onto a detail page). The panel now appears only when the user taps a node.
-        // Instead, gently frame the whole constellation once the layout settles.
-        setTimeout(()=>{ try{ if(BRAIN&&BRAIN.graph&&!BRAIN.selId) BRAIN.graph.zoomToFit(1200, 70); }catch(_e){} }, 1200);
+        const root=BRAIN.byPath["INDEX.md"]; if(root) setTimeout(()=>brainSelect(root.id,true), 900);
       });
     }catch(err){ console.error("brain load:",err); const ld=$("#brain-loading"); if(ld) ld.innerHTML='<div class="text-[13px] text-error-container-fg">Couldn’t load the vault: '+esc(err.message)+'</div>'.replace("error-container-fg","on-error-container"); }
   })();

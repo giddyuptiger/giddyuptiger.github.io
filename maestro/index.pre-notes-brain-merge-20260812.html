@@ -51,20 +51,9 @@
   .tab[data-active="1"]::after{ content:""; position:absolute; left:8px; right:8px; bottom:-13px; height:2px; background:#C5E45C; border-radius:2px; }
   .bnav[data-active="1"]{ color:#C5E45C; } .bnav[data-active="1"] .material-symbols-outlined{ font-variation-settings:'FILL' 1; }
   .view{ display:none; } .view.active{ display:block; animation:viewIn .35s cubic-bezier(.16,1,.3,1); } @keyframes viewIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-  #view-vault.view.active{ animation:none; }   /* the 3D canvas manages its own entrance */
+  #view-brain.view.active{ animation:none; }   /* the 3D canvas manages its own entrance */
   #brain-side.open{ transform:none; }
   #brain-canvas canvas{ display:block; }
-  /* ── Vault tab: list panel + 3D graph coexist. On mobile a segmented control toggles between
-     the two (graph shows first); on desktop the grid shows both side-by-side. ── */
-  .vault-mtoggle{ display:none; }
-  @media (max-width:639px){
-    .vault-mtoggle{ display:inline-flex; }
-    #vault-root[data-mtab="graph"] #vault-list-panel{ display:none; }
-    #vault-root[data-mtab="list"]  #vault-graph-panel{ display:none; }
-  }
-  .vault-seg{ font-weight:700; font-size:12.5px; }
-  #vault-list::-webkit-scrollbar{ width:8px; } #vault-list::-webkit-scrollbar-thumb{ background:rgba(155,161,166,.22); border-radius:8px; }
-  .vault-gsticky{ position:sticky; top:0; z-index:1; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }
   /* When the fullscreen note reader is open we lock the page behind it (mobile Safari won't
      rubber-band the body, and no stray scroll leaks through to the graph underneath). */
   body.brain-noscroll{ overflow:hidden; }
@@ -358,7 +347,8 @@
         <a href="#projects" data-act="nav" data-view="projects" class="tab pressable">Projects</a>
         <a href="#tasks" data-act="nav" data-view="tasks" class="tab pressable">Tasks</a>
         <a href="#week" data-act="nav" data-view="week" class="tab pressable">Week</a>
-        <a href="#vault" data-act="nav" data-view="vault" class="tab pressable">Vault</a>
+        <a href="#notes" data-act="nav" data-view="notes" class="tab pressable">Notes</a>
+        <a href="#brain" data-act="nav" data-view="brain" class="tab pressable">Brain</a>
         <a href="#coaching" data-act="nav" data-view="coaching" class="tab pressable">Coaching</a>
         <a href="#inbox" data-act="nav" data-view="inbox" class="tab pressable">Inbox</a>
       </nav>
@@ -380,7 +370,7 @@
     <section id="view-week" class="view"></section>
     <section id="view-travel" class="view"></section>
     <section id="view-notes" class="view"></section>
-    <section id="view-vault" class="view"></section>
+    <section id="view-brain" class="view"></section>
     <section id="view-coaching" class="view"></section>
     <section id="view-inbox" class="view"></section>
     <section id="view-needs" class="view"></section>
@@ -392,7 +382,8 @@
     <a href="#projects" data-act="nav" data-view="projects" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">dashboard</span>Projects</a>
     <a href="#tasks" data-act="nav" data-view="tasks" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">checklist</span>Tasks</a>
     <a href="#week" data-act="nav" data-view="week" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">calendar_month</span>Week</a>
-    <a href="#vault" data-act="nav" data-view="vault" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">graph_2</span>Vault</a>
+    <a href="#notes" data-act="nav" data-view="notes" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">menu_book</span>Notes</a>
+    <a href="#brain" data-act="nav" data-view="brain" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">graph_2</span>Brain</a>
     <a href="#coaching" data-act="nav" data-view="coaching" class="bnav pressable flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant/60 text-[9px] font-semibold"><span class="material-symbols-outlined text-[20px]">psychology</span>Coaching</a>
   </nav>
 </div>
@@ -1825,7 +1816,7 @@ function runDetailInner(r){
       // In-app deep link into the Notes tab. Many deliverables are Drive .md docs (maestro_docs),
       // NOT published web pages — a raw relative path would resolve against giddyuptiger.github.io
       // and 404. Open the note in-app instead.
-      h+='<button data-act="open-deliverable-note" data-target="'+esc(del.target)+'" class="pressable mt-4 w-full flex items-center justify-center gap-2 font-bold text-[13.5px] py-2.5 rounded-xl bg-primary text-on-primary hover:brightness-110"><span class="material-symbols-outlined text-[18px]">menu_book</span>Open deliverable in Vault</button>';
+      h+='<button data-act="open-deliverable-note" data-target="'+esc(del.target)+'" class="pressable mt-4 w-full flex items-center justify-center gap-2 font-bold text-[13.5px] py-2.5 rounded-xl bg-primary text-on-primary hover:brightness-110"><span class="material-symbols-outlined text-[18px]">menu_book</span>Open deliverable in Notes</button>';
     } else {
       h+='<a href="'+esc(del.href)+'" target="_blank" rel="noopener noreferrer" class="pressable mt-4 w-full flex items-center justify-center gap-2 font-bold text-[13.5px] py-2.5 rounded-xl bg-primary text-on-primary hover:brightness-110"><span class="material-symbols-outlined text-[18px]">open_in_new</span>Open deliverable</a>';
     }
@@ -2212,12 +2203,13 @@ document.addEventListener("click",(e)=>{
   else if(el.dataset.act==="open-deliverable-note"){
     e.preventDefault();
     const target=el.dataset.target||"";
-    closeModal(); setView("vault");   // deliverables now open in the unified Vault graph + reader
+    closeModal(); setView("notes");
+    if(DOCS===null && typeof loadDocs==="function") loadDocs();   // kick a load (no-ops if already in flight)
     let tries=0;
     const openIt=()=>{
-      if(!BRAIN || BRAIN.loading){ if(tries++<60){ setTimeout(openIt,100); return; } }   // wait up to ~6s for the vault graph to load
-      const n = BRAIN && (BRAIN.byPath[target] || bResolve(target));
-      if(n) brainSelect(n.id, true); else toast("Couldn’t find that note: "+target.split("/").pop(),"search");
+      if(DOCS===null){ if(tries++<40){ setTimeout(openIt,100); return; } }   // wait up to ~4s for the vault
+      const d=resolveDoc(target);
+      if(d) openNote(d.path); else toast("Couldn’t find that note: "+target.split("/").pop(),"search");
     };
     openIt();
   }
@@ -2942,8 +2934,7 @@ async function loadCockpit(){
 
 /* ───── router ───── */
 function showSkeleton(name){
-  if(name==="notes"||name==="brain") name="vault";
-  if(["overview","cockpit","projects","tasks","week","travel","vault","coaching","inbox","needs"].indexOf(name)<0) name="overview";
+  if(["overview","cockpit","projects","tasks","week","travel","notes","coaching","inbox","needs"].indexOf(name)<0) name="overview";
   $$(".view").forEach(v=>v.classList.toggle("active", v.id==="view-"+name));
   $$(".tab").forEach(t=>t.dataset.active = t.dataset.view===name?"1":"0");
   $$(".bnav").forEach(t=>t.dataset.active = t.dataset.view===name?"1":"0");
@@ -2958,7 +2949,6 @@ function showSkeleton(name){
    Data is loaded lazily the first time the tab opens: all paths up front (cheap), note bodies
    only for the handful of files that contain wikilinks, and a clicked note's full body on demand. */
 let BRAIN=null;
-let VAULT={ q:"", qTimer:null, mtab:"graph" };   // unified Vault tab: file-list search query + mobile list/graph toggle
 const BRAIN_PALETTE=["#7aa2f7","#9ece6a","#f7768e","#e0af68","#bb9af7","#2ac3de","#ff9e64","#73daca","#c0caf5","#ff75a0","#7dcfff","#d7ff87","#f4b8e4","#a5d6ff","#ffd18c","#8be9c0","#d0a3ff","#98e0a0"];
 const BRAIN_MUTED=new Set(["code-history","archive","TRASH","backup-setup"]);
 const _bGroupColor={};
@@ -3180,7 +3170,6 @@ function brainFly(id){
 async function brainSelect(id, fly){
   if(!BRAIN||!BRAIN.byId[id]) return;
   BRAIN.selId=id; brainRefreshColors(); if(fly) brainFly(id);
-  vaultRefreshList();                                  // reflect the selected row in the Vault file list
   const n=BRAIN.byId[id], side=$("#brain-side"), body=$("#brain-scroll"); if(!side) return;
   side.classList.add("open");
   const crumbs=n.path.split("/"); const dt=n.updated?new Date(n.updated):null;
@@ -3354,15 +3343,12 @@ async function buildBrainGraph(){
   // Hover highlight state: highlight set = hovered node + its direct neighbors.
   BRAIN.hlNodes=new Set(); BRAIN.hlLinks=new Set(); BRAIN.hoverId=null;
   const nodeColorFn=n=>{
-    if(BRAIN.hlNodes.size && !BRAIN.hlNodes.has(n.id)) return MUTE;   // dim non-highlighted (hover)
-    if(BRAIN.searchHits && !BRAIN.searchHits.has(n.id)) return MUTE;  // dim non-matching (Vault search)
+    if(BRAIN.hlNodes.size && !BRAIN.hlNodes.has(n.id)) return MUTE;   // dim non-highlighted
     return n.id===BRAIN.selId ? "#ffffff" : bRecencyColor(n);        // cluster hue, brightness by recency
   };
-  const _linkEnds=l=>[ (typeof l.source==="object"?l.source.id:l.source), (typeof l.target==="object"?l.target.id:l.target) ];
   const linkColorFn=l=>{
     const hov=BRAIN.hlLinks.size>0, on=hov&&BRAIN.hlLinks.has(l);
-    if(hov&&!on) return "rgba(120,132,148,0.04)";                     // fade unrelated links (hover)
-    if(BRAIN.searchHits){ const [s,t]=_linkEnds(l); if(!(BRAIN.searchHits.has(s)&&BRAIN.searchHits.has(t))) return "rgba(120,132,148,0.03)"; }  // fade links not between two matches
+    if(hov&&!on) return "rgba(120,132,148,0.04)";                     // fade unrelated links
     if(l.kind==="wiki") return on?"rgba(197,228,92,0.95)":"rgba(197,228,92,0.5)";
     return on?"rgba(205,216,232,0.55)":"rgba(150,162,176,0.12)";
   };
@@ -3450,143 +3436,42 @@ function brainToggleAll(){
   if(BRAIN.graph) brainBuildClusterLabels();
   const d=brainData(); const c=$("#brain-count"); if(c) c.textContent=d.count.toLocaleString()+" notes · "+d.edges.toLocaleString()+" links";
   const b=$("#brain-toggle"); if(b) b.innerHTML='<span class="material-symbols-outlined text-[15px]">'+(BRAIN.showAll?"visibility_off":"hub")+'</span>'+(BRAIN.showAll?"Hide code-history":"Load all (incl. code-history)");
-  vaultRefreshList();                                  // the file list mirrors the graph's visible set
-  applyVaultSearch(VAULT.q);                            // re-apply any active filter over the new set
 }
-/* ═════════════ Vault file list + search (left panel; shares the graph's live vault_files) ═════════════
-   The list is rendered straight off BRAIN.nodes (same node set as the graph, honoring the
-   code-history toggle and noise filtering), grouped by cluster with the cluster colour so the list
-   reads as the graph's index. Typing in the search box filters the list AND drives the graph:
-   matching nodes keep their recency colour while non-matches dim, and the camera zooms to fit the
-   matches. Clicking a row reuses the graph's brainSelect (fly-to + side panel + lazy body fetch). */
-function vaultVisibleNodes(){
-  if(!BRAIN||!BRAIN.nodes) return [];
-  return BRAIN.nodes.filter(n=> (BRAIN.showAll || !BRAIN_HIDE(n)) && !bNoise(n));
-}
-function vaultNodeMatch(n,q){
-  if(!q) return true;
-  return String(n.name||"").toLowerCase().includes(q)
-      || String(n.path||"").toLowerCase().includes(q)
-      || bDisplayName(n).toLowerCase().includes(q);
-}
-function vaultMatches(){
-  const q=VAULT.q.trim().toLowerCase(); const base=vaultVisibleNodes();
-  return q ? base.filter(n=>vaultNodeMatch(n,q)) : base;
-}
-function vaultCountHTML(){
-  const total=vaultVisibleNodes().length;
-  if(!VAULT.q.trim()) return total.toLocaleString()+" file"+(total===1?"":"s");
-  return vaultMatches().length+" of "+total.toLocaleString();
-}
-function vaultRowHTML(n){
-  const sel=BRAIN&&BRAIN.selId===n.id, c=bColor(n.group);
-  return '<button data-brain-goto="'+n.id+'" class="pressable w-full flex items-start gap-2 px-2 py-1.5 rounded-lg text-left '+(sel?"bg-primary/12":"hover:bg-surface-container-high/50")+'">'+
-    '<span class="w-1.5 h-1.5 rounded-full shrink-0 mt-[6px]" style="background:'+c+';box-shadow:0 0 6px '+c+'"></span>'+
-    '<span class="min-w-0 flex-1"><span class="block truncate text-[12.5px] '+(sel?"text-primary font-semibold":"text-on-surface/90")+'">'+esc(bDisplayName(n))+'</span>'+
-    '<span class="block truncate text-[10px] font-mono text-on-surface-variant/40">'+esc(n.path)+'</span></span></button>';
-}
-function vaultListHTML(){
-  if(!BRAIN||BRAIN.loading) return '<div class="px-2 py-3 text-[12px] text-on-surface-variant/50 flex items-center gap-2"><span class="material-symbols-outlined animate-spin text-[16px] text-primary">progress_activity</span>Reading your vault…</div>';
-  const hits=vaultMatches();
-  if(!hits.length) return '<p class="text-[12px] text-on-surface-variant/50 px-2 py-3">No files match “'+esc(VAULT.q.trim())+'”.</p>';
-  const groups={}; hits.forEach(n=>{ (groups[n.group]=groups[n.group]||[]).push(n); });
-  const order=Object.keys(groups).sort((a,b)=> (a==="root"?-1:b==="root"?1:bProjLabel(a).localeCompare(bProjLabel(b))));
-  return order.map(g=>{
-    const c=bColor(g), mem=groups[g].slice().sort((a,b)=> bDisplayName(a).localeCompare(bDisplayName(b)));
-    return '<div class="mb-1.5">'+
-      '<div class="vault-gsticky flex items-center gap-1.5 px-2 py-1 bg-surface-container-low/70">'+
-        '<span class="w-2 h-2 rounded-full shrink-0" style="background:'+c+';box-shadow:0 0 7px '+c+'"></span>'+
-        '<span class="text-[11px] font-bold tracking-[0.08em] uppercase truncate" style="color:'+c+'">'+esc(bProjLabel(g))+'</span>'+
-        '<span class="text-[10px] text-on-surface-variant/40 ml-auto shrink-0">'+mem.length+'</span></div>'+
-      '<div class="space-y-0.5 mt-0.5">'+mem.map(vaultRowHTML).join("")+'</div></div>';
-  }).join("");
-}
-// Re-render the list in place, preserving its own scroll position (called on select / toggle).
-function vaultRefreshList(){ const el=document.getElementById("vault-list"); if(!el) return; const st=el.scrollTop; el.innerHTML=vaultListHTML(); el.scrollTop=st;
-  const cnt=document.getElementById("vault-count"); if(cnt) cnt.textContent=vaultCountHTML(); }
-// Push the current search into BOTH surfaces: the list (filtered) and the graph (dim non-matches + fit).
-function applyVaultSearch(val){
-  VAULT.q=val!=null?val:VAULT.q;
-  const list=document.getElementById("vault-list"); if(list) list.innerHTML=vaultListHTML();
-  const cnt=document.getElementById("vault-count"); if(cnt) cnt.textContent=vaultCountHTML();
-  const q=VAULT.q.trim().toLowerCase();
-  BRAIN.searchHits = q ? new Set(vaultMatches().map(n=>n.id)) : null;
-  if(BRAIN.refreshHL) BRAIN.refreshHL();
-  if(BRAIN.graph && BRAIN.searchHits && BRAIN.searchHits.size){
-    try{ BRAIN.graph.zoomToFit(700, 60, n=> BRAIN.searchHits.has(n.id)); }catch(_e){}
-  }
-}
-function vaultSetMobileTab(tab){
-  VAULT.mtab = (tab==="list") ? "list" : "graph";
-  const root=document.getElementById("vault-root"); if(root) root.dataset.mtab=VAULT.mtab;
-  document.querySelectorAll("[data-vault-mtab]").forEach(b=>{
-    const on=b.dataset.vaultMtab===VAULT.mtab;
-    b.style.background = on?"#C5E45C":""; b.style.color = on?"#16181B":"";
-  });
-  // The graph canvas may have been display:none while the list showed — nudge it to re-measure.
-  if(VAULT.mtab==="graph" && BRAIN && BRAIN.graph){ try{ const h=$("#brain-canvas"); if(h){ BRAIN.graph.width(h.clientWidth); BRAIN.graph.height(h.clientHeight); } }catch(_e){} }
-}
-function renderVault(){
-  const v=$("#view-vault");
+function renderBrain(){
+  const v=$("#view-brain");
   v.innerHTML=
-   '<div id="vault-root" data-mtab="'+esc(VAULT.mtab)+'" class="rise">'+
-     // mobile-only segmented control: toggle List ↔ Graph (graph shows first)
-     '<div class="vault-mtoggle mb-3 rounded-full bg-surface-container-high/70 border hairline p-0.5 gap-0.5">'+
-        '<button data-vault-mtab="graph" class="vault-seg pressable rounded-full px-4 py-1.5 inline-flex items-center gap-1.5 text-on-surface-variant"><span class="material-symbols-outlined text-[16px]">graph_2</span>Graph</button>'+
-        '<button data-vault-mtab="list" class="vault-seg pressable rounded-full px-4 py-1.5 inline-flex items-center gap-1.5 text-on-surface-variant"><span class="material-symbols-outlined text-[16px]">list</span>List</button>'+
+   '<div id="brain-wrap" class="relative rounded-2xl overflow-hidden border hairline bg-[#05060a]" style="height:calc(100dvh - 9.5rem);min-height:520px">'+
+     '<div id="brain-canvas" class="absolute inset-0"></div>'+
+     '<div id="brain-labels" class="absolute inset-0 z-10 overflow-hidden pointer-events-none"></div>'+
+     '<div id="brain-loading" class="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center px-6 pointer-events-none">'+
+        '<div class="w-9 h-9 rounded-full border-2 border-primary/30 border-t-primary animate-spin"></div>'+
+        '<div class="text-[13px] text-on-surface-variant/70">Reading your vault from Supabase…</div></div>'+
+     // top-left overlay
+     '<div class="absolute top-3 left-3 z-20 flex flex-col gap-2 items-start pointer-events-none">'+
+        '<div class="pointer-events-auto rounded-xl bg-surface/70 backdrop-blur-md border hairline px-3 py-2">'+
+          '<div class="text-[13px] font-extrabold tracking-tight text-primary flex items-center gap-1.5"><span class="material-symbols-outlined text-[17px]">graph_2</span>Brain</div>'+
+          '<div id="brain-count" class="text-[11px] text-on-surface-variant/60 mt-0.5">…</div></div>'+
+        '<button id="brain-toggle" data-brain-toggle class="pointer-events-auto pressable inline-flex items-center gap-1.5 rounded-full bg-surface/70 backdrop-blur-md border hairline px-3 py-1.5 text-[11.5px] font-semibold text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined text-[15px]">hub</span>Load all (incl. code-history)</button>'+
+        '<div class="pointer-events-auto rounded-xl bg-surface/60 backdrop-blur-md border hairline px-3 py-2 text-[11px] text-on-surface-variant/70 leading-relaxed max-w-[220px] hidden sm:block">Drag to orbit · scroll to zoom · click a node to open it. <span class="text-primary">Lime</span> links are wikilinks.</div>'+
      '</div>'+
-     '<div class="grid grid-cols-1 lg:grid-cols-[22rem_minmax(0,1fr)] gap-3 items-start">'+
-       // ── LEFT: searchable file list (same live vault_files as the graph) ──
-       '<aside id="vault-list-panel" class="vault-pane rounded-2xl border hairline bg-surface-container-low/50 p-2.5 flex flex-col lg:h-[calc(100dvh-9.5rem)] max-h-[calc(100dvh-11rem)] overflow-hidden">'+
-          '<div class="flex items-center gap-1.5 px-1 mb-2"><span class="material-symbols-outlined text-[16px] text-primary">hub</span><span class="text-[12px] font-extrabold tracking-tight text-primary">Vault</span></div>'+
-          '<div class="relative mb-2">'+
-            '<span class="material-symbols-outlined text-[16px] text-on-surface-variant/45 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none">search</span>'+
-            '<input id="vault-search" type="search" autocomplete="off" spellcheck="false" placeholder="Search vault…" value="'+esc(VAULT.q)+'" aria-label="Search vault" class="w-full bg-surface-container/60 border hairline rounded-lg pl-8 pr-3 py-1.5 text-[12.5px] text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary/40">'+
-          '</div>'+
-          '<div id="vault-count" class="px-1 mb-1 text-[10.5px] text-on-surface-variant/45">'+vaultCountHTML()+'</div>'+
-          '<div id="vault-list" class="space-y-0.5 min-w-0 overflow-y-auto flex-1 pr-0.5">'+vaultListHTML()+'</div>'+
-       '</aside>'+
-       // ── RIGHT: the 3D vault graph ──
-       '<div id="vault-graph-panel" class="vault-pane min-w-0">'+
-       '<div id="brain-wrap" class="relative rounded-2xl overflow-hidden border hairline bg-[#05060a]" style="height:calc(100dvh - 9.5rem);min-height:520px">'+
-         '<div id="brain-canvas" class="absolute inset-0"></div>'+
-         '<div id="brain-labels" class="absolute inset-0 z-10 overflow-hidden pointer-events-none"></div>'+
-         '<div id="brain-loading" class="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center px-6 pointer-events-none">'+
-            '<div class="w-9 h-9 rounded-full border-2 border-primary/30 border-t-primary animate-spin"></div>'+
-            '<div class="text-[13px] text-on-surface-variant/70">Reading your vault from Supabase…</div></div>'+
-         // top-left overlay
-         '<div class="absolute top-3 left-3 z-20 flex flex-col gap-2 items-start pointer-events-none">'+
-            '<div class="pointer-events-auto rounded-xl bg-surface/70 backdrop-blur-md border hairline px-3 py-2">'+
-              '<div class="text-[13px] font-extrabold tracking-tight text-primary flex items-center gap-1.5"><span class="material-symbols-outlined text-[17px]">graph_2</span>Vault</div>'+
-              '<div id="brain-count" class="text-[11px] text-on-surface-variant/60 mt-0.5">…</div></div>'+
-            '<button id="brain-toggle" data-brain-toggle class="pointer-events-auto pressable inline-flex items-center gap-1.5 rounded-full bg-surface/70 backdrop-blur-md border hairline px-3 py-1.5 text-[11.5px] font-semibold text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined text-[15px]">hub</span>Load all (incl. code-history)</button>'+
-            '<div class="pointer-events-auto rounded-xl bg-surface/60 backdrop-blur-md border hairline px-3 py-2 text-[11px] text-on-surface-variant/70 leading-relaxed max-w-[220px] hidden sm:block">Drag to orbit · scroll to zoom · click a node (or a file in the list) to open it. <span class="text-primary">Lime</span> links are wikilinks.</div>'+
-         '</div>'+
-         // right sidebar (note panel — dismissible bottom sheet on mobile)
-         '<aside id="brain-side" class="absolute top-0 right-0 h-full w-full sm:w-[380px] z-30 border-l hairline flex flex-col translate-x-full transition-transform duration-300" style="background:rgba(8,10,16,0.96);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);transition-timing-function:cubic-bezier(.16,1,.3,1)">'+
-            '<div id="brain-scroll" class="flex-1 overflow-y-auto p-4 sm:p-5"></div>'+
-         '</aside>'+
-         // fullscreen markdown reader (hidden until Expand)
-         '<div id="brain-reader" class="hidden fixed inset-0 z-[60] flex items-start justify-center p-4 sm:p-8" style="background:rgba(4,5,8,0.86);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);opacity:0;transition:opacity .2s ease">'+
-           '<div class="w-full max-w-[820px] max-h-full flex flex-col rounded-2xl border hairline overflow-hidden" style="background:rgba(10,12,18,0.98);box-shadow:0 24px 80px rgba(0,0,0,.6)">'+
-             '<div class="flex items-start justify-between gap-3 px-6 sm:px-8 pt-5 pb-3 border-b hairline">'+
-               '<div class="min-w-0"><h2 id="brain-reader-title" class="text-[19px] font-extrabold text-on-surface leading-tight break-words"></h2>'+
-               '<div id="brain-reader-sub" class="text-[11px] text-on-surface-variant/50 mt-0.5 break-words"></div></div>'+
-               '<button data-brain-reader-close title="Close (Esc)" class="pressable shrink-0 w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined text-[20px]">close</span></button></div>'+
-             '<div id="brain-reader-body" class="notes-body flex-1 overflow-y-auto px-6 sm:px-10 py-6 text-[15px]" style="line-height:1.75"></div>'+
-           '</div>'+
-         '</div>'+
-       '</div>'+
+     // right sidebar
+     '<aside id="brain-side" class="absolute top-0 right-0 h-full w-full sm:w-[380px] z-30 border-l hairline flex flex-col translate-x-full transition-transform duration-300" style="background:rgba(8,10,16,0.96);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);transition-timing-function:cubic-bezier(.16,1,.3,1)">'+
+        '<div id="brain-scroll" class="flex-1 overflow-y-auto p-4 sm:p-5"></div>'+
+     '</aside>'+
+     // fullscreen markdown reader (hidden until Expand)
+     '<div id="brain-reader" class="hidden fixed inset-0 z-[60] flex items-start justify-center p-4 sm:p-8" style="background:rgba(4,5,8,0.86);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);opacity:0;transition:opacity .2s ease">'+
+       '<div class="w-full max-w-[820px] max-h-full flex flex-col rounded-2xl border hairline overflow-hidden" style="background:rgba(10,12,18,0.98);box-shadow:0 24px 80px rgba(0,0,0,.6)">'+
+         '<div class="flex items-start justify-between gap-3 px-6 sm:px-8 pt-5 pb-3 border-b hairline">'+
+           '<div class="min-w-0"><h2 id="brain-reader-title" class="text-[19px] font-extrabold text-on-surface leading-tight break-words"></h2>'+
+           '<div id="brain-reader-sub" class="text-[11px] text-on-surface-variant/50 mt-0.5 break-words"></div></div>'+
+           '<button data-brain-reader-close title="Close (Esc)" class="pressable shrink-0 w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined text-[20px]">close</span></button></div>'+
+         '<div id="brain-reader-body" class="notes-body flex-1 overflow-y-auto px-6 sm:px-10 py-6 text-[15px]" style="line-height:1.75"></div>'+
        '</div>'+
      '</div>'+
    '</div>';
-  vaultSetMobileTab(VAULT.mtab);   // paint the segmented control's active state
   // wire events once per render
   v.onclick=async (e)=>{
-    const mtab=e.target.closest("[data-vault-mtab]"); if(mtab){ e.preventDefault(); vaultSetMobileTab(mtab.dataset.vaultMtab); return; }
-    const goto=e.target.closest("[data-brain-goto]"); if(goto){ e.preventDefault(); e.stopPropagation();
-      if(window.matchMedia && window.matchMedia("(max-width:639px)").matches) vaultSetMobileTab("graph");   // reveal the graph + bottom-sheet panel on phones
-      brainSelect(goto.dataset.brainGoto,true); return; }
+    const goto=e.target.closest("[data-brain-goto]"); if(goto){ e.preventDefault(); e.stopPropagation(); brainSelect(goto.dataset.brainGoto,true); return; }
     const wiki=e.target.closest('[data-act="brain-wiki"]'); if(wiki){ e.preventDefault(); e.stopPropagation(); const nd=bResolve(wiki.dataset.target); if(nd) brainSelect(nd.id,true); else toast('No note matches “'+wiki.dataset.target+'”'); return; }
     if(e.target.closest("[data-brain-close]")){ e.preventDefault(); $("#brain-side").classList.remove("open"); return; }
     if(e.target.closest("[data-brain-toggle]")){ e.preventDefault(); brainToggleAll(); return; }
@@ -3601,17 +3486,11 @@ function renderVault(){
   // Hardware / browser BACK closes the reader (mobile), consuming the entry brainOpenReader pushed.
   if(!window.__brainReaderPop){ window.__brainReaderPop=true;
     window.addEventListener("popstate", ()=>{ if(BRAIN&&BRAIN._readerOpen) brainCloseReader(true); }); }
-  // Live file-list search — one delegated input handler (bound once; survives re-renders, keeps focus).
-  // Debounced; drives BOTH the list (filter) and the graph (dim non-matches + zoom to fit).
-  if(!window.__vaultSearchBound){ window.__vaultSearchBound=true;
-    document.addEventListener("input",(e)=>{ if(!e.target||e.target.id!=="vault-search") return;
-      const val=e.target.value; clearTimeout(VAULT.qTimer); VAULT.qTimer=setTimeout(()=>applyVaultSearch(val),180); }); }
   // load data + build graph after the view is visible (needs real width/height)
   (async ()=>{
     try{
       await loadBrainData();
       const d=brainData(); const c=$("#brain-count"); if(c) c.textContent=d.count.toLocaleString()+" notes · "+d.edges.toLocaleString()+" links";
-      vaultRefreshList();                                  // fill the file list as soon as paths are in
       // wait for the UMD lib if the deferred script hasn't finished yet
       let tries=0; while(!window.ForceGraph3D && tries++<60) await new Promise(r=>setTimeout(r,50));
       requestAnimationFrame(async ()=>{
@@ -3622,15 +3501,13 @@ function renderVault(){
         // opened straight onto a detail page). The panel now appears only when the user taps a node.
         // Instead, gently frame the whole constellation once the layout settles.
         setTimeout(()=>{ try{ if(BRAIN&&BRAIN.graph&&!BRAIN.selId) BRAIN.graph.zoomToFit(1200, 70); }catch(_e){} }, 1200);
-        if(VAULT.q.trim()) applyVaultSearch(VAULT.q);       // restore any prior search over list + graph
       });
-    }catch(err){ console.error("vault load:",err); const ld=$("#brain-loading"); if(ld) ld.innerHTML='<div class="text-[13px] text-on-surface">Couldn’t load the vault: '+esc(err.message)+'</div>'; }
+    }catch(err){ console.error("brain load:",err); const ld=$("#brain-loading"); if(ld) ld.innerHTML='<div class="text-[13px] text-error-container-fg">Couldn’t load the vault: '+esc(err.message)+'</div>'.replace("error-container-fg","on-error-container"); }
   })();
 }
 
 function setView(name, force){
-  if(name==="notes"||name==="brain") name="vault";     // Notes + Brain consolidated into one Vault tab; old hashes/deep-links still land here
-  if(["overview","cockpit","projects","tasks","week","travel","vault","coaching","inbox","needs"].indexOf(name)<0) name="overview";
+  if(["overview","cockpit","projects","tasks","week","travel","notes","coaching","inbox","needs","brain"].indexOf(name)<0) name="overview";
   if(name==="cockpit" && !IS_OWNER) name="overview";   // owner-only tab: never route a non-owner here
   // Scroll discipline: a genuine NAVIGATION (switching views, or any unforced call from the
   // hashchange handler) jumps to the top. An in-place RE-RENDER of the view you're already on
@@ -3642,7 +3519,7 @@ function setView(name, force){
   const keepScroll = !!force && sameView;
   const y = window.scrollY;
   STATE.view=name;
-  const fn={overview:renderOverview,cockpit:renderCockpit,projects:renderProjects,tasks:renderTasks,week:renderWeek,travel:renderTravel,vault:renderVault,coaching:renderCoaching,inbox:renderInbox,needs:renderNeeds}[name];
+  const fn={overview:renderOverview,cockpit:renderCockpit,projects:renderProjects,tasks:renderTasks,week:renderWeek,travel:renderTravel,notes:renderNotes,coaching:renderCoaching,inbox:renderInbox,needs:renderNeeds,brain:renderBrain}[name];
   // NEVER-BLANK GUARD: render if the view was never rendered, a re-render is forced, OR the container
   // is empty for ANY reason (interrupted paint, stale RENDERED cache, an async wipe). This is the
   // safety net that guarantees a tab can't stay blank — if the DOM is empty, we always repaint it,

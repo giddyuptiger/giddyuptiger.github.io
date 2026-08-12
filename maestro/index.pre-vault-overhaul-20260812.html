@@ -94,132 +94,6 @@
     #brain-reader{ backdrop-filter:none !important; -webkit-backdrop-filter:none !important; background:rgba(4,5,8,0.97) !important; padding:0 !important; }
     #brain-reader > div{ max-width:100% !important; height:100%; max-height:100%; border-radius:0 !important; }
   }
-  /* ═════════ Vault UX kit (v2 overhaul): panel toggles, expand-to-fill note, command palette,
-     hover cards, legend, minimap, time scrubber, breadcrumb, saved views, empty states. All scoped
-     under the Vault tab. Lime #C5E45C on charcoal, GPU-cheap, desktop + mobile. ═════ */
-  #vault-root .vault-grid{ transition:grid-template-columns .28s cubic-bezier(.16,1,.3,1); }
-  @media (min-width:1024px){ #vault-root.vx-lcol .vault-grid{ grid-template-columns:minmax(0,1fr); } }
-  #vault-root.vx-lcol #vault-list-panel{ display:none; }
-  /* Two panel-toggle icons in the graph's top corners, like Claude's collapsible sidebars. */
-  .vx-ptog{ position:absolute; z-index:24; top:12px; width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center;
-    border-radius:9px; background:rgba(16,19,26,.72); border:1px solid rgba(155,161,166,.18); color:#9BA1A6;
-    backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); cursor:pointer; transition:color .15s, border-color .15s; }
-  .vx-ptog:hover{ color:#C5E45C; border-color:rgba(197,228,92,.4); }
-  .vx-ptog-l{ left:12px; } .vx-ptog-r{ right:12px; }
-  @media (max-width:639px){ .vx-ptog{ display:none; } }
-  /* Expand: the RIGHT note panel grows to fill the graph area (no black fullscreen overlay). */
-  #brain-side{ transition:transform .3s cubic-bezier(.16,1,.3,1), width .32s cubic-bezier(.16,1,.3,1); }
-  @media (min-width:640px){ #brain-side.vx-expanded{ width:100%; border-left:0; } }
-  #brain-side.vx-expanded #brain-scroll{ max-width:880px; margin:0 auto; width:100%; }
-  @media (max-width:639px){ #brain-side.vx-expanded{ height:100%; border-radius:0; } }
-  /* Command palette (Cmd/Ctrl-K) — keyboard-first fuzzy jump. */
-  #vx-palette{ position:fixed; inset:0; z-index:70; display:none; align-items:flex-start; justify-content:center; padding:14vh 16px 16px; }
-  #vx-palette.open{ display:flex; }
-  #vx-palette .vx-pal-bg{ position:absolute; inset:0; background:rgba(4,5,8,.62); backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); opacity:0; transition:opacity .16s ease; }
-  #vx-palette.open .vx-pal-bg{ opacity:1; }
-  #vx-palette .vx-pal{ position:relative; width:100%; max-width:620px; background:rgba(14,17,23,.98); border:1px solid rgba(155,161,166,.2);
-    border-radius:16px; box-shadow:0 30px 90px -20px rgba(0,0,0,.85); overflow:hidden; transform:translateY(-8px) scale(.985); opacity:0; transition:transform .18s cubic-bezier(.16,1,.3,1), opacity .18s ease; }
-  #vx-palette.open .vx-pal{ transform:none; opacity:1; }
-  #vx-pal-input{ width:100%; background:transparent; border:0; outline:0; color:#F2F4F1; font:600 15px Inter,system-ui,sans-serif; padding:15px 16px; }
-  #vx-pal-input::placeholder{ color:rgba(155,161,166,.5); }
-  #vx-pal-list{ max-height:min(52vh,420px); overflow-y:auto; border-top:1px solid rgba(155,161,166,.12); padding:6px; }
-  .vx-pal-row{ display:flex; align-items:center; gap:10px; padding:9px 11px; border-radius:10px; cursor:pointer; }
-  .vx-pal-row[aria-selected="true"]{ background:rgba(197,228,92,.12); }
-  .vx-pal-row .vx-dot{ width:8px; height:8px; border-radius:50%; flex:0 0 auto; }
-  .vx-pal-row .vx-ic{ color:rgba(155,161,166,.7); display:inline-flex; flex:0 0 auto; }
-  .vx-pal-row .vx-t{ font:600 13.5px Inter; color:#F2F4F1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .vx-pal-row .vx-p{ font:500 10.5px ui-monospace,monospace; color:rgba(155,161,166,.5); margin-left:auto; flex:0 0 auto; max-width:44%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .vx-pal-empty{ padding:16px; text-align:center; font:500 12.5px Inter; color:rgba(155,161,166,.6); }
-  .vx-pal-hint{ display:flex; gap:14px; padding:8px 14px; border-top:1px solid rgba(155,161,166,.1); font:500 10.5px Inter; color:rgba(155,161,166,.5); }
-  .vx-kbd{ font:600 10px ui-monospace,monospace; background:rgba(155,161,166,.14); border-radius:4px; padding:1px 5px; color:#C5E45C; }
-  /* Hover preview card */
-  #vx-hovercard{ position:absolute; z-index:26; max-width:260px; pointer-events:none; background:rgba(12,15,21,.96);
-    border:1px solid rgba(155,161,166,.22); border-radius:12px; padding:9px 11px; box-shadow:0 14px 40px -14px rgba(0,0,0,.85);
-    opacity:0; transform:translateY(4px); transition:opacity .12s ease, transform .12s ease; display:none; }
-  #vx-hovercard.show{ display:block; opacity:1; transform:none; }
-  #vx-hovercard .vx-hc-t{ font:700 12.5px Inter; color:#F2F4F1; display:flex; align-items:center; gap:6px; }
-  #vx-hovercard .vx-hc-p{ font:500 11px Inter; color:rgba(155,161,166,.78); margin-top:3px; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-  #vx-hovercard .vx-hc-m{ font:600 9.5px Inter; letter-spacing:.04em; text-transform:uppercase; color:rgba(155,161,166,.5); margin-top:5px; }
-  /* Legend */
-  #vx-legend{ position:absolute; right:12px; bottom:12px; z-index:22; background:rgba(16,19,26,.7); border:1px solid rgba(155,161,166,.16);
-    border-radius:12px; padding:9px 11px; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); max-width:190px; transition:bottom .28s ease; }
-  #vx-legend .vx-lg-h{ font:700 9.5px Inter; letter-spacing:.14em; text-transform:uppercase; color:rgba(155,161,166,.55); margin-bottom:6px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
-  #vx-legend .vx-lg-h .material-symbols-outlined{ font-size:15px; cursor:pointer; color:rgba(155,161,166,.5); }
-  .vx-lg-row{ display:flex; align-items:center; gap:7px; font:600 11px Inter; color:rgba(226,230,225,.82); padding:1.5px 0; }
-  .vx-lg-ic{ width:14px; height:14px; flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; }
-  #vx-legend.vx-min .vx-lg-body{ display:none; }
-  @media (max-width:639px){ #vx-legend{ display:none; } }
-  /* Minimap */
-  #vx-minimap{ position:absolute; left:12px; bottom:12px; z-index:22; width:150px; height:110px; border-radius:11px;
-    background:rgba(8,10,15,.72); border:1px solid rgba(155,161,166,.16); overflow:hidden; backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); transition:bottom .28s ease; }
-  #vx-minimap canvas{ display:block; width:100%; height:100%; }
-  @media (max-width:639px){ #vx-minimap{ display:none; } }
-  #vault-root.vx-scrub #vx-minimap, #vault-root.vx-scrub #vx-legend{ bottom:66px; }
-  /* Breadcrumb */
-  #vx-breadcrumb{ position:absolute; left:50%; transform:translateX(-50%); top:12px; z-index:22; max-width:min(70%,560px);
-    display:none; align-items:center; gap:4px; background:rgba(16,19,26,.72); border:1px solid rgba(155,161,166,.16);
-    border-radius:999px; padding:5px 12px; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
-    font:600 11px Inter; color:rgba(226,230,225,.8); overflow:hidden; white-space:nowrap; }
-  #vx-breadcrumb.show{ display:flex; }
-  #vx-breadcrumb .vx-bc{ cursor:pointer; overflow:hidden; text-overflow:ellipsis; max-width:180px; }
-  #vx-breadcrumb .vx-bc:hover{ color:#C5E45C; }
-  #vx-breadcrumb .vx-bc-sep{ color:rgba(155,161,166,.4); }
-  @media (max-width:639px){ #vx-breadcrumb{ display:none !important; } }
-  /* Time scrubber */
-  #vx-scrubber{ position:absolute; left:12px; right:12px; bottom:12px; z-index:23; display:none; align-items:center; gap:10px;
-    background:rgba(14,17,23,.82); border:1px solid rgba(155,161,166,.18); border-radius:13px; padding:8px 12px;
-    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }
-  #vx-scrubber.show{ display:flex; }
-  #vx-scrub-play{ flex:0 0 auto; width:30px; height:30px; border-radius:8px; border:1px solid rgba(155,161,166,.2);
-    background:rgba(197,228,92,.1); color:#C5E45C; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; }
-  #vx-scrub-range{ flex:1; -webkit-appearance:none; appearance:none; height:4px; border-radius:3px; background:rgba(155,161,166,.25); outline:none; }
-  #vx-scrub-range::-webkit-slider-thumb{ -webkit-appearance:none; width:15px; height:15px; border-radius:50%; background:#C5E45C; cursor:pointer; box-shadow:0 0 10px rgba(197,228,92,.6); }
-  #vx-scrub-range::-moz-range-thumb{ width:15px; height:15px; border:0; border-radius:50%; background:#C5E45C; cursor:pointer; }
-  #vx-scrub-label{ flex:0 0 auto; font:600 11px ui-monospace,monospace; color:rgba(226,230,225,.85); min-width:98px; text-align:right; }
-  #vx-scrub-close{ flex:0 0 auto; color:rgba(155,161,166,.6); cursor:pointer; display:inline-flex; }
-  #vx-scrub-close:hover{ color:#C5E45C; }
-  /* Saved views chips */
-  #vx-views{ position:absolute; right:52px; top:12px; z-index:22; display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; max-width:60%; }
-  @media (max-width:639px){ #vx-views{ display:none; } }
-  .vx-view{ font:600 11px Inter; color:rgba(226,230,225,.8); background:rgba(16,19,26,.72); border:1px solid rgba(155,161,166,.16);
-    border-radius:999px; padding:5px 11px; cursor:pointer; display:inline-flex; align-items:center; gap:5px; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }
-  .vx-view:hover{ color:#C5E45C; border-color:rgba(197,228,92,.4); }
-  .vx-view .material-symbols-outlined{ font-size:14px; }
-  /* Empty states (blocker fix) — inviting, not "No files match" or a black void. */
-  .vx-empty{ display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:12px; padding:32px 22px; height:100%; }
-  .vx-empty .vx-e-orb{ width:66px; height:66px; border-radius:50%; display:flex; align-items:center; justify-content:center;
-    background:radial-gradient(circle at 50% 40%, rgba(197,228,92,.22), rgba(197,228,92,.03) 70%); border:1px solid rgba(197,228,92,.3);
-    box-shadow:0 0 40px -6px rgba(197,228,92,.35); animation:vxpulse 3.2s ease-in-out infinite; }
-  @keyframes vxpulse{ 0%,100%{ box-shadow:0 0 34px -8px rgba(197,228,92,.28); } 50%{ box-shadow:0 0 48px -4px rgba(197,228,92,.5); } }
-  .vx-empty .vx-e-orb .material-symbols-outlined{ font-size:32px; color:#C5E45C; }
-  /* The living "seed" node for a brand-new/empty vault — a soft pulsing lime orb, slowly rotating,
-     with an orbiting spark, so the graph area feels alive and waiting to fill in (not broken). */
-  .vx-seed{ position:relative; width:112px; height:112px; display:flex; align-items:center; justify-content:center; }
-  .vx-seed .vx-seed-ring{ position:absolute; inset:0; border-radius:50%;
-    background:conic-gradient(from 0deg, rgba(197,228,92,0), rgba(197,228,92,.55), rgba(197,228,92,0) 55%, rgba(197,228,92,0));
-    -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
-    mask:radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
-    animation:vxspin 7s linear infinite; }
-  .vx-seed .vx-seed-core{ width:46px; height:46px; border-radius:50%;
-    background:radial-gradient(circle at 45% 38%, #eaf7b0, #C5E45C 45%, #7f9b34 100%);
-    box-shadow:0 0 34px 6px rgba(197,228,92,.5), inset 0 0 10px rgba(255,255,255,.35);
-    animation:vxbreath 3.4s ease-in-out infinite; }
-  .vx-seed .vx-seed-orbit{ position:absolute; inset:0; animation:vxspin 4.5s linear infinite; }
-  .vx-seed .vx-seed-orbit::before{ content:""; position:absolute; top:2px; left:50%; width:7px; height:7px; margin-left:-3.5px; border-radius:50%;
-    background:#C5E45C; box-shadow:0 0 10px 2px rgba(197,228,92,.8); }
-  .vx-seed .vx-seed-halo{ position:absolute; inset:-14px; border-radius:50%; background:radial-gradient(circle, rgba(197,228,92,.16), rgba(197,228,92,0) 68%); animation:vxbreath 3.4s ease-in-out infinite; }
-  @keyframes vxspin{ to{ transform:rotate(360deg); } }
-  @keyframes vxbreath{ 0%,100%{ transform:scale(1); opacity:.92; } 50%{ transform:scale(1.09); opacity:1; } }
-  @media (prefers-reduced-motion: reduce){ .vx-seed .vx-seed-ring,.vx-seed .vx-seed-orbit{ animation:none; } }
-  .vx-empty h3{ font:800 16px Inter; color:#F2F4F1; }
-  .vx-empty p{ font:500 12.5px Inter; color:rgba(155,161,166,.85); max-width:19rem; line-height:1.5; }
-  .vx-empty .vx-e-steps{ margin-top:4px; display:flex; flex-direction:column; gap:7px; width:100%; max-width:19rem; text-align:left; }
-  .vx-e-step{ display:flex; align-items:center; gap:9px; font:500 12px Inter; color:rgba(226,230,225,.78); }
-  .vx-e-step .vx-e-n{ width:19px; height:19px; flex:0 0 auto; border-radius:50%; background:rgba(197,228,92,.14); color:#C5E45C; font:700 10.5px Inter; display:inline-flex; align-items:center; justify-content:center; }
-  .vx-empty-list{ padding:22px 12px; text-align:center; }
-  .vx-empty-list .material-symbols-outlined{ font-size:26px; color:rgba(197,228,92,.7); }
-  .vx-empty-list h4{ font:700 13px Inter; color:#F2F4F1; margin-top:6px; }
-  .vx-empty-list p{ font:500 11.5px Inter; color:rgba(155,161,166,.75); margin-top:4px; line-height:1.45; }
   /* Notes: never let a long line/token/URL run off the right edge on mobile; wrap to viewport. */
   .notes-body{ overflow-wrap:anywhere; word-break:break-word; max-width:100%; }
   .notes-body pre{ max-width:100%; overflow-x:auto; }
@@ -3312,8 +3186,6 @@ async function brainSelect(id, fly){
   vaultRefreshList();                                  // reflect the selected row in the Vault file list
   const n=BRAIN.byId[id], side=$("#brain-side"), body=$("#brain-scroll"); if(!side) return;
   side.classList.add("open");
-  if(typeof vxBreadcrumb==="function") vxBreadcrumb(n);   // orientation crumb for the selected node
-  if(typeof vxSyncPanelIcons==="function") vxSyncPanelIcons();
   const crumbs=n.path.split("/"); const dt=n.updated?new Date(n.updated):null;
   const chip=(t,c)=>'<span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-semibold" style="background:'+c+'1f;color:'+c+';border:1px solid '+c+'44">'+esc(t)+'</span>';
   const nodeRow=(nid,role)=>{ const x=BRAIN.byId[nid]; if(!x||bNoise(x)) return ""; const c=bColor(x.group);
@@ -3516,22 +3388,16 @@ async function buildBrainGraph(){
   const MUTE="#39414c";
   // Hover highlight state: highlight set = hovered node + its direct neighbors.
   BRAIN.hlNodes=new Set(); BRAIN.hlLinks=new Set(); BRAIN.hoverId=null;
-  const DIM="#0b0d12";                                               // near-invisible: time-scrub "not created yet"
   const nodeColorFn=n=>{
-    if(BRAIN.scrubTs!=null && (n.recentTs||0) > BRAIN.scrubTs) return DIM;  // time scrubber: node hasn't appeared yet
-    if(BRAIN.focusSet && !BRAIN.focusSet.has(n.id)) return MUTE;      // focus mode: fade everything outside the focused neighborhood
     if(BRAIN.hlNodes.size && !BRAIN.hlNodes.has(n.id)) return MUTE;   // dim non-highlighted (hover)
     if(BRAIN.searchHits && !BRAIN.searchHits.has(n.id)) return MUTE;  // dim non-matching (Vault search)
     return n.id===BRAIN.selId ? "#ffffff" : bRecencyColor(n);        // cluster hue, brightness by recency
   };
   const _linkEnds=l=>[ (typeof l.source==="object"?l.source.id:l.source), (typeof l.target==="object"?l.target.id:l.target) ];
   const linkColorFn=l=>{
-    const [ls,lt]=_linkEnds(l);
-    if(BRAIN.scrubTs!=null){ const a=BRAIN.byId[ls],b=BRAIN.byId[lt]; if((a&&(a.recentTs||0)>BRAIN.scrubTs)||(b&&(b.recentTs||0)>BRAIN.scrubTs)) return "rgba(120,132,148,0.012)"; }  // scrub: hide links to not-yet-created nodes
-    if(BRAIN.focusSet && !(BRAIN.focusSet.has(ls)&&BRAIN.focusSet.has(lt))) return "rgba(120,132,148,0.03)";  // focus: fade links outside the neighborhood
     const hov=BRAIN.hlLinks.size>0, on=hov&&BRAIN.hlLinks.has(l);
     if(hov&&!on) return "rgba(120,132,148,0.04)";                     // fade unrelated links (hover)
-    if(BRAIN.searchHits){ if(!(BRAIN.searchHits.has(ls)&&BRAIN.searchHits.has(lt))) return "rgba(120,132,148,0.03)"; }  // fade links not between two matches
+    if(BRAIN.searchHits){ const [s,t]=_linkEnds(l); if(!(BRAIN.searchHits.has(s)&&BRAIN.searchHits.has(t))) return "rgba(120,132,148,0.03)"; }  // fade links not between two matches
     if(l.kind==="wiki") return on?"rgba(197,228,92,0.95)":"rgba(197,228,92,0.5)";
     return on?"rgba(205,216,232,0.55)":"rgba(150,162,176,0.12)";
   };
@@ -3556,10 +3422,10 @@ async function buildBrainGraph(){
     .linkDirectionalParticles(particleFn)
     .linkDirectionalParticleWidth(2)
     .linkDirectionalParticleSpeed(0.01)
-    .onNodeClick(n=>{ vxHoverCard(null); vxOpenNode(n.id); })   // click = select + FOCUS (isolate neighbors, ease camera in)
+    .onNodeClick(n=> brainSelect(n.id, true))
     .onNodeHover(node=>{
       const nid=node?node.id:null;
-      if(nid===BRAIN.hoverId){ if(node) vxHoverCardPos(BRAIN._mx||0,BRAIN._my||0); return; }
+      if(nid===BRAIN.hoverId) return;
       BRAIN.hoverId=nid;
       BRAIN.hlNodes=new Set(); BRAIN.hlLinks=new Set();
       if(node){
@@ -3569,19 +3435,15 @@ async function buildBrainGraph(){
           const t=typeof l.target==="object"?l.target.id:l.target;
           if(s===node.id||t===node.id){ BRAIN.hlLinks.add(l); BRAIN.hlNodes.add(s); BRAIN.hlNodes.add(t); }
         });
-        vxHoverCard(node); vxHoverCardPos(BRAIN._mx||0,BRAIN._my||0);   // preview card: title · one-liner · last-edited
-      } else { vxHoverCard(null); }
+      }
       if(host) host.style.cursor=node?"pointer":"";
       refreshHL();
     })
-    .onBackgroundClick(()=>{ const s=$("#brain-side"); if(s){ s.classList.remove("open"); s.classList.remove("vx-expanded"); } vxHoverCard(null); brainClearFocus(); vxBreadcrumb(null); if(typeof vxSyncPanelIcons==="function") vxSyncPanelIcons(); })   // click empty space = zoom back out
+    .onBackgroundClick(()=>{ const s=$("#brain-side"); if(s) s.classList.remove("open"); })
     .warmupTicks(40).cooldownTicks(320);
   BRAIN.graph=G;
   const dim=()=>{ G.width(host.clientWidth); G.height(host.clientHeight); };
   dim(); BRAIN.ro=new ResizeObserver(dim); BRAIN.ro.observe(host);
-  // Track the cursor so the hover preview card follows it; hide the card when the cursor leaves.
-  host.addEventListener("mousemove", e=>{ BRAIN._mx=e.clientX; BRAIN._my=e.clientY; if(BRAIN.hoverId!=null) vxHoverCardPos(e.clientX,e.clientY); });
-  host.addEventListener("mouseleave", ()=>{ vxHoverCard(null); });
   // ── Layout: give every project its own separated constellation ──
   try{
     const vis=brainData().nodes;
@@ -3626,28 +3488,9 @@ async function buildBrainGraph(){
     const bloom=new UnrealBloomPass(); bloom.strength=0.65; bloom.radius=0.75; bloom.threshold=0.06;
     G.postProcessingComposer().addPass(bloom);
   }catch(e){ console.warn("brain bloom:", e.message); }
-  // ── Cinematic depth (DOF): exponential fog dims + recedes far nodes into the charcoal void,
-  //    compounding the recency glow + label depth-fade. Plus subtle TYPE-AWARE marker glyphs on
-  //    project hubs (lime ring) and wiki topics (violet diamond) — notes stay clean spheres, so
-  //    structure reads at a glance next to the legend. Fully guarded: if THREE won't import we skip
-  //    the extras and the base graph (color/size/bloom/hover) is completely unchanged. ──
-  try{
-    const THREE = await import("https://esm.sh/three@0.180.0");
-    BRAIN._THREE = THREE;
-    try{ const scn=G.scene(); if(scn) scn.fog = new THREE.FogExp2(0x05060a, 0.0016); }catch(_e){}
-    const geoHub  = new THREE.TorusGeometry(4.6, 0.5, 6, 18);
-    const geoWiki = new THREE.OctahedronGeometry(3.1, 0);
-    const matHub  = new THREE.MeshBasicMaterial({ color:0xC5E45C, transparent:true, opacity:0.55 });
-    const matWiki = new THREE.MeshBasicMaterial({ color:0xbb9af7, transparent:true, opacity:0.5 });
-    G.nodeThreeObjectExtend(true);
-    G.nodeThreeObject(n=>{ const k=vxKind(n);
-      if(k==="hub") return new THREE.Mesh(geoHub, matHub);
-      if(k==="wiki" && (n.deg||0)>=2) return new THREE.Mesh(geoWiki, matWiki);
-      return undefined; });
-  }catch(e){ console.warn("brain depth/markers:", e.message); }
   // Clean, clickable HTML project labels pinned to each cluster hub — repositioned every frame.
   brainBuildClusterLabels();
-  BRAIN._tick=()=>{ if(!BRAIN||!BRAIN.graph) return; brainUpdateClusterLabels(); brainPulseHot(); vxMinimapDraw(); BRAIN._raf=requestAnimationFrame(BRAIN._tick); };
+  BRAIN._tick=()=>{ if(!BRAIN||!BRAIN.graph) return; brainUpdateClusterLabels(); brainPulseHot(); BRAIN._raf=requestAnimationFrame(BRAIN._tick); };
   cancelAnimationFrame(BRAIN._raf||0); BRAIN._raf=requestAnimationFrame(BRAIN._tick);
 }
 function brainToggleAll(){
@@ -3735,7 +3578,6 @@ function vaultTreeHTML(dir, depth, forceOpen){
 }
 function vaultListHTML(){
   if(!BRAIN||BRAIN.loading) return '<div class="px-2 py-3 text-[12px] text-on-surface-variant/50 flex items-center gap-2"><span class="material-symbols-outlined animate-spin text-[16px] text-primary">progress_activity</span>Reading your vault…</div>';
-  if(vaultVisibleNodes().length===0) return vaultEmptyListHTML();   // brand-new/empty vault — inviting empty state, not "No files match"
   const hits=vaultMatches();
   if(!hits.length) return '<p class="text-[12px] text-on-surface-variant/50 px-2 py-3">No files match “'+esc(VAULT.q.trim())+'”.</p>';
   const root=vaultBuildTree(hits);
@@ -3769,251 +3611,6 @@ function vaultSetMobileTab(tab){
   // The graph canvas may have been display:none while the list showed — nudge it to re-measure.
   if(VAULT.mtab==="graph" && BRAIN && BRAIN.graph){ try{ const h=$("#brain-canvas"); if(h){ BRAIN.graph.width(h.clientWidth); BRAIN.graph.height(h.clientHeight); } }catch(_e){} }
 }
-/* ═══════════════════ Vault UX v2 — showpiece interaction layer ═══════════════════
-   Focus mode, command palette (⌘K), time scrubber, hover cards, type legend, minimap,
-   breadcrumb, saved views, collapsible panels + grow-to-fill note reader. Everything here is
-   additive and guarded: each piece degrades to a no-op if its DOM/graph isn't present, so a
-   single feature can never brick the tab. Persisted UI state lives in one localStorage key. */
-const VX_LS="maestro.vault.ux";
-function vxLoad(){ try{ return JSON.parse(localStorage.getItem(VX_LS)||"{}")||{}; }catch(_e){ return {}; } }
-function vxSave(o){ try{ localStorage.setItem(VX_LS, JSON.stringify(o)); }catch(_e){} }
-function vxAgo(dt){ const s=(Date.now()-dt.getTime())/1000; if(s<3600) return Math.max(1,Math.round(s/60))+"m ago"; if(s<86400) return Math.round(s/3600)+"h ago"; const d=Math.round(s/86400); if(d<30) return d+"d ago"; if(d<365) return Math.round(d/30)+"mo ago"; return Math.round(d/365)+"y ago"; }
-// Classify a node's KIND for type-aware visuals + the legend.
-function vxKind(n){
-  if(!n) return "note";
-  if((n.group||"").split("/")[0]==="code-history") return "code";
-  const b=(n.name||"").toLowerCase();
-  const isIndex = n.isIndex || b==="readme.md"||b==="_index.md"||b==="index.md";
-  if(isIndex || (n.kids&&n.kids.length>=4)) return "hub";
-  if((n.out&&n.out.length)||(n.inl&&n.inl.length)) return "wiki";
-  return "note";
-}
-// ── Empty states (blocker fix) ──────────────────────────────────────────────────
-function vaultEmptyGraphHTML(){
-  return '<div class="vx-empty">'+
-    '<div class="vx-seed"><div class="vx-seed-halo"></div><div class="vx-seed-ring"></div><div class="vx-seed-orbit"></div><div class="vx-seed-core"></div></div>'+
-    '<h3>Your brain starts here</h3>'+
-    '<p>Connect Claude and watch it grow — every note, project and idea becomes a glowing node in your private constellation.</p>'+
-    '<div class="vx-e-steps">'+
-      '<div class="vx-e-step"><span class="vx-e-n">1</span>Connect Claude to your Maestro vault</div>'+
-      '<div class="vx-e-step"><span class="vx-e-n">2</span>Work as you normally do — it saves as you go</div>'+
-      '<div class="vx-e-step"><span class="vx-e-n">3</span>Watch your vault fill in, right here</div>'+
-    '</div></div>';
-}
-function vaultEmptyListHTML(){
-  return '<div class="vx-empty-list"><span class="material-symbols-outlined">auto_awesome</span>'+
-    '<h4>Your vault is empty</h4>'+
-    '<p>Connect Claude and it starts filling in — your notes and projects will appear here as a searchable list.</p></div>';
-}
-// Show/refresh the living "seed" overlay whenever the visible graph is empty; remove it otherwise.
-function vaultSyncEmpty(){
-  const wrap=$("#brain-wrap"); if(!wrap) return false;
-  const empty = !!(BRAIN && !BRAIN.loading && vaultVisibleNodes().length===0);
-  let host=document.getElementById("vx-graph-empty");
-  if(empty){
-    if(!host){ host=document.createElement("div"); host.id="vx-graph-empty";
-      host.className="absolute inset-0 z-40 flex items-center justify-center";
-      host.style.background="radial-gradient(circle at 50% 44%, #0b0e15, #05060a 72%)";
-      host.innerHTML=vaultEmptyGraphHTML(); wrap.appendChild(host); }
-    const c=$("#brain-count"); if(c) c.textContent="Waiting for your first note";
-  } else if(host){ host.remove(); }
-  return empty;
-}
-// ── Hover preview card ──────────────────────────────────────────────────────────
-function vxHoverCard(node){
-  const hc=$("#vx-hovercard"); if(!hc) return;
-  if(!node){ hc.classList.remove("show"); return; }
-  const dt=node.updated?new Date(node.updated):null, c=bColor(node.group);
-  hc.innerHTML='<div class="vx-hc-t"><span class="vx-dot" style="width:8px;height:8px;border-radius:50%;background:'+c+';box-shadow:0 0 7px '+c+'"></span>'+esc(bDisplayName(node))+'</div>'+
-    '<div class="vx-hc-p" data-vx-hcp>'+esc(bProjLabel(node.group))+'</div>'+
-    '<div class="vx-hc-m">'+(dt?("edited "+vxAgo(dt)):"—")+' · '+(node.deg||0)+' links</div>';
-  hc.classList.add("show");
-  const cached=BRAIN.cache[node.id];
-  if(cached!=null){ const p=bPreview(cached); if(p){ const el=hc.querySelector("[data-vx-hcp]"); if(el) el.textContent=p; } }
-  else { clearTimeout(BRAIN._hcTimer); const id=node.id;
-    BRAIN._hcTimer=setTimeout(async ()=>{ try{ const {data}=await sb.from("vault_files").select("content").eq("id",id).single();
-      if(data){ BRAIN.cache[id]=data.content||""; if(BRAIN.hoverId===id){ const p=bPreview(BRAIN.cache[id]); const el=hc.querySelector("[data-vx-hcp]"); if(el&&p) el.textContent=p; } } }catch(_e){} }, 240); }
-}
-function vxHoverCardPos(x,y){ const hc=$("#vx-hovercard"), wrap=$("#brain-wrap"); if(!hc||!wrap||!hc.classList.contains("show")) return;
-  const r=wrap.getBoundingClientRect(); const cw=hc.offsetWidth||240, ch=hc.offsetHeight||80;
-  let lx=x-r.left+16, ly=y-r.top+16; if(lx+cw>r.width-8) lx=x-r.left-cw-16; if(ly+ch>r.height-8) ly=r.height-ch-8;
-  hc.style.left=Math.max(8,lx)+"px"; hc.style.top=Math.max(8,ly)+"px";
-}
-// ── Focus mode: isolate a node + its neighbors, fade the rest, ease the camera in ──
-function brainFocus(id){
-  if(!BRAIN||!BRAIN.byId[id]||!BRAIN.graph) return;
-  const set=new Set([id]);
-  BRAIN.graph.graphData().links.forEach(l=>{ const s=typeof l.source==="object"?l.source.id:l.source, t=typeof l.target==="object"?l.target.id:l.target;
-    if(s===id) set.add(t); if(t===id) set.add(s); });
-  BRAIN.focusId=id; BRAIN.focusSet=set;
-  if(BRAIN.refreshHL) BRAIN.refreshHL();
-  brainFly(id);
-}
-function brainClearFocus(){ if(!BRAIN||BRAIN.focusId==null) return; BRAIN.focusId=null; BRAIN.focusSet=null; if(BRAIN.refreshHL) BRAIN.refreshHL(); }
-// Open a node the "showpiece" way: select (panel + list) without a double camera move, then focus (eases in).
-function vxOpenNode(id){ if(!BRAIN||!BRAIN.byId[id]) return; brainSelect(id,false); brainFocus(id); }
-function vxFocusCluster(group){ const ns=vaultVisibleNodes().filter(n=>n.group===group); if(!ns.length) return;
-  let hub=ns[0]; ns.forEach(n=>{ if((n.deg||0)>(hub.deg||0)) hub=n; }); vxOpenNode(hub.id); }
-// ── Breadcrumb (orientation while deep in a cluster) ──
-function vxBreadcrumb(node){
-  const bc=$("#vx-breadcrumb"); if(!bc) return;
-  if(!node){ bc.classList.remove("show"); bc.innerHTML=""; return; }
-  const parts=(node.path||"").split("/");
-  let html='<span class="vx-bc" data-vx-home title="Whole vault">Vault</span>', acc="";
-  for(let i=0;i<parts.length;i++){ acc=acc?acc+"/"+parts[i]:parts[i]; const last=i===parts.length-1;
-    html+='<span class="vx-bc-sep">/</span>';
-    if(last) html+='<span class="vx-bc" style="color:#C5E45C;flex:0 1 auto" title="'+esc(node.path)+'">'+esc(bDisplayName(node))+'</span>';
-    else html+='<span class="vx-bc" data-vx-crumb="'+esc(acc)+'">'+esc(bTitleCase(parts[i]))+'</span>'; }
-  bc.innerHTML=html; bc.classList.add("show");
-}
-function vxCrumbGo(folderPath){ const cand=[folderPath+"/README.md",folderPath+"/index.md",folderPath+"/_index.md"];
-  for(const p of cand){ if(BRAIN.byPath[p]){ vxOpenNode(BRAIN.byPath[p].id); return; } }
-  const r=bResolve(folderPath); if(r){ vxOpenNode(r.id); return; }
-  // fall back: frame that cluster
-  const grp=bGroup(folderPath+"/x"); vxFocusCluster(grp);
-}
-// ── Command palette (⌘K / Ctrl-K) ──
-let VXPAL={ items:[], sel:0 };
-function vxFuzzy(q,text){ if(!q) return 0; if(!text) return 0;
-  const i=text.indexOf(q); if(i>=0) return 100 - i*0.4 + (text.startsWith(q)?20:0);
-  let ti=0,score=0,streak=0,matched=0;
-  for(let k=0;k<q.length;k++){ const idx=text.indexOf(q[k],ti); if(idx<0) return 0; matched++; streak=idx===ti?streak+1:0; score+=2+streak; ti=idx+1; }
-  return matched===q.length?Math.max(1,score):0; }
-function vxPaletteItems(q){
-  const ql=(q||"").trim().toLowerCase(), items=[];
-  const cmds=[
-    {t:"Reset view — fit the whole vault", ic:"fit_screen", run:()=>vxApplyView("overview")},
-    {t:"Jump to recent activity", ic:"bolt", run:()=>vxApplyView("recent")},
-    {t:"Time scrubber — replay the vault growing", ic:"schedule", run:()=>vxScrubToggle(true)},
-    {t:"Toggle code-history nodes", ic:"history", run:()=>brainToggleAll()},
-    {t:"Collapse the file list", ic:"left_panel_close", run:()=>vxTogglePanel("left")},
-  ];
-  cmds.forEach(c=>{ const sc=ql?vxFuzzy(ql,c.t.toLowerCase()):-1; if(!ql||sc>0) items.push({kind:"cmd",label:c.t,ic:c.ic,run:c.run,score:ql?sc:-1}); });
-  const nodes=vaultVisibleNodes(), seen=Object.create(null);
-  nodes.forEach(n=>{ const g=n.group; if(seen[g])return; seen[g]=1; const sc=ql?vxFuzzy(ql,bProjLabel(g).toLowerCase()):0;
-    if(!ql||sc>0) items.push({kind:"cluster",label:bProjLabel(g),sub:"project",color:bColor(g),group:g,score:sc+2}); });
-  nodes.forEach(n=>{ const sc=ql?Math.max(vxFuzzy(ql,bDisplayName(n).toLowerCase()), vxFuzzy(ql,(n.path||"").toLowerCase())*0.9):0;
-    if(!ql||sc>0) items.push({kind:"node",label:bDisplayName(n),sub:n.path,color:bColor(n.group),id:n.id,score:sc}); });
-  if(ql) items.sort((a,b)=>b.score-a.score);
-  return items.slice(0,60);
-}
-function vxPaletteOpen(){ const p=$("#vx-palette"); if(!p) return; p.classList.add("open"); const i=$("#vx-pal-input"); if(i){ i.value=""; setTimeout(()=>{ try{i.focus();}catch(_e){} },20); } vxPaletteRender(""); }
-function vxPaletteClose(){ const p=$("#vx-palette"); if(p) p.classList.remove("open"); }
-function vxPaletteRender(q){ VXPAL.items=vxPaletteItems(q); VXPAL.sel=0; const list=$("#vx-pal-list"); if(!list) return;
-  if(!VXPAL.items.length){ list.innerHTML='<div class="vx-pal-empty">No matches — try a note title, a project, or a command.</div>'; return; }
-  list.innerHTML=VXPAL.items.map((it,i)=>{
-    const lead = it.color? '<span class="vx-dot" style="background:'+it.color+';box-shadow:0 0 7px '+it.color+'"></span>'
-                         : '<span class="vx-ic material-symbols-outlined" style="font-size:17px">'+(it.ic||"bolt")+'</span>';
-    const sub = it.sub? '<span class="vx-p">'+esc(it.sub)+'</span>':'';
-    return '<div class="vx-pal-row" role="option" data-i="'+i+'" aria-selected="'+(i===0)+'">'+lead+'<span class="vx-t">'+esc(it.label)+'</span>'+sub+'</div>';
-  }).join(""); }
-function vxPaletteMove(d){ if(!VXPAL.items.length) return; VXPAL.sel=(VXPAL.sel+d+VXPAL.items.length)%VXPAL.items.length;
-  const rows=$("#vx-pal-list").querySelectorAll(".vx-pal-row"); rows.forEach((r,i)=>r.setAttribute("aria-selected", i===VXPAL.sel?"true":"false")); const cur=rows[VXPAL.sel]; if(cur) cur.scrollIntoView({block:"nearest"}); }
-function vxPaletteExec(i){ const it=VXPAL.items[i!=null?i:VXPAL.sel]; if(!it) return; vxPaletteClose();
-  if(it.kind==="node"){ if(window.matchMedia&&window.matchMedia("(max-width:639px)").matches) vaultSetMobileTab("graph"); vxOpenNode(it.id); }
-  else if(it.kind==="cluster"){ vxFocusCluster(it.group); }
-  else if(it.kind==="cmd"&&it.run){ it.run(); } }
-// ── Time scrubber: replay the vault growing by created/updated date ──
-function vxScrubBounds(){ let lo=Infinity,hi=-Infinity; vaultVisibleNodes().forEach(n=>{ const t=n.recentTs||(n.updated?Date.parse(n.updated):0);
-  if(t>0){ if(t<lo)lo=t; if(t>hi)hi=t; } }); if(!isFinite(lo)){ lo=hi=Date.now(); } return {lo,hi}; }
-function vxScrubToggle(force){ const el=$("#vx-scrubber"), root=$("#vault-root"); if(!el) return;
-  const on = force!=null?force:!el.classList.contains("show");
-  el.classList.toggle("show",on); if(root) root.classList.toggle("vx-scrub",on);
-  if(on){ const b=vxScrubBounds(); BRAIN._scrubLo=b.lo; BRAIN._scrubHi=b.hi; const r=$("#vx-scrub-range"); if(r) r.value=1000; vxScrubApply(1000); }
-  else { vxScrubStop(); BRAIN.scrubTs=null; if(BRAIN.refreshHL) BRAIN.refreshHL(); } }
-function vxScrubApply(v){ if(!BRAIN) return; const f=Math.max(0,Math.min(1,(+v)/1000)), lo=BRAIN._scrubLo,hi=BRAIN._scrubHi, ts=lo+(hi-lo)*f;
-  BRAIN.scrubTs=(f>=1)?null:ts;
-  const lab=$("#vx-scrub-label"); if(lab) lab.textContent=(f>=1)?"now":new Date(ts).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"2-digit"});
-  if(BRAIN.refreshHL) BRAIN.refreshHL(); }
-function vxScrubPlay(){ if(!BRAIN) return; if(BRAIN._scrubRAF){ vxScrubStop(); return; }
-  const btn=$("#vx-scrub-play"); if(btn) btn.innerHTML='<span class="material-symbols-outlined" style="font-size:18px">pause</span>';
-  const r=$("#vx-scrub-range"); let v=(r&&+r.value>=1000)?0:(r?+r.value:0);
-  const step=()=>{ v+=6; if(v>=1000){ v=1000; if(r)r.value=v; vxScrubApply(v); vxScrubStop(); return; } if(r)r.value=v; vxScrubApply(v); BRAIN._scrubRAF=requestAnimationFrame(step); };
-  BRAIN._scrubRAF=requestAnimationFrame(step); }
-function vxScrubStop(){ if(BRAIN&&BRAIN._scrubRAF){ cancelAnimationFrame(BRAIN._scrubRAF); BRAIN._scrubRAF=0; } const btn=$("#vx-scrub-play"); if(btn) btn.innerHTML='<span class="material-symbols-outlined" style="font-size:18px">play_arrow</span>'; }
-// ── Legend ──
-function vxLegendHTML(){
-  const row=(color,ic,label)=>'<div class="vx-lg-row"><span class="vx-lg-ic material-symbols-outlined" style="color:'+color+';font-size:14px">'+ic+'</span>'+label+'</div>';
-  return '<div class="vx-lg-h">Legend<span class="material-symbols-outlined" data-vx-legend-min title="Collapse">expand_more</span></div>'+
-    '<div class="vx-lg-body">'+
-      row('#C5E45C','account_tree','Project hub')+
-      row('#7dcfff','description','Note')+
-      row('#bb9af7','change_history','Wiki topic')+
-      row('#5b626c','history','Code history')+
-      '<div class="vx-lg-row" style="margin-top:5px;color:rgba(155,161,166,.6);font-weight:500"><span class="vx-lg-ic material-symbols-outlined" style="color:#C5E45C;font-size:14px">bolt</span>Brighter = edited recently</div>'+
-    '</div>';
-}
-// ── Minimap (top-down projection + camera marker) ──
-function vxMinimapDraw(){
-  const cv=document.getElementById("vx-minimap-cv"); if(!cv||!BRAIN||!BRAIN.graph) return;
-  const now=performance.now(); if(BRAIN._mmLast&&now-BRAIN._mmLast<95) return; BRAIN._mmLast=now;
-  const ctx=cv.__ctx||(cv.__ctx=cv.getContext("2d")); const W=cv.width,H=cv.height;
-  const nodes=BRAIN.graph.graphData().nodes; if(!nodes.length){ ctx.clearRect(0,0,W,H); return; }
-  let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
-  for(const n of nodes){ if(n.x==null)continue; if(n.x<minX)minX=n.x; if(n.x>maxX)maxX=n.x; if(n.y<minY)minY=n.y; if(n.y>maxY)maxY=n.y; }
-  if(!isFinite(minX)) return; const pad=8, s=Math.min((W-pad*2)/Math.max(1,maxX-minX),(H-pad*2)/Math.max(1,maxY-minY));
-  const ox=pad+(W-pad*2-(maxX-minX)*s)/2, oy=pad+(H-pad*2-(maxY-minY)*s)/2;
-  ctx.clearRect(0,0,W,H);
-  for(const n of nodes){ if(n.x==null)continue; const px=ox+(n.x-minX)*s, py=oy+(n.y-minY)*s;
-    const foc=BRAIN.focusSet?BRAIN.focusSet.has(n.id):true, sel=n.id===BRAIN.selId;
-    ctx.globalAlpha=sel?1:(foc?0.85:0.25); ctx.fillStyle=sel?"#ffffff":bColor(n.group);
-    ctx.beginPath(); ctx.arc(px,py,sel?2.6:1.5,0,6.283); ctx.fill(); }
-  ctx.globalAlpha=1;
-  try{ const cam=BRAIN.graph.cameraPosition(); if(cam){ const px=ox+(cam.x-minX)*s, py=oy+(cam.y-minY)*s;
-    ctx.strokeStyle="rgba(197,228,92,.85)"; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(Math.max(0,Math.min(W,px)),Math.max(0,Math.min(H,py)),4,0,6.283); ctx.stroke(); } }catch(_e){}
-}
-// ── Saved views ──
-function vxViewsHTML(){
-  return '<button class="vx-view" data-vx-view="overview" title="Fit the whole vault"><span class="material-symbols-outlined">fit_screen</span>Overview</button>'+
-         '<button class="vx-view" data-vx-view="recent" title="Jump to recent activity"><span class="material-symbols-outlined">bolt</span>Recent</button>'+
-         '<button class="vx-view" data-vx-view="save" title="Save current camera as a view"><span class="material-symbols-outlined">bookmark_add</span>Save</button>'+
-         (vxLoad().savedView?'<button class="vx-view" data-vx-view="custom" title="Your saved view"><span class="material-symbols-outlined">bookmark</span>My view</button>':'');
-}
-function vxApplyView(name){ if(!BRAIN||!BRAIN.graph) return; const G=BRAIN.graph; brainClearFocus();
-  if(name==="overview"){ if(BRAIN.scrubTs!=null) vxScrubToggle(false); try{ G.zoomToFit(900,70); }catch(_e){} }
-  else if(name==="recent"){ const hot=vaultVisibleNodes().filter(n=>n.recentTs>0).sort((a,b)=>b.recentTs-a.recentTs)[0]; if(hot) vxOpenNode(hot.id); }
-  else if(name==="save"){ try{ const cp=G.cameraPosition(); const s=vxLoad(); s.savedView={x:cp.x,y:cp.y,z:cp.z}; vxSave(s); if(window.toast) toast("View saved"); const host=$("#vx-views"); if(host) host.innerHTML=vxViewsHTML(); }catch(_e){} }
-  else if(name==="custom"){ const s=vxLoad(); if(s.savedView){ try{ G.cameraPosition(s.savedView,undefined,900); }catch(_e){} } }
-}
-// ── Collapsible panels (Claude-style) + grow-to-fill note reader ──
-function vxSyncPanelIcons(){
-  const s=vxLoad(); const lt=$("#vx-tog-left");
-  if(lt){ const on=!s.lcol, ic=lt.querySelector(".material-symbols-outlined"); if(ic) ic.textContent=on?"left_panel_close":"left_panel_open"; lt.title=on?"Hide file list":"Show file list"; }
-  const rt=$("#vx-tog-right"), sd=$("#brain-side"); if(rt){ const open=sd&&sd.classList.contains("open"), ic=rt.querySelector(".material-symbols-outlined"); if(ic) ic.textContent=open?"right_panel_close":"right_panel_open"; rt.title=open?"Hide note panel":"Show note panel"; }
-}
-function vxRelayoutGraph(delay){ setTimeout(()=>{ try{ const h=$("#brain-canvas"); if(BRAIN&&BRAIN.graph&&h){ BRAIN.graph.width(h.clientWidth); BRAIN.graph.height(h.clientHeight); } }catch(_e){} }, delay||300); }
-function vxApplyPanels(){ const root=$("#vault-root"); if(!root) return; const s=vxLoad(); root.classList.toggle("vx-lcol",!!s.lcol); vxSyncPanelIcons(); vxRelayoutGraph(300); }
-function vxTogglePanel(side){ const s=vxLoad();
-  if(side==="left"){ s.lcol=!s.lcol; vxSave(s); vxApplyPanels(); }
-  else if(side==="right"){ const sd=$("#brain-side"); if(sd){ if(sd.classList.contains("open")){ sd.classList.remove("open"); sd.classList.remove("vx-expanded"); }
-      else if(BRAIN&&BRAIN.selId!=null){ sd.classList.add("open"); } else if(window.toast){ toast("Tap a node to open its note"); } }
-    vxSyncPanelIcons(); }
-}
-function vxToggleExpand(){ const sd=$("#brain-side"); if(!sd) return; const on=sd.classList.toggle("vx-expanded");
-  const btn=sd.querySelector("[data-brain-expand]"); if(btn) btn.innerHTML='<span class="material-symbols-outlined text-[15px]">'+(on?"close_fullscreen":"open_in_full")+'</span>'+(on?"Collapse":"Expand");
-  vxRelayoutGraph(330); }
-// ── ⌘K binding (once) ──
-function vxBindShortcuts(){
-  if(window.__vxKeys) return; window.__vxKeys=true;
-  document.addEventListener("keydown",(e)=>{
-    const vaultOpen = !!document.getElementById("vault-root") && document.getElementById("vault-root").offsetParent!==null;
-    if((e.metaKey||e.ctrlKey) && (e.key==="k"||e.key==="K")){ if(!vaultOpen) return; e.preventDefault(); const p=$("#vx-palette"); if(p&&p.classList.contains("open")) vxPaletteClose(); else vxPaletteOpen(); return; }
-    const pal=$("#vx-palette");
-    if(pal&&pal.classList.contains("open")){
-      if(e.key==="Escape"){ e.preventDefault(); vxPaletteClose(); return; }
-      if(e.key==="ArrowDown"){ e.preventDefault(); vxPaletteMove(1); return; }
-      if(e.key==="ArrowUp"){ e.preventDefault(); vxPaletteMove(-1); return; }
-      if(e.key==="Enter"){ e.preventDefault(); vxPaletteExec(); return; }
-      return;
-    }
-    if(e.key==="Escape" && vaultOpen){
-      const sd=$("#brain-side");
-      if(sd&&sd.classList.contains("vx-expanded")){ vxToggleExpand(); return; }
-      if(BRAIN&&BRAIN.focusId!=null){ brainClearFocus(); return; }
-      const el=$("#vx-scrubber"); if(el&&el.classList.contains("show")){ vxScrubToggle(false); return; }
-    }
-  });
-}
 function renderVault(){
   const v=$("#view-vault");
   v.innerHTML=
@@ -4023,7 +3620,7 @@ function renderVault(){
         '<button data-vault-mtab="graph" class="vault-seg pressable rounded-full px-4 py-1.5 inline-flex items-center gap-1.5 text-on-surface-variant"><span class="material-symbols-outlined text-[16px]">graph_2</span>Graph</button>'+
         '<button data-vault-mtab="list" class="vault-seg pressable rounded-full px-4 py-1.5 inline-flex items-center gap-1.5 text-on-surface-variant"><span class="material-symbols-outlined text-[16px]">list</span>List</button>'+
      '</div>'+
-     '<div class="vault-grid grid grid-cols-1 lg:grid-cols-[22rem_minmax(0,1fr)] gap-3 items-start">'+
+     '<div class="grid grid-cols-1 lg:grid-cols-[22rem_minmax(0,1fr)] gap-3 items-start">'+
        // ── LEFT: searchable file list (same live vault_files as the graph) ──
        '<aside id="vault-list-panel" class="vault-pane rounded-2xl border hairline bg-surface-container-low/50 p-2.5 flex flex-col lg:h-[calc(100dvh-9.5rem)] max-h-[calc(100dvh-11rem)] overflow-hidden">'+
           '<div class="flex items-center gap-1.5 px-1 mb-2"><span class="material-symbols-outlined text-[16px] text-primary">hub</span><span class="text-[12px] font-extrabold tracking-tight text-primary">Vault</span></div>'+
@@ -4039,25 +3636,11 @@ function renderVault(){
        '<div id="brain-wrap" class="relative rounded-2xl overflow-hidden border hairline bg-[#05060a]" style="height:calc(100dvh - 9.5rem);min-height:520px">'+
          '<div id="brain-canvas" class="absolute inset-0"></div>'+
          '<div id="brain-labels" class="absolute inset-0 z-10 overflow-hidden pointer-events-none"></div>'+
-         // ── Vault UX v2 overlays: panel toggles, breadcrumb, saved views, legend, minimap, scrubber, hover card ──
-         '<button id="vx-tog-left" class="vx-ptog vx-ptog-l" title="Hide file list" aria-label="Toggle file list"><span class="material-symbols-outlined" style="font-size:18px">left_panel_close</span></button>'+
-         '<button id="vx-tog-right" class="vx-ptog vx-ptog-r" title="Show note panel" aria-label="Toggle note panel"><span class="material-symbols-outlined" style="font-size:18px">right_panel_open</span></button>'+
-         '<div id="vx-views">'+vxViewsHTML()+'</div>'+
-         '<div id="vx-breadcrumb"></div>'+
-         '<div id="vx-legend">'+vxLegendHTML()+'</div>'+
-         '<div id="vx-minimap"><canvas id="vx-minimap-cv" width="150" height="110"></canvas></div>'+
-         '<div id="vx-scrubber">'+
-            '<button id="vx-scrub-play" title="Play / pause"><span class="material-symbols-outlined" style="font-size:18px">play_arrow</span></button>'+
-            '<input id="vx-scrub-range" type="range" min="0" max="1000" value="1000" aria-label="Replay the vault growing over time">'+
-            '<span id="vx-scrub-label">now</span>'+
-            '<span id="vx-scrub-close" title="Close scrubber"><span class="material-symbols-outlined" style="font-size:18px">close</span></span>'+
-         '</div>'+
-         '<div id="vx-hovercard"></div>'+
          '<div id="brain-loading" class="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center px-6 pointer-events-none">'+
             '<div class="w-9 h-9 rounded-full border-2 border-primary/30 border-t-primary animate-spin"></div>'+
             '<div class="text-[13px] text-on-surface-variant/70">Reading your vault from Supabase…</div></div>'+
          // top-left overlay
-         '<div class="absolute top-14 left-3 z-20 flex flex-col gap-2 items-start pointer-events-none">'+
+         '<div class="absolute top-3 left-3 z-20 flex flex-col gap-2 items-start pointer-events-none">'+
             '<div class="pointer-events-auto rounded-xl bg-surface/70 backdrop-blur-md border hairline px-3 py-2">'+
               '<div class="text-[13px] font-extrabold tracking-tight text-primary flex items-center gap-1.5"><span class="material-symbols-outlined text-[17px]">graph_2</span>Vault</div>'+
               '<div id="brain-count" class="text-[11px] text-on-surface-variant/60 mt-0.5">…</div></div>'+
@@ -4081,18 +3664,8 @@ function renderVault(){
        '</div>'+
        '</div>'+
      '</div>'+
-     // ── Command palette (⌘K / Ctrl-K): keyboard-first fuzzy jump to any note, project, or command ──
-     '<div id="vx-palette"><div class="vx-pal-bg" data-vx-pal-bg></div>'+
-       '<div class="vx-pal">'+
-         '<input id="vx-pal-input" type="text" autocomplete="off" spellcheck="false" placeholder="Jump to a note, project, or command…">'+
-         '<div id="vx-pal-list"></div>'+
-         '<div class="vx-pal-hint"><span><span class="vx-kbd">↑↓</span> navigate</span><span><span class="vx-kbd">↵</span> open</span><span><span class="vx-kbd">esc</span> close</span></div>'+
-       '</div>'+
-     '</div>'+
    '</div>';
   vaultSetMobileTab(VAULT.mtab);   // paint the segmented control's active state
-  vxApplyPanels();                 // restore collapsed/expanded panel state (persisted)
-  vxBindShortcuts();               // ⌘K + Esc handling (bound once)
   // wire events once per render
   v.onclick=async (e)=>{
     const mtab=e.target.closest("[data-vault-mtab]"); if(mtab){ e.preventDefault(); vaultSetMobileTab(mtab.dataset.vaultMtab); return; }
@@ -4101,23 +3674,12 @@ function renderVault(){
       vaultRefreshList(); return; }
     const goto=e.target.closest("[data-brain-goto]"); if(goto){ e.preventDefault(); e.stopPropagation();
       if(window.matchMedia && window.matchMedia("(max-width:639px)").matches) vaultSetMobileTab("graph");   // reveal the graph + bottom-sheet panel on phones
-      vxOpenNode(goto.dataset.brainGoto); return; }                                                          // select + FOCUS (isolate) — same as clicking the node in the graph
-    const wiki=e.target.closest('[data-act="brain-wiki"]'); if(wiki){ e.preventDefault(); e.stopPropagation(); const nd=bResolve(wiki.dataset.target); if(nd) vxOpenNode(nd.id); else toast('No note matches “'+wiki.dataset.target+'”'); return; }
+      brainSelect(goto.dataset.brainGoto,true); return; }
+    const wiki=e.target.closest('[data-act="brain-wiki"]'); if(wiki){ e.preventDefault(); e.stopPropagation(); const nd=bResolve(wiki.dataset.target); if(nd) brainSelect(nd.id,true); else toast('No note matches “'+wiki.dataset.target+'”'); return; }
     if(e.target.closest("[data-brain-close]")){ e.preventDefault(); $("#brain-side").classList.remove("open"); return; }
     if(e.target.closest("[data-brain-toggle]")){ e.preventDefault(); brainToggleAll(); return; }
-    if(e.target.closest("[data-brain-expand]")){ e.preventDefault(); vxToggleExpand(); return; }   // Expand = GROW the note panel to fill the graph area (no fullscreen black void)
+    if(e.target.closest("[data-brain-expand]")){ e.preventDefault(); brainOpenReader(); return; }
     if(e.target.closest("[data-brain-reader-close]")){ e.preventDefault(); brainCloseReader(); return; }
-    // ── Vault UX v2 controls ──
-    if(e.target.closest("#vx-tog-left")){ e.preventDefault(); vxTogglePanel("left"); return; }
-    if(e.target.closest("#vx-tog-right")){ e.preventDefault(); vxTogglePanel("right"); return; }
-    const vview=e.target.closest("[data-vx-view]"); if(vview){ e.preventDefault(); vxApplyView(vview.dataset.vxView); return; }
-    if(e.target.closest("#vx-scrub-play")){ e.preventDefault(); vxScrubPlay(); return; }
-    if(e.target.closest("#vx-scrub-close")){ e.preventDefault(); vxScrubToggle(false); return; }
-    if(e.target.closest("[data-vx-legend-min]")){ e.preventDefault(); const lg=$("#vx-legend"); if(lg) lg.classList.toggle("vx-min"); return; }
-    if(e.target.closest("[data-vx-home]")){ e.preventDefault(); brainClearFocus(); vxBreadcrumb(null); const sd=$("#brain-side"); if(sd){ sd.classList.remove("open"); sd.classList.remove("vx-expanded"); } if(typeof vxSyncPanelIcons==="function") vxSyncPanelIcons(); if(BRAIN&&BRAIN.graph){ try{ BRAIN.graph.zoomToFit(900,70); }catch(_e){} } return; }
-    const crumb=e.target.closest("[data-vx-crumb]"); if(crumb){ e.preventDefault(); vxCrumbGo(crumb.dataset.vxCrumb); return; }
-    if(e.target.closest("[data-vx-pal-bg]")){ e.preventDefault(); vxPaletteClose(); return; }
-    const palrow=e.target.closest(".vx-pal-row"); if(palrow){ e.preventDefault(); vxPaletteExec(+palrow.dataset.i); return; }
     if(e.target.id==="brain-reader"){ e.preventDefault(); brainCloseReader(); return; }   // tap the backdrop (outside the card) to close
     const more=e.target.closest("[data-brain-morebtn]"); if(more){ e.preventDefault(); const wrap=more.parentElement; const hid=wrap&&wrap.querySelector(".brain-more"); if(hid) hid.classList.remove("hidden"); more.remove(); return; }
   };
@@ -4132,25 +3694,17 @@ function renderVault(){
   if(!window.__vaultSearchBound){ window.__vaultSearchBound=true;
     document.addEventListener("input",(e)=>{ if(!e.target||e.target.id!=="vault-search") return;
       const val=e.target.value; clearTimeout(VAULT.qTimer); VAULT.qTimer=setTimeout(()=>applyVaultSearch(val),180); }); }
-  // Command-palette query + time-scrubber slider (bound once; survive re-renders).
-  if(!window.__vxInputBound){ window.__vxInputBound=true;
-    document.addEventListener("input",(e)=>{ if(!e.target) return;
-      if(e.target.id==="vx-pal-input"){ vxPaletteRender(e.target.value); return; }
-      if(e.target.id==="vx-scrub-range"){ vxScrubStop(); vxScrubApply(e.target.value); return; }
-    }); }
   // load data + build graph after the view is visible (needs real width/height)
   (async ()=>{
     try{
       await loadBrainData();
       const d=brainData(); const c=$("#brain-count"); if(c) c.textContent=d.count.toLocaleString()+" notes · "+d.edges.toLocaleString()+" links";
       vaultRefreshList();                                  // fill the file list as soon as paths are in
-      vaultSyncEmpty();                                    // brand-new/empty vault → show the living seed + friendly list, not a black void
       // wait for the UMD lib if the deferred script hasn't finished yet
       let tries=0; while(!window.ForceGraph3D && tries++<60) await new Promise(r=>setTimeout(r,50));
       requestAnimationFrame(async ()=>{
         await buildBrainGraph();
         const ld=$("#brain-loading"); if(ld) ld.remove();
-        vaultSyncEmpty();                                  // re-check once the graph is built (covers the canvas with the seed if empty)
         // Show the GRAPH first — "the beautiful brain." Do NOT auto-open any node's panel on load
         // (on mobile the panel is a full-width sheet, so auto-selecting the root looked like the app
         // opened straight onto a detail page). The panel now appears only when the user taps a node.

@@ -14,6 +14,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: "Publish without running the Vault tests (emergency only)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -27,7 +32,40 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # The Vault tab's tests run against the real page before anything is published. A red suite
+  # blocks the deploy — previously a push to main went live unchecked. Manual runs can skip it.
+  test:
+    if: github.event_name == 'push' || inputs.skip_tests != true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Install
+        run: npm i --no-save playwright tailwindcss@3 http-server && npx playwright install --with-deps chromium
+      - name: Layout suite (18 checks)
+        working-directory: maestro/test
+        run: |
+          node build-harness.js
+          npx tailwindcss -c tailwind.config.js -i tw.in.css -o tw.css --minify
+          node test-vault.js
+      - name: Behaviour suite (16 checks)
+        working-directory: maestro/test
+        run: |
+          node build-func.js
+          npx http-server . -p 8099 -s &
+          for i in $(seq 1 20); do curl -sf http://127.0.0.1:8099/func.html >/dev/null && break; sleep 1; done
+          node test-behavior.js
+      - name: Keep the screenshots from this run
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vault-screenshots
+          path: maestro/test/*.png
+          if-no-files-found: ignore
+
   deploy:
+    needs: test
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

@@ -374,8 +374,29 @@
 </head>
 <body class="bg-background text-on-surface relative">
 
+<!-- ───────── BOOT SPLASH ─────────
+     Restoring a session takes a moment: supabase-js has to load and getSession() has to answer.
+     The login form used to be the first thing painted, so a signed-in user was shown "Sign in"
+     and then silently swapped to their dashboard — it read like being logged out. This holds the
+     screen instead, and only for people who actually have a session to restore. -->
+<div id="boot" class="min-h-dvh flex items-center justify-center px-5 relative z-10">
+  <div class="flex flex-col items-center">
+    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary-container flex items-center justify-center text-on-primary font-black text-[32px] leading-none shadow-xl mb-4">M</div>
+    <h1 class="text-[22px] font-extrabold tracking-tight text-primary">MAESTRO</h1>
+    <p class="text-[12px] tracking-[0.2em] text-on-surface-variant/60 uppercase mt-1">Your private operating layer</p>
+    <div class="flex items-center gap-2 mt-7 text-on-surface-variant/70">
+      <span class="w-4 h-4 rounded-full border-2 border-primary/30 border-t-primary animate-spin"></span>
+      <span id="boot-msg" class="text-[12.5px]">Signing you in…</span>
+    </div>
+    <div id="boot-slow" class="hidden mt-5 text-center">
+      <p class="text-[12px] text-on-surface-variant/60 max-w-[260px] leading-relaxed">This is taking longer than usual — you may be offline, or a script may have failed to load.</p>
+      <button id="boot-signin" class="pressable mt-3 text-[12.5px] font-semibold text-primary">Sign in manually</button>
+    </div>
+  </div>
+</div>
+
 <!-- ───────── LOGIN ───────── -->
-<div id="login" class="min-h-dvh flex items-center justify-center px-5 relative z-10">
+<div id="login" class="hidden min-h-dvh flex items-center justify-center px-5 relative z-10">
   <div class="w-full max-w-sm rise">
     <div class="flex flex-col items-center mb-7">
       <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary-container flex items-center justify-center text-on-primary font-black text-[32px] leading-none shadow-xl mb-4">M</div>
@@ -409,6 +430,38 @@
 </div>
 
 <!-- ───────── SIGN UP (create your own Maestro) ───────── -->
+<script>
+  // Runs during parse — after the #boot and #login markup above, before the module (which needs a
+  // CDN round trip). This decides the very first paint, so neither screen flashes.
+  (function () {
+    var hasSession = false;
+    try {
+      // supabase-js persists the session under sb-<project-ref>-auth-token.
+      for (var i = 0; i < localStorage.length; i++) {
+        if (/^sb-.*-auth-token$/.test(localStorage.key(i))) { hasSession = true; break; }
+      }
+    } catch (e) { /* storage blocked (private mode) — fall through to the login form */ }
+    if (!hasSession) {
+      // Nobody to sign in: show the form straight away rather than making a new visitor wait.
+      document.getElementById("boot").classList.add("hidden");
+      document.getElementById("login").classList.remove("hidden");
+      return;
+    }
+    // A splash that can hang forever is worse than a flash. If the module hasn't taken over in
+    // 8s, offer a way out — this handler needs no module code, so it works even if that is what
+    // failed.
+    window.__bootTimer = setTimeout(function () {
+      var s = document.getElementById("boot-slow");
+      if (s) s.classList.remove("hidden");
+    }, 8000);
+    document.getElementById("boot-signin").addEventListener("click", function () {
+      clearTimeout(window.__bootTimer);
+      document.getElementById("boot").classList.add("hidden");
+      document.getElementById("login").classList.remove("hidden");
+    });
+  })();
+</script>
+
 <div id="signup" class="hidden min-h-dvh flex items-center justify-center px-5 relative z-10">
   <div class="w-full max-w-sm">
     <div class="flex flex-col items-center mb-7">
@@ -4377,6 +4430,7 @@ async function ensureProjectsTasks(){
   /* no-op by design — see note above. Data is sourced exclusively from Supabase (auth-gated). */
 }
 async function loadDashboard(){
+  bootDone();
   // Reveal the app + a loading skeleton IMMEDIATELY so a tab never shows blank-black while loading.
   ["login","signup","forgot","reset","connect"].forEach(s=>{ var el=$("#"+s); if(el) el.classList.add("hidden"); });
   $("#app").classList.remove("hidden");
@@ -4748,8 +4802,12 @@ async function confirmDeleteAccount(){
   }
 }
 
-const AUTH_SCREENS=["login","signup","forgot","reset","connect"];
-function showScreen(name){ AUTH_SCREENS.forEach(s=>{ var el=$("#"+s); if(el) el.classList.toggle("hidden", s!==name); }); $("#app").classList.add("hidden"); }
+const AUTH_SCREENS=["boot","login","signup","forgot","reset","connect"];   // "boot" = the pre-session splash
+function showScreen(name){ bootDone(); AUTH_SCREENS.forEach(s=>{ var el=$("#"+s); if(el) el.classList.toggle("hidden", s!==name); }); $("#app").classList.add("hidden"); }
+// Tear down the boot splash exactly once, whichever way the app resolves (dashboard, login,
+// recovery, connect handoff, or an error). Also kills the "taking too long" timer so it cannot
+// fire over a screen that has already loaded.
+function bootDone(){ try{ clearTimeout(window.__bootTimer); }catch(_e){} const b=$("#boot"); if(b) b.classList.add("hidden"); }
 function showLogin(msg){ showScreen("login"); const er=$("#login-error"); if(msg){ er.textContent=msg; er.classList.remove("hidden"); } else { er.classList.add("hidden"); } }
 function showForgot(){ showScreen("forgot"); $("#forgot-msg").classList.add("hidden"); var fe=$("#forgot-email"); if(fe && $("#email") && $("#email").value) fe.value=$("#email").value.trim(); }
 function showReset(){ showScreen("reset"); $("#reset-msg").classList.add("hidden"); }
@@ -4884,8 +4942,15 @@ sb.auth.onAuthStateChange((event)=>{ if(event==="PASSWORD_RECOVERY"){ showReset(
   if(isRecovery){ showReset(); return; }              // setting a new password from the email link
   // Connector handoff: /authorize bounced the browser here to complete a one-click connect.
   if(new URLSearchParams(location.search).get("connect")==="1"){ await showConnect(); return; }
-  const { data:{ session } } = await sb.auth.getSession();
-  if(session){ await loadDashboard(); } else { showLogin(); }
+  // If the session check itself fails (offline, Supabase unreachable), fall back to the login
+  // screen with a reason rather than leaving the boot splash spinning at the user forever.
+  try{
+    const { data:{ session } } = await sb.auth.getSession();
+    if(session){ await loadDashboard(); } else { showLogin(); }
+  }catch(err){
+    console.error("boot:", err);
+    showLogin("Couldn't restore your session — please sign in.");
+  }
 })();
 </script>
 </body>

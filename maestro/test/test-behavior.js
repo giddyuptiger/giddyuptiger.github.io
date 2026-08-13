@@ -22,6 +22,26 @@ const check = (n, p, d) => results.push({ n, p, d });
     return { page, errors };
   }
 
+  // ══ BOOT: no "Sign in" flash for a signed-in user ══
+  // Static assertions on the shipped markup: whichever screen wins, the login form must not be
+  // the one painted first for someone who has a session to restore.
+  {
+    const fs = require("fs");
+    const src = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+    const loginTag = (src.match(/<div id="login"[^>]*>/) || [""])[0];
+    const bootTag  = (src.match(/<div id="boot"[^>]*>/) || [""])[0];
+    check("boot: the login form starts hidden", /\bhidden\b/.test(loginTag), loginTag.slice(0, 80));
+    check("boot: the splash starts visible", !!bootTag && !/\bhidden\b/.test(bootTag), bootTag.slice(0, 80));
+    check("boot: a visitor with no stored session skips the splash",
+      /sb-\.\*-auth-token|sb-.*-auth-token/.test(src) && /getElementById\("login"\)\.classList\.remove\("hidden"\)/.test(src),
+      "localStorage probe + immediate login reveal present");
+    check("boot: the splash cannot hang forever (slow-path escape exists)",
+      /__bootTimer/.test(src) && /boot-signin/.test(src), "timer + manual sign-in button");
+    check("boot: every screen switch dismisses the splash",
+      /function showScreen\(name\)\{ bootDone\(\);/.test(src) && /async function loadDashboard\(\)\{\n  bootDone\(\);/.test(src),
+      "bootDone() in showScreen and loadDashboard");
+  }
+
   // ══ PHONE ══
   {
     const { page, errors } = await open(390, 844);

@@ -68,35 +68,11 @@
     #vault-root[data-mtab="list"]  #vault-graph-panel{ display:none; }
   }
   .vault-seg{ font-weight:700; font-size:12.5px; }
-  /* The graph box's height lives here (not inline) so the "Vault owns the screen" rules below can
-     override it without !important. */
-  #brain-wrap{ height:calc(100dvh - 9.5rem); min-height:520px; }
-  /* ── FIX (the Vault screen never scrolls): the whole point of this tab is a 3D graph you drag.
-     A page that can scroll under the canvas fights every gesture and drifts the header/nav around.
-     While the Vault tab is open the shell becomes a fixed-height flex column — header, then the
-     vault filling exactly what's left — so the page itself has nowhere to scroll. The file list
-     still scrolls INSIDE itself; in graph mode nothing scrolls at all. Scoped to the Vault tab, so
-     every other view keeps normal page scrolling. ── */
-  html.vault-fixed, body.vault-fixed{ height:100dvh; overflow:hidden; overscroll-behavior:none; }
-  body.vault-fixed main{ height:calc(100dvh - 4rem);            /* 4rem = the sticky header */
-    overflow:hidden; display:flex; flex-direction:column;
-    padding-top:0.85rem; padding-bottom:calc(4.75rem + env(safe-area-inset-bottom)); }   /* clears the bottom nav */
-  @media (min-width:640px){ body.vault-fixed main{ padding-top:1.25rem; padding-bottom:1.25rem; } }
-  body.vault-fixed #view-vault.active{ flex:1 1 auto; min-height:0; display:flex; }
-  body.vault-fixed #vault-root{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; }
-  body.vault-fixed #vault-root .vault-grid{ flex:1 1 auto; min-height:0; align-items:stretch; grid-template-rows:minmax(0,1fr); }
-  body.vault-fixed #vault-list-panel{ height:100%; max-height:none; }
-  body.vault-fixed #brain-wrap{ height:100%; min-height:0; }
   #vault-list::-webkit-scrollbar{ width:8px; } #vault-list::-webkit-scrollbar-thumb{ background:rgba(155,161,166,.22); border-radius:8px; }
   .vault-gsticky{ position:sticky; top:0; z-index:1; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }
   /* When the fullscreen note reader is open we lock the page behind it (mobile Safari won't
      rubber-band the body, and no stray scroll leaks through to the graph underneath). */
   body.brain-noscroll{ overflow:hidden; }
-  /* …and the reader has to paint OVER the app chrome. <main> is `relative z-10`, so it's a stacking
-     context: the reader's own z-60 is trapped inside it and the sticky header (z-40) + bottom nav
-     (z-40) drew on top of the note. Lifting <main> while the reader is open makes "full size"
-     actually mean full size — edge to edge, nothing overlapping the note. */
-  body.brain-noscroll main{ z-index:60; }
   /* ── Mobile Brain: the node panel becomes a dismissible BOTTOM SHEET (never a full-screen
      wall). It covers the lower ~80% so the graph stays visible + tappable up top; tapping the
      graph (background) or the × closes it. Desktop keeps the right-hand sidebar unchanged. ── */
@@ -118,19 +94,6 @@
     #brain-reader{ backdrop-filter:none !important; -webkit-backdrop-filter:none !important; background:rgba(4,5,8,0.97) !important; padding:0 !important; }
     #brain-reader > div{ max-width:100% !important; height:100%; max-height:100%; border-radius:0 !important; }
   }
-  /* The reader is now the ONE way a note opens on a phone (from the list or from the graph), so it
-     carries the note's structure too — collapsed, so the note itself still reads clean. Rows are the
-     same data-brain-goto buttons as the panel, so parent/children/links stay one tap away. */
-  .brain-reader-struct{ border-bottom:1px solid rgba(155,161,166,0.16); }
-  .brain-reader-struct > summary{ list-style:none; cursor:pointer; padding:10px 24px; display:flex; align-items:center; gap:6px;
-    font:700 10.5px/1 Inter,system-ui,sans-serif; letter-spacing:.16em; text-transform:uppercase; color:rgba(155,161,166,.6); }
-  .brain-reader-struct > summary::-webkit-details-marker{ display:none; }
-  .brain-reader-struct > summary .material-symbols-outlined{ font-size:16px; transition:transform .18s ease; }
-  .brain-reader-struct[open] > summary .material-symbols-outlined{ transform:rotate(90deg); }
-  .brain-reader-struct > div{ padding:0 18px 12px; }
-  /* Swipe-to-dismiss: the card follows the finger, then snaps back or flies out. */
-  #brain-reader-card{ transition:transform .22s cubic-bezier(.16,1,.3,1), opacity .22s ease; }
-  #brain-reader-card.brain-dragging{ transition:none; }
   /* ═════════ Vault UX kit (v2 overhaul): panel toggles, expand-to-fill note, command palette,
      hover cards, legend, minimap, time scrubber, breadcrumb, saved views, empty states. All scoped
      under the Vault tab. Lime #C5E45C on charcoal, GPU-cheap, desktop + mobile. ═════ */
@@ -3343,15 +3306,12 @@ function brainFly(id){
   const k=1+dist/r;
   g.cameraPosition({x:n.x*k, y:n.y*k, z:n.z*k}, n, 1100);
 }
-async function brainSelect(id, fly, opts){
+async function brainSelect(id, fly){
   if(!BRAIN||!BRAIN.byId[id]) return;
   BRAIN.selId=id; brainRefreshColors(); if(fly) brainFly(id);
   vaultRefreshList();                                  // reflect the selected row in the Vault file list
   const n=BRAIN.byId[id], side=$("#brain-side"), body=$("#brain-scroll"); if(!side) return;
-  // opts.noPanel: build the panel's content but leave the sheet CLOSED — used when the note is
-  // opening full screen instead (phones), so closing the reader returns you to the graph/list you
-  // were on rather than to a half-height sheet you never asked for.
-  if(!(opts&&opts.noPanel)) side.classList.add("open");
+  side.classList.add("open");
   if(typeof vxBreadcrumb==="function") vxBreadcrumb(n);   // orientation crumb for the selected node
   if(typeof vxSyncPanelIcons==="function") vxSyncPanelIcons();
   const crumbs=n.path.split("/"); const dt=n.updated?new Date(n.updated):null;
@@ -3383,7 +3343,6 @@ async function brainSelect(id, fly, opts){
     if(inB.count) struct+='<div class="text-[10px] text-on-surface-variant/45 px-2 mb-0.5 mt-1">← linked from</div>'+inB.html;
     struct+='</div>'; }
   struct+='</div>';
-  BRAIN._struct={id:id, html:struct};                  // the fullscreen reader reuses this (phones)
   const head='<div class="flex items-start justify-between gap-2">'+
     '<div class="min-w-0"><h2 class="text-[17px] font-extrabold text-on-surface leading-tight break-words">'+esc(bDisplayName(n))+'</h2>'+
     '<div class="text-[11px] text-on-surface-variant/55 mt-0.5 break-words">'+esc(crumbs.slice(0,-1).join(" / ")||"vault root")+'</div></div>'+
@@ -3498,19 +3457,6 @@ function brainOpenReader(){
   const t=$("#brain-reader-title"); if(t) t.textContent=bDisplayName(node);
   const sub=$("#brain-reader-sub"); if(sub) sub.textContent=(node&&node.path)||"";
   const b=$("#brain-reader-body"); if(b){ b.innerHTML = md!=null ? bMd(md) : '<div class="text-on-surface-variant/50 italic">Loading…</div>'; b.scrollTop=0; }
-  // Structure (parent / children / links) rides along on phones, where the reader replaced the sheet.
-  // Collapsed by default so the note still opens as a clean page; every row is a data-brain-goto
-  // button, so tapping one opens THAT note full screen in place.
-  const st=$("#brain-reader-struct");
-  if(st){
-    const has = vxIsPhone() && BRAIN._struct && BRAIN._struct.id===id && BRAIN._struct.html;
-    st.innerHTML = has
-      ? '<summary><span class="material-symbols-outlined">chevron_right</span>Structure</summary><div>'+BRAIN._struct.html+'</div>'
-      : "";
-    st.classList.toggle("hidden", !has);
-    st.open=false;
-  }
-  const card=$("#brain-reader-card"); if(card){ card.classList.remove("brain-dragging"); card.style.transform=""; card.style.opacity=""; }
   // Freeze the 3D graph while the reader is open. The reader is a full-screen backdrop-filter
   // blur; compositing that blur over a WebGL canvas that keeps rendering every frame (auto-rotate
   // + bloom postprocessing + the label rAF) pegs the main thread and freezes the whole window —
@@ -3530,7 +3476,6 @@ function brainOpenReader(){
 }
 function brainCloseReader(fromPop){
   const r=$("#brain-reader"); if(r){ r.classList.remove("open"); setTimeout(()=>r.classList.add("hidden"),200); }
-  const card=$("#brain-reader-card"); if(card){ card.classList.remove("brain-dragging"); card.style.transform=""; card.style.opacity=""; }
   document.body.classList.remove("brain-noscroll");
   try{ const cv=$("#brain-canvas"); if(cv) cv.style.visibility="";
        const lb=$("#brain-labels"); if(lb) lb.style.visibility=""; }catch(_e){}
@@ -3629,13 +3574,7 @@ async function buildBrainGraph(){
       if(host) host.style.cursor=node?"pointer":"";
       refreshHL();
     })
-    // Tap empty space = come back out. Clearing the focus set un-dims the vault, but the camera was
-    // flown IN by brainFocus, so it also has to fly back out — otherwise you stay parked on the node
-    // you were reading with no way back but the Overview button.
-    .onBackgroundClick(()=>{ const s=$("#brain-side"); if(s){ s.classList.remove("open"); s.classList.remove("vx-expanded"); } vxHoverCard(null);
-      const wasFocused = !!(BRAIN && BRAIN.focusId!=null);
-      brainClearFocus(); vxBreadcrumb(null); if(typeof vxSyncPanelIcons==="function") vxSyncPanelIcons();
-      if(wasFocused){ try{ G.zoomToFit(900,70); }catch(_e){} } })
+    .onBackgroundClick(()=>{ const s=$("#brain-side"); if(s){ s.classList.remove("open"); s.classList.remove("vx-expanded"); } vxHoverCard(null); brainClearFocus(); vxBreadcrumb(null); if(typeof vxSyncPanelIcons==="function") vxSyncPanelIcons(); })   // click empty space = zoom back out
     .warmupTicks(40).cooldownTicks(320);
   BRAIN.graph=G;
   const dim=()=>{ G.width(host.clientWidth); G.height(host.clientHeight); };
@@ -3911,23 +3850,8 @@ function brainFocus(id){
   brainFly(id);
 }
 function brainClearFocus(){ if(!BRAIN||BRAIN.focusId==null) return; BRAIN.focusId=null; BRAIN.focusSet=null; if(BRAIN.refreshHL) BRAIN.refreshHL(); }
-// Phones get the full-screen note; desktop keeps its three-pane workspace (list · graph · panel).
-function vxIsPhone(){ return !!(window.matchMedia && window.matchMedia("(max-width:639px)").matches); }
 // Open a node the "showpiece" way: select (panel + list) without a double camera move, then focus (eases in).
-// ── FIX (a note opens FULL SIZE): on a phone a tapped note — from the file list, a graph node, a
-// cluster label, a wikilink, the palette — opens straight into the fullscreen reader. No bouncing
-// the user over to the Graph tab first, and no half-height sheet: the reader lays over whichever
-// tab you were on, and the X / back-swipe drops you right back there.
-function vxOpenNode(id){
-  if(!BRAIN||!BRAIN.byId[id]) return;
-  if(vxIsPhone()){
-    brainSelect(id,false,{noPanel:true});   // builds content + lazy-loads the markdown (reader picks it up)
-    brainFocus(id);                          // the graph stays framed on this node behind the reader
-    brainOpenReader();
-    return;
-  }
-  brainSelect(id,false); brainFocus(id);
-}
+function vxOpenNode(id){ if(!BRAIN||!BRAIN.byId[id]) return; brainSelect(id,false); brainFocus(id); }
 function vxFocusCluster(group){ const ns=vaultVisibleNodes().filter(n=>n.group===group); if(!ns.length) return;
   let hub=ns[0]; ns.forEach(n=>{ if((n.deg||0)>(hub.deg||0)) hub=n; }); vxOpenNode(hub.id); }
 // ── Breadcrumb (orientation while deep in a cluster) ──
@@ -4112,7 +4036,7 @@ function renderVault(){
        '</aside>'+
        // ── RIGHT: the 3D vault graph ──
        '<div id="vault-graph-panel" class="vault-pane min-w-0">'+
-       '<div id="brain-wrap" class="relative rounded-2xl overflow-hidden border hairline bg-[#05060a]">'+   // height in CSS, so the no-scroll rules can override it
+       '<div id="brain-wrap" class="relative rounded-2xl overflow-hidden border hairline bg-[#05060a]" style="height:calc(100dvh - 9.5rem);min-height:520px">'+
          '<div id="brain-canvas" class="absolute inset-0"></div>'+
          '<div id="brain-labels" class="absolute inset-0 z-10 overflow-hidden pointer-events-none"></div>'+
          // ── Vault UX v2 overlays: panel toggles, breadcrumb, saved views, legend, minimap, scrubber, hover card ──
@@ -4144,9 +4068,19 @@ function renderVault(){
          '<aside id="brain-side" class="absolute top-0 right-0 h-full w-full sm:w-[380px] z-30 border-l hairline flex flex-col translate-x-full transition-transform duration-300" style="background:rgba(8,10,16,0.96);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);transition-timing-function:cubic-bezier(.16,1,.3,1)">'+
             '<div id="brain-scroll" class="flex-1 overflow-y-auto p-4 sm:p-5"></div>'+
          '</aside>'+
-       '</div>'+     // /#brain-wrap
-       '</div>'+     // /#vault-graph-panel
-     '</div>'+       // /.vault-grid
+         // fullscreen markdown reader (hidden until Expand)
+         '<div id="brain-reader" class="hidden fixed inset-0 z-[60] flex items-start justify-center p-4 sm:p-8" style="background:rgba(4,5,8,0.86);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);opacity:0;transition:opacity .2s ease">'+
+           '<div class="w-full max-w-[820px] max-h-full flex flex-col rounded-2xl border hairline overflow-hidden" style="background:rgba(10,12,18,0.98);box-shadow:0 24px 80px rgba(0,0,0,.6)">'+
+             '<div class="flex items-start justify-between gap-3 px-6 sm:px-8 pt-5 pb-3 border-b hairline">'+
+               '<div class="min-w-0"><h2 id="brain-reader-title" class="text-[19px] font-extrabold text-on-surface leading-tight break-words"></h2>'+
+               '<div id="brain-reader-sub" class="text-[11px] text-on-surface-variant/50 mt-0.5 break-words"></div></div>'+
+               '<button data-brain-reader-close title="Close (Esc)" class="pressable shrink-0 w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined text-[20px]">close</span></button></div>'+
+             '<div id="brain-reader-body" class="notes-body flex-1 overflow-y-auto px-6 sm:px-10 py-6 text-[15px]" style="line-height:1.75"></div>'+
+           '</div>'+
+         '</div>'+
+       '</div>'+
+       '</div>'+
+     '</div>'+
      // ── Command palette (⌘K / Ctrl-K): keyboard-first fuzzy jump to any note, project, or command ──
      '<div id="vx-palette"><div class="vx-pal-bg" data-vx-pal-bg></div>'+
        '<div class="vx-pal">'+
@@ -4154,23 +4088,6 @@ function renderVault(){
          '<div id="vx-pal-list"></div>'+
          '<div class="vx-pal-hint"><span><span class="vx-kbd">↑↓</span> navigate</span><span><span class="vx-kbd">↵</span> open</span><span><span class="vx-kbd">esc</span> close</span></div>'+
        '</div>'+
-     '</div>'+
-   '</div>'+       // /#vault-root
-   // ── Fullscreen note reader. It sits OUTSIDE #vault-root, for two reasons:
-   //   1. on phones the graph pane is display:none while you're in List mode, and a reader nested
-   //      inside it would have nothing to render into — it has to open over EITHER tab;
-   //   2. #vault-root runs the .rise entrance animation, and an element carrying a filled transform
-   //      animation stays a containing block for position:fixed children in Chrome — nested inside
-   //      it, "fixed inset-0" measured the vault card, not the screen, so the note opened as a
-   //      window-inside-a-window instead of full size.
-   '<div id="brain-reader" class="hidden fixed inset-0 z-[60] flex items-start justify-center p-4 sm:p-8" style="background:rgba(4,5,8,0.86);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);opacity:0;transition:opacity .2s ease">'+
-     '<div id="brain-reader-card" class="w-full max-w-[820px] max-h-full flex flex-col rounded-2xl border hairline overflow-hidden" style="background:rgba(10,12,18,0.98);box-shadow:0 24px 80px rgba(0,0,0,.6)">'+
-       '<div class="flex items-start justify-between gap-3 px-6 sm:px-8 pt-5 pb-3 border-b hairline">'+
-         '<div class="min-w-0"><h2 id="brain-reader-title" class="text-[19px] font-extrabold text-on-surface leading-tight break-words"></h2>'+
-         '<div id="brain-reader-sub" class="text-[11px] text-on-surface-variant/50 mt-0.5 break-words"></div></div>'+
-         '<button data-brain-reader-close title="Close (Esc)" class="pressable shrink-0 w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined text-[20px]">close</span></button></div>'+
-       '<details id="brain-reader-struct" class="brain-reader-struct hidden"></details>'+
-       '<div id="brain-reader-body" class="notes-body flex-1 overflow-y-auto px-6 sm:px-10 py-6 text-[15px]" style="line-height:1.75"></div>'+
      '</div>'+
    '</div>';
   vaultSetMobileTab(VAULT.mtab);   // paint the segmented control's active state
@@ -4183,9 +4100,8 @@ function renderVault(){
       const fp=fold.dataset.vaultFolder; if(VAULT.expanded.has(fp)) VAULT.expanded.delete(fp); else VAULT.expanded.add(fp);
       vaultRefreshList(); return; }
     const goto=e.target.closest("[data-brain-goto]"); if(goto){ e.preventDefault(); e.stopPropagation();
-      // Stay on the tab you're on. vxOpenNode opens the note FULL SCREEN on phones (over the list or
-      // the graph, whichever you tapped from) and selects + focuses it on desktop.
-      vxOpenNode(goto.dataset.brainGoto); return; }
+      if(window.matchMedia && window.matchMedia("(max-width:639px)").matches) vaultSetMobileTab("graph");   // reveal the graph + bottom-sheet panel on phones
+      vxOpenNode(goto.dataset.brainGoto); return; }                                                          // select + FOCUS (isolate) — same as clicking the node in the graph
     const wiki=e.target.closest('[data-act="brain-wiki"]'); if(wiki){ e.preventDefault(); e.stopPropagation(); const nd=bResolve(wiki.dataset.target); if(nd) vxOpenNode(nd.id); else toast('No note matches “'+wiki.dataset.target+'”'); return; }
     if(e.target.closest("[data-brain-close]")){ e.preventDefault(); $("#brain-side").classList.remove("open"); return; }
     if(e.target.closest("[data-brain-toggle]")){ e.preventDefault(); brainToggleAll(); return; }
@@ -4211,32 +4127,6 @@ function renderVault(){
   // Hardware / browser BACK closes the reader (mobile), consuming the entry brainOpenReader pushed.
   if(!window.__brainReaderPop){ window.__brainReaderPop=true;
     window.addEventListener("popstate", ()=>{ if(BRAIN&&BRAIN._readerOpen) brainCloseReader(true); }); }
-  // SWIPE BACK to close the reader. Safari's edge-swipe already fires popstate (handled above), but
-  // installed-to-home-screen there is no browser gesture at all — so the card follows a rightward
-  // drag and dismisses past the threshold. Only engages once the drag is clearly horizontal, so
-  // scrolling the note vertically is untouched.
-  if(!window.__brainReaderSwipe){ window.__brainReaderSwipe=true;
-    let x0=0,y0=0,dx=0,axis=0,card=null;                       // axis: 0=undecided, 1=horizontal, -1=vertical
-    const start=(e)=>{ if(!BRAIN||!BRAIN._readerOpen||e.touches.length!==1) return;
-      card=$("#brain-reader-card"); x0=e.touches[0].clientX; y0=e.touches[0].clientY; dx=0; axis=0; };
-    const move=(e)=>{ if(!card||e.touches.length!==1) return;
-      const mx=e.touches[0].clientX-x0, my=e.touches[0].clientY-y0;
-      if(!axis){ if(Math.abs(mx)<10 && Math.abs(my)<10) return; axis = (Math.abs(mx)>Math.abs(my)*1.4) ? 1 : -1;
-        if(axis===1) card.classList.add("brain-dragging"); }
-      if(axis!==1) return;
-      dx=Math.max(0,mx);                                        // rightward only — the "back" direction
-      card.style.transform="translateX("+dx+"px)";
-      card.style.opacity=String(Math.max(0.35, 1-dx/420)); };
-    const end=()=>{ if(!card) return; const c=card; card=null;
-      c.classList.remove("brain-dragging");
-      if(axis===1 && dx>90){ c.style.transform="translateX(110%)"; c.style.opacity="0"; brainCloseReader(); }
-      else { c.style.transform=""; c.style.opacity=""; }
-      dx=0; axis=0; };
-    document.addEventListener("touchstart", start, {passive:true});
-    document.addEventListener("touchmove", move, {passive:true});
-    document.addEventListener("touchend", end, {passive:true});
-    document.addEventListener("touchcancel", end, {passive:true});
-  }
   // Live file-list search — one delegated input handler (bound once; survives re-renders, keeps focus).
   // Debounced; drives BOTH the list (filter) and the graph (dim non-matches + zoom to fit).
   if(!window.__vaultSearchBound){ window.__vaultSearchBound=true;
@@ -4303,12 +4193,6 @@ function setView(name, force){
   $$(".tab").forEach(t=>t.dataset.active = t.dataset.view===name?"1":"0");
   $$(".bnav").forEach(t=>t.dataset.active = t.dataset.view===name?"1":"0");
   if(name==="inbox") markRepliesSeen();   // viewing the inbox clears the unread-reply badge
-  // The Vault owns the whole screen: while it's open the page cannot scroll (see the .vault-fixed
-  // rules) so nothing drifts under the 3D canvas. Every other view scrolls normally.
-  const vaultLock = (name==="vault");
-  document.documentElement.classList.toggle("vault-fixed", vaultLock);
-  document.body.classList.toggle("vault-fixed", vaultLock);
-  if(vaultLock) vxRelayoutGraph(60);      // the graph box just changed size — re-measure the canvas
   if(keepScroll) window.scrollTo({top:y}); else window.scrollTo({top:0});
 }
 function rerender(name){ RENDERED[name]=false; if(STATE.view===name) setView(name,true); }

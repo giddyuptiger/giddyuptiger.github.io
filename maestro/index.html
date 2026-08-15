@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Maestro build: 2026-08-12-coach-rework-v2 (Coach reworked: daily de-dupes + varies against goals/movement not just the top task; weekly/monthly are real AI rollups measured against GOALS.md; summary rows show the biggest lever at a glance) -->
+<!-- Maestro build: 2026-08-15-one-queue-v1 (Queue reads/writes public.maestro_items — one row per item, RLS-scoped — alongside maestro_dashboard.tasks. Merge-only during the migration: nothing disappears from the board, a flaky read leaves it untouched. App-created tasks now also land in the canonical queue, and completing an item from the board closes its row.) -->
 <html class="dark" lang="en">
 <head>
 <meta charset="UTF-8">
@@ -638,7 +638,7 @@ const CONNECTOR_BASE = SUPABASE_URL + "/functions/v1/maestro-connector";
 const $ = (s,r)=> (r||document).querySelector(s);
 const $$ = (s,r)=> Array.from((r||document).querySelectorAll(s));
 const esc = s => (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-let DATA=null, NOW=new Date(), STATE={ view:"overview", calFilter:"all", setupExpanded:{}, noteSel:null, noteOpen:{}, tripOpen:{}, showPastTrips:false }, RENDERED={}, PENDING=[], USER_ID=null;
+let DATA=null, NOW=new Date(), STATE={ view:"overview", calFilter:"all", setupExpanded:{}, noteSel:null, noteOpen:{}, tripOpen:{}, showPastTrips:false }, RENDERED={}, PENDING=[], USER_ID=null, USER_EMAIL=null;
 let RUNS=[], RUNS_TIMER=null;
 let DECISIONS=[];
 let GOOGLE_CONN=null;   // {status, account_email, connected_at} from maestro_connections (provider=google) — null = unknown/not-loaded
@@ -1764,6 +1764,18 @@ async function saveNewTask(){
   if(two_min) task.two_min=true;
   if(proj){ task.projectId=proj.id; task.project=proj.name; if(proj.icon) task.icon=proj.icon; }
   DATA.tasks = DATA.tasks || []; DATA.tasks.unshift(task);
+  // Dual-write to the canonical queue. Without this an app-created task lives only in
+  // maestro_dashboard.tasks and is invisible to every Claude session — the mirror image of the
+  // bug where session-created items were invisible here.
+  try{
+    if(USER_ID && USER_EMAIL){
+      const { error:iErr } = await sb.from("maestro_items").insert({
+        user_id:USER_ID, owner_email:USER_EMAIL, project:(proj?proj.name:null),
+        title:name, state:"open", kind:"task", source:"app"
+      });
+      if(iErr) console.warn("maestro_items insert failed — task is on the board but not in the queue:", iErr.message);
+    }
+  }catch(e){ console.warn("maestro_items insert threw:", e); }
   closeModal();
   RENDERED.overview=false; RENDERED.tasks=false; setView("tasks",true);   // show it in its section now
   toast("Task added","add_task");
@@ -1772,6 +1784,18 @@ async function saveNewTask(){
 async function toggleTask(id){
   const cur = completedTasks().slice();
   const i = cur.indexOf(id);
+  const marking = i < 0;                       // false = un-completing
+  // Keep the canonical queue in step. Only for rows that came from it (id prefixed "mi_"), and
+  // only ever state — completedTasks stays the app's own user-owned list.
+  try{
+    const t = findTaskById(id);
+    if(t && t.item_id && USER_ID){
+      const { error:uErr } = await sb.from("maestro_items")
+        .update({ state: marking ? "done" : "open", resolved_by: marking ? "app" : null })
+        .eq("id", t.item_id).eq("user_id", USER_ID);
+      if(uErr) console.warn("maestro_items state update failed:", uErr.message);
+    }
+  }catch(e){ console.warn("maestro_items state update threw:", e); }
   if(i>=0) cur.splice(i,1); else cur.push(id);
   DATA.settings = DATA.settings || {}; DATA.settings.completedTasks = cur;
   // One-way: the first time every setup item is complete, retire the Setup section permanently.
@@ -2316,6 +2340,45 @@ function keepIfEmpty(incoming, current){
   if(incoming && typeof incoming==="object") return Object.keys(incoming).length ? incoming : (current||incoming);
   return (incoming==null) ? current : incoming;
 }
+/* ───── The canonical queue: public.maestro_items (one-queue migration, step 5) ─────
+   The queue used to be an array inside maestro_dashboard.tasks (and, on the session side, inside
+   maestro_state.state). Both are read-modify-write over a whole blob, so two writers silently
+   clobber each other — that deleted five real items on 2026-08-15. maestro_items is one row per
+   item, RLS-scoped to the signed-in user, so the database refuses other tenants' rows rather than
+   trusting every query to filter correctly.
+
+   During the migration this MERGES rather than replaces: existing tasks are kept and any open item
+   not already on the board is appended. Nothing can disappear from your board because of this
+   change, and a flaky read leaves the board exactly as it was. maestro_dashboard.tasks is retired
+   only after both sides have been correct for a week. ───── */
+const qnorm = s => String(s||"").trim().toLowerCase().replace(/\s+/g," ").slice(0,140);
+
+function itemToTask(it){
+  const want = qnorm(it.project);
+  const proj = want ? (DATA.projects||[]).find(p=>qnorm(p.name)===want) : null;
+  const t = { id:"mi_"+it.id, item_id:it.id, title:it.title, priority:"this_week", source:"maestro_items" };
+  if(proj){ t.projectId=proj.id; t.project=proj.name; if(proj.icon) t.icon=proj.icon; }
+  else if(it.project){ t.project=it.project; }
+  return t;
+}
+
+async function mergeQueueItems(tasks){
+  const base = Array.isArray(tasks) ? tasks : [];
+  try{
+    const { data, error } = await sb.from("maestro_items")
+      .select("id, project, title, state, sort_order, created_at")
+      .eq("state","open")
+      .order("sort_order",{ ascending:true, nullsFirst:false })
+      .order("created_at",{ ascending:true })
+      .limit(500);
+    // Never blank the board on a flaky read — same rule as keepIfEmpty above.
+    if(error || !Array.isArray(data)) return base;
+    const seen = new Set(base.map(t=>qnorm(t.title)));
+    const extra = data.filter(it=>it.title && !seen.has(qnorm(it.title))).map(itemToTask);
+    return extra.length ? base.concat(extra) : base;
+  }catch(_e){ return base; }
+}
+
 async function readDashboardRow(cols, tries){
   tries = tries||3; let lastErr=null;
   for(let i=0;i<tries;i++){
@@ -2334,7 +2397,7 @@ async function refreshDashboardLive(){
     if(error || !row) return;                       // keep last-known-good — never blank on a flaky refresh
     DATA.events   = keepIfEmpty(row.events,   DATA.events);
     DATA.projects = keepIfEmpty(row.projects, DATA.projects);
-    DATA.tasks    = keepIfEmpty(row.tasks,    DATA.tasks);
+    DATA.tasks    = await mergeQueueItems(keepIfEmpty(row.tasks, DATA.tasks));
     if(row.meta && Object.keys(row.meta).length) DATA.meta = Object.assign({}, DATA.meta, row.meta);
     if(row.settings) DATA.settings = row.settings;
     $("#synced").textContent = "synced just now";
@@ -4440,6 +4503,9 @@ async function loadDashboard(){
   try {
     const _sess = (await sb.auth.getSession()).data.session;
     USER_ID = _sess?.user?.id || USER_ID;
+    // maestro_items' RLS insert policy checks owner_email = current_auth_email(), so the write
+    // path needs the signed-in address as well as the id.
+    USER_EMAIL = _sess?.user?.email || USER_EMAIL;
     // Owner gate for the Cockpit tab: hide it from any non-owner session. Default IS_OWNER=true,
     // so we only ever DEMOTE — a missing/unknown session id never hides the tab from the owner.
     // Gate on the signed-in user's auth id (UUID), never on an email string.
@@ -4462,6 +4528,9 @@ async function loadDashboard(){
     else if(row.data){ DATA=row.data; }            // legacy single-blob fallback
     else { DATA={ meta:{}, events:[], projects:[], tasks:[] }; }
   }
+  // Fold in the canonical queue (maestro_items). Merge-only during the migration — see
+  // mergeQueueItems: a flaky read leaves the board untouched rather than blanking it.
+  DATA.tasks = await mergeQueueItems(DATA.tasks);
   DATA.settings = (row && row.settings) || {};   // user-owned calendar visibility
   // Retire the Setup section for accounts that already finished every setup item before the
   // one-way flag existed (so it doesn't linger as a "Done" archive). Persist once.

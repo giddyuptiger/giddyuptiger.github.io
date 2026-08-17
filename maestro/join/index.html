@@ -75,10 +75,10 @@
   const nodes=[],edges=[],hubs=[];
   const root={x:0,y:0,z:0,r:8,c:"#C5E45C"}; nodes.push(root);
   PAL.forEach((c,ci)=>{
-    const az=ci/PAL.length*6.283+.35+rr(-.12,.12), el=rr(-.55,.55), R=rr(200,240);
+    const az=ci/PAL.length*6.283+.35+rr(-.12,.12), el=rr(-.55,.55), R=rr(280,350);
     const h={x:R*Math.cos(el)*Math.cos(az),y:R*Math.sin(el)*.85,z:R*Math.cos(el)*Math.sin(az),r:6,c:c};
     nodes.push(h);hubs.push(h);edges.push([root,h,0]);
-    for(let i=0;i<10;i++){ const m={x:h.x+ga()*55,y:h.y+ga()*46,z:h.z+ga()*55,r:rr(2.6,4.6),c:c};
+    for(let i=0;i<10;i++){ const m={x:h.x+ga()*72,y:h.y+ga()*60,z:h.z+ga()*72,r:rr(2.6,4.6),c:c};
       nodes.push(m); edges.push([h,m,0]); }
   });
   for(let i=0;i<14;i++){ const a=nodes[1+(rnd()*(nodes.length-1)|0)],b=nodes[1+(rnd()*(nodes.length-1)|0)];
@@ -86,7 +86,7 @@
   function draw(now){
     const t=now/1000, yaw=t*.07, cy=Math.cos(yaw), sy=Math.sin(yaw);
     const pitch=.24, cp=Math.cos(pitch), sp=Math.sin(pitch);
-    const D=Math.max(620, 900 - Math.min(W,H)/devicePixelRatio*0.15), F=.62*Math.min(W,H)+260;
+    const D=700, F=.60*Math.max(W,H)+160;
     ctx.fillStyle="#05060a"; ctx.fillRect(0,0,W,H);
     const P=nodes.map(n=>{ let x=n.x*cy+n.z*sy, z=-n.x*sy+n.z*cy, y=n.y;
       const y2=y*cp-z*sp, z2=y*sp+z*cp, sc=F/(D-z2);
@@ -104,7 +104,7 @@
       ctx.globalAlpha=1; });
     ctx.globalCompositeOperation="source-over";
     /* soft veil so the type stays readable */
-    ctx.fillStyle="rgba(5,6,10,0.45)"; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle="rgba(5,6,10,0.40)"; ctx.fillRect(0,0,W,H);
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
